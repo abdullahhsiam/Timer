@@ -71,11 +71,16 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         alarmController = AlarmController(applicationContext)
         viewModel.selectSound(alarmController.getSelectedSound())
+        
+        // Load custom background preferences
+        val prefs = getSharedPreferences("focus_sound_prefs", android.content.Context.MODE_PRIVATE)
+        viewModel.setBackgroundAnimated(prefs.getBoolean("is_background_animated", true))
 
         setContent {
             MyApplicationTheme {
                 val alarmTriggered by viewModel.alarmTriggered.collectAsState()
                 val selectedSound by viewModel.selectedSound.collectAsState()
+                val isBackgroundAnimated by viewModel.isBackgroundAnimated.collectAsState()
 
                 // Trigger or close alarm audio/vibe relative to ViewModel reactive states
                 LaunchedEffect(alarmTriggered) {
@@ -89,6 +94,12 @@ class MainActivity : ComponentActivity() {
                 // Keep sound controller synchronized with state flow changes
                 LaunchedEffect(selectedSound) {
                     alarmController.saveSelectedSound(selectedSound)
+                }
+
+                // Persist background styling preferences
+                LaunchedEffect(isBackgroundAnimated) {
+                    val editPrefs = getSharedPreferences("focus_sound_prefs", android.content.Context.MODE_PRIVATE)
+                    editPrefs.edit().putBoolean("is_background_animated", isBackgroundAnimated).apply()
                 }
 
                 Surface(
@@ -126,6 +137,7 @@ fun MainScreen(
     val isAlwaysOn by viewModel.isAlwaysOn.collectAsState()
     val timerStatus by viewModel.timerStatus.collectAsState()
     val stopwatchStatus by viewModel.stopwatchStatus.collectAsState()
+    val isBackgroundAnimated by viewModel.isBackgroundAnimated.collectAsState()
 
     var menuExpanded by remember { mutableStateOf(false) }
     var showSoundDialog by remember { mutableStateOf(false) }
@@ -159,7 +171,8 @@ fun MainScreen(
     // Wrap entire layout in standard animated background
     AnimatedGradientBackground(
         isPulsingAlarm = alarmTriggered,
-        isRunningActive = timerStatus == TimerStatus.RUNNING || stopwatchStatus == StopwatchStatus.RUNNING
+        isRunningActive = timerStatus == TimerStatus.RUNNING || stopwatchStatus == StopwatchStatus.RUNNING,
+        isAnimated = isBackgroundAnimated
     ) {
         if (alarmTriggered) {
             // Full screen active Alert dialog overlay
@@ -232,6 +245,19 @@ fun MainScreen(
                                         onClick = {
                                             menuExpanded = false
                                             showSoundDialog = true
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { 
+                                            Text(
+                                                text = if (isBackgroundAnimated) "Background: Animated" else "Background: Static Fluid", 
+                                                color = Color.White, 
+                                                fontSize = 14.sp
+                                            ) 
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            viewModel.setBackgroundAnimated(!isBackgroundAnimated)
                                         }
                                     )
                                 }

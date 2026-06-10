@@ -34,6 +34,14 @@ class TimerStopwatchViewModel : ViewModel() {
         _selectedSound.value = preset
     }
 
+    // --- Background Style State ---
+    private val _isBackgroundAnimated = MutableStateFlow(true)
+    val isBackgroundAnimated: StateFlow<Boolean> = _isBackgroundAnimated.asStateFlow()
+
+    fun setBackgroundAnimated(animated: Boolean) {
+        _isBackgroundAnimated.value = animated
+    }
+
     // --- Tab Selection State ---
     private val _activeTab = MutableStateFlow(0) // 0: Timer, 1: Stopwatch
     val activeTab: StateFlow<Int> = _activeTab.asStateFlow()

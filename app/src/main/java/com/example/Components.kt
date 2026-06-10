@@ -54,6 +54,7 @@ fun AnimatedGradientBackground(
     modifier: Modifier = Modifier,
     isPulsingAlarm: Boolean = false,
     isRunningActive: Boolean = false,
+    isAnimated: Boolean = true,
     content: @Composable BoxScope.() -> Unit
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "ambient_glow")
@@ -122,9 +123,14 @@ fun AnimatedGradientBackground(
                         center = center
                     )
                 } else if (isRunningActive) {
+                    // Retrieve animation values only if animation is enabled
+                    val activeAngle = if (isAnimated) angleRad else 0f
+                    val activeDrift1 = if (isAnimated) driftOffset1 else 0f
+                    val activeDrift2 = if (isAnimated) driftOffset2 else 0f
+
                     // Gorgeous, highly polished rotating cosmic fluid dark multi-color gradient
-                    val cosVal = cos(angleRad) * 0.45f
-                    val sinVal = sin(angleRad) * 0.45f
+                    val cosVal = cos(activeAngle) * 0.45f
+                    val sinVal = sin(activeAngle) * 0.45f
                     
                     val activeBrush = Brush.linearGradient(
                         colors = listOf(
@@ -150,15 +156,15 @@ fun AnimatedGradientBackground(
                         brush = Brush.radialGradient(
                             colors = listOf(Color(0x3E312E81), Color.Transparent), // Stronger indigo layer
                             center = Offset(
-                                x = sizeVal.width * -0.05f + driftOffset1 * 1.5f,
-                                y = sizeVal.height * -0.1f + driftOffset2 * 1.5f
+                                x = sizeVal.width * -0.05f + activeDrift1 * 1.5f,
+                                y = sizeVal.height * -0.1f + activeDrift2 * 1.5f
                             ),
                             radius = sizeVal.width * 1.0f
                         ),
                         radius = sizeVal.width * 1.0f,
                         center = Offset(
-                            x = sizeVal.width * -0.05f + driftOffset1 * 1.5f,
-                            y = sizeVal.height * -0.1f + driftOffset2 * 1.5f
+                            x = sizeVal.width * -0.05f + activeDrift1 * 1.5f,
+                            y = sizeVal.height * -0.1f + activeDrift2 * 1.5f
                         )
                     )
 
@@ -166,18 +172,21 @@ fun AnimatedGradientBackground(
                         brush = Brush.radialGradient(
                             colors = listOf(Color(0x2B581C87), Color.Transparent), // Stronger lavender purple layer
                             center = Offset(
-                                x = sizeVal.width * 1.05f - driftOffset2 * 1.5f,
-                                y = sizeVal.height * 1.0f - driftOffset1 * 1.5f
+                                x = sizeVal.width * 1.05f - activeDrift2 * 1.5f,
+                                y = sizeVal.height * 1.0f - activeDrift1 * 1.5f
                             ),
                             radius = sizeVal.width * 0.9f
                         ),
                         radius = sizeVal.width * 0.9f,
                         center = Offset(
-                            x = sizeVal.width * 1.05f - driftOffset2 * 1.5f,
-                            y = sizeVal.height * 1.0f - driftOffset1 * 1.5f
+                            x = sizeVal.width * 1.05f - activeDrift2 * 1.5f,
+                            y = sizeVal.height * 1.0f - activeDrift1 * 1.5f
                         )
                     )
                 } else {
+                    val passiveDrift1 = if (isAnimated) driftOffset1 else 0f
+                    val passiveDrift2 = if (isAnimated) driftOffset2 else 0f
+
                     // Clean Minimalism Dark solid canvas base
                     drawRect(color = Color(0xFF0F0F12))
 
@@ -186,15 +195,15 @@ fun AnimatedGradientBackground(
                         brush = Brush.radialGradient(
                             colors = listOf(Color(0x33312E81), Color.Transparent),
                             center = Offset(
-                                x = sizeVal.width * -0.1f + driftOffset1,
-                                y = sizeVal.height * -0.15f + driftOffset2
+                                x = sizeVal.width * -0.1f + passiveDrift1,
+                                y = sizeVal.height * -0.15f + passiveDrift2
                             ),
                             radius = sizeVal.width * 0.9f
                         ),
                         radius = sizeVal.width * 0.9f,
                         center = Offset(
-                            x = sizeVal.width * -0.1f + driftOffset1,
-                            y = sizeVal.height * -0.15f + driftOffset2
+                            x = sizeVal.width * -0.1f + passiveDrift1,
+                            y = sizeVal.height * -0.15f + passiveDrift2
                         )
                     )
 
@@ -203,15 +212,15 @@ fun AnimatedGradientBackground(
                         brush = Brush.radialGradient(
                             colors = listOf(Color(0x1B581C87), Color.Transparent),
                             center = Offset(
-                                x = sizeVal.width * 1.1f - driftOffset2,
-                                y = sizeVal.height * 1.05f - driftOffset1
+                                x = sizeVal.width * 1.1f - passiveDrift2,
+                                y = sizeVal.height * 1.05f - passiveDrift1
                             ),
                             radius = sizeVal.width * 0.82f
                         ),
                         radius = sizeVal.width * 0.82f,
                         center = Offset(
-                            x = sizeVal.width * 1.1f - driftOffset2,
-                            y = sizeVal.height * 1.05f - driftOffset1
+                            x = sizeVal.width * 1.1f - passiveDrift2,
+                            y = sizeVal.height * 1.05f - passiveDrift1
                         )
                     )
                 }
