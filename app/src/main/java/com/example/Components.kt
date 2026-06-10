@@ -240,6 +240,7 @@ fun CircleProgressTimer(
     )
 
     val isInPip by TimerStopwatchStateManager.isInPip.collectAsState()
+    val isAnimationsEnabled by TimerStopwatchStateManager.isBackgroundAnimated.collectAsState()
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     
@@ -267,12 +268,117 @@ fun CircleProgressTimer(
         10.dp
     }
 
+    // Determine state for our premium blurred fluid shape backdrop
+    val isRunning = statusText.uppercase().contains("RUNNING") || glowEnabled
+    val isPaused = statusText.uppercase().contains("PAUSED")
+    
+    val infiniteTransition = rememberInfiniteTransition(label = "fluid_backdrop_anims")
+    
+    // Slow breathing / pulsing rate - 0f to 1f back and forth
+    val breathProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(4500, easing = SineCrossingEasing()),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "fluid_breath"
+    )
+    
+    // Steady, graceful floating/rotation angle
+    val rotationProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(22000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "fluid_rotate"
+    )
+
+    // Dynamic scale configuration
+    // - Idle: perfectly 1.0f (no motion)
+    // - Running: breathes subtly between 1.05f and 1.25f (very calm and elegant)
+    // - Paused: smoothly settles at a halfway static state 1.08f (no breath fluctuation)
+    val targetScale = when {
+        !isAnimationsEnabled -> 1.05f
+        isRunning -> 1.04f + (0.16f * breathProgress)
+        isPaused -> 1.08f
+        else -> 1.0f // IDLE
+    }
+
+    val targetAlpha = when {
+        isRunning -> 0.70f
+        isPaused -> 0.50f
+        else -> 0.40f // IDLE
+    }
+
+    val targetBlur = when {
+        isRunning -> 40.dp
+        isPaused -> 42.dp
+        else -> 45.dp
+    }
+
+    // Wrap in animate*AsState for buttery smooth transitions between states (Idle -> Running -> Paused -> Reset)
+    val animatedScale by animateFloatAsState(
+        targetValue = targetScale,
+        animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioNoBouncy),
+        label = "fluid_scale_spring"
+    )
+
+    val animatedAlpha by animateFloatAsState(
+        targetValue = targetAlpha,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "fluid_alpha_spring"
+    )
+
+    val animatedRotation by animateFloatAsState(
+        targetValue = if (isRunning && isAnimationsEnabled) rotationProgress else 0f,
+        animationSpec = if (isRunning) spring(stiffness = Spring.StiffnessVeryLow) else tween(1500, easing = FastOutSlowInEasing),
+        label = "fluid_rotation_spring"
+    )
+
     Box(
         modifier = modifier
             .size(sizeD)
             .aspectRatio(1f),
         contentAlignment = Alignment.Center
     ) {
+        // Premium Blurred Fluid Backdrop Shape
+        Box(
+            modifier = Modifier
+                .size(sizeD * 0.88f)
+                .graphicsLayer {
+                    this.scaleX = animatedScale
+                    this.scaleY = animatedScale
+                    this.rotationZ = animatedRotation
+                    this.alpha = animatedAlpha
+                }
+                .blur(targetBlur)
+                .clip(CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            // Overlapping atmospheric organic colorful blobs representing premium brand art
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(0.68f)
+                    .align(Alignment.TopStart)
+                    .background(Brush.radialGradient(listOf(PurpleGlow.copy(alpha = 0.80f), Color.Transparent)))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(0.65f)
+                    .align(Alignment.BottomEnd)
+                    .background(Brush.radialGradient(listOf(CyanGlow.copy(alpha = 0.75f), Color.Transparent)))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(0.55f)
+                    .align(Alignment.Center)
+                    .background(Brush.radialGradient(listOf(NeonPink.copy(alpha = 0.70f), Color.Transparent)))
+            )
+        }
+
         // Concentric Clean Borders (absolute -inset-12 and -inset-24)
         Canvas(modifier = Modifier.fillMaxSize()) {
             val centerOffset = Offset(size.width / 2f, size.height / 2f)

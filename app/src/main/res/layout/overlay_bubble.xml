@@ -7,45 +7,41 @@
     <!-- 1. DOCKABLE ISLAND LAYOUT: Horizontal center-aligned narrow pill -->
     <LinearLayout
         android:id="@+id/dockable_island_container"
-        android:layout_width="110dp"
-        android:layout_height="38dp"
+        android:layout_width="130dp"
+        android:layout_height="46dp"
         android:layout_gravity="center"
         android:gravity="center"
         android:orientation="horizontal"
-        android:paddingHorizontal="8dp"
+        android:paddingHorizontal="14dp"
         android:visibility="gone">
 
-        <!-- Left Controls Group -->
-        <LinearLayout
-            android:id="@+id/island_left_controls"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone">
+        <!-- Play/Pause Icon -->
+        <ImageView
+            android:id="@+id/island_btn_play_pause"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="14dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:src="@drawable/ic_play_symbol"
+            android:visibility="gone"
+            android:alpha="0"
+            android:contentDescription="Play/Pause" />
 
-            <ImageView
-                android:id="@+id/island_btn_play_pause"
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:layout_marginEnd="12dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:focusable="true"
-                android:src="@android:drawable/ic_media_play"
-                android:contentDescription="Play/Pause" />
-
-            <ImageView
-                android:id="@+id/island_btn_reset"
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:layout_marginEnd="12dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:focusable="true"
-                android:src="@android:drawable/ic_menu_revert"
-                android:contentDescription="Reset" />
-        </LinearLayout>
+        <!-- Reset Icon -->
+        <ImageView
+            android:id="@+id/island_btn_reset"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="16dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:src="@drawable/ic_reset_symbol"
+            android:visibility="gone"
+            android:alpha="0"
+            android:contentDescription="Reset" />
 
         <!-- Center Time Text Display (Always Visible) -->
         <TextView
@@ -55,44 +51,24 @@
             android:fontFamily="sans-serif-medium"
             android:text="00:00"
             android:textColor="#FFFFFF"
-            android:textSize="14sp"
+            android:textSize="17sp"
             android:textStyle="bold"
+            android:letterSpacing="0.04"
             android:gravity="center" />
 
-        <!-- Right Controls Group -->
-        <LinearLayout
-            android:id="@+id/island_right_controls"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone">
-
-            <TextView
-                android:id="@+id/island_btn_add_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:focusable="true"
-                android:fontFamily="sans-serif-medium"
-                android:text="+1m"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <ImageView
-                android:id="@+id/island_btn_close"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginStart="12dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:focusable="true"
-                android:src="@android:drawable/ic_menu_close_clear_cancel"
-                android:contentDescription="Close" />
-        </LinearLayout>
+        <!-- Close Icon -->
+        <ImageView
+            android:id="@+id/island_btn_close"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="16dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:src="@drawable/ic_close_symbol"
+            android:visibility="gone"
+            android:alpha="0"
+            android:contentDescription="Close" />
     </LinearLayout>
 
     <!-- 2. FLOATING BUBBLE COLLAPSED VIEW -->

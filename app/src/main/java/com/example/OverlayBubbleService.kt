@@ -118,7 +118,7 @@ class OverlayBubbleService : Service() {
                 shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                 setColor(android.graphics.Color.parseColor("#050510")) // Premium black matte acrylic
                 val density = root.context.resources.displayMetrics.density
-                cornerRadius = 19f * density // pill
+                cornerRadius = 23f * density // pill
                 setStroke((1f * density).toInt(), android.graphics.Color.parseColor("#1CFFFFFF")) // Subtle glowing bezel
             }
             root.findViewById<View>(R.id.dockable_island_container)?.background = islandBgDrawable
@@ -180,12 +180,12 @@ class OverlayBubbleService : Service() {
         islandWidthAnimator?.cancel()
 
         if (mode == 0) {
-            // Dynamic Island Mode: Fixed center-aligned notch bar, sitting directly below status bar
+            // Dynamic Island Mode: Fixed center-aligned notch bar, sitting directly below status bar (ideal size & aspect)
             currentParams.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             currentParams.x = 0
             currentParams.y = (10 * density).toInt()
-            currentParams.width = (115 * density).toInt()
-            currentParams.height = (40 * density).toInt()
+            currentParams.width = (130 * density).toInt()
+            currentParams.height = (46 * density).toInt()
         } else {
             // Free Bubble Mode: Top-Left floating anchor, user-draggable
             currentParams.gravity = Gravity.TOP or Gravity.START
@@ -204,9 +204,19 @@ class OverlayBubbleService : Service() {
             collapsedContainer?.visibility = View.GONE
             expandedContainer?.visibility = View.GONE
             
-            // Start narrow/collapsed
-            currentView.findViewById<View>(R.id.island_left_controls)?.visibility = View.GONE
-            currentView.findViewById<View>(R.id.island_right_controls)?.visibility = View.GONE
+            // Start narrow/collapsed with hidden icons and reset alpha
+            currentView.findViewById<View>(R.id.island_btn_play_pause)?.let {
+                it.visibility = View.GONE
+                it.alpha = 0f
+            }
+            currentView.findViewById<View>(R.id.island_btn_reset)?.let {
+                it.visibility = View.GONE
+                it.alpha = 0f
+            }
+            currentView.findViewById<View>(R.id.island_btn_close)?.let {
+                it.visibility = View.GONE
+                it.alpha = 0f
+            }
         } else {
             dockableContainer?.visibility = View.GONE
             collapsedContainer?.visibility = View.VISIBLE
@@ -221,8 +231,9 @@ class OverlayBubbleService : Service() {
     private fun toggleIslandExpansion() {
         val root = overlayView ?: return
         val islandContainer = root.findViewById<View>(R.id.dockable_island_container) ?: return
-        val leftControls = root.findViewById<View>(R.id.island_left_controls) ?: return
-        val rightControls = root.findViewById<View>(R.id.island_right_controls) ?: return
+        val btnPlayPause = root.findViewById<View>(R.id.island_btn_play_pause) ?: return
+        val btnReset = root.findViewById<View>(R.id.island_btn_reset) ?: return
+        val btnClose = root.findViewById<View>(R.id.island_btn_close) ?: return
         val density = resources.displayMetrics.density
 
         isIslandExpanded = !isIslandExpanded
@@ -230,16 +241,18 @@ class OverlayBubbleService : Service() {
 
         val startWidth = islandContainer.width
         val endWidth = if (isIslandExpanded) {
-            (270 * density).toInt()
+            (240 * density).toInt()
         } else {
-            (115 * density).toInt()
+            (130 * density).toInt()
         }
 
         if (isIslandExpanded) {
-            leftControls.visibility = View.VISIBLE
-            rightControls.visibility = View.VISIBLE
-            leftControls.alpha = 0f
-            rightControls.alpha = 0f
+            btnPlayPause.visibility = View.VISIBLE
+            btnReset.visibility = View.VISIBLE
+            btnClose.visibility = View.VISIBLE
+            btnPlayPause.alpha = 0f
+            btnReset.alpha = 0f
+            btnClose.alpha = 0f
         }
 
         islandWidthAnimator = ValueAnimator.ofInt(startWidth, endWidth).apply {
@@ -255,18 +268,21 @@ class OverlayBubbleService : Service() {
 
                 val progress = animator.animatedFraction
                 if (isIslandExpanded) {
-                    leftControls.alpha = progress
-                    rightControls.alpha = progress
+                    btnPlayPause.alpha = progress
+                    btnReset.alpha = progress
+                    btnClose.alpha = progress
                 } else {
-                    leftControls.alpha = 1f - progress
-                    rightControls.alpha = 1f - progress
+                    btnPlayPause.alpha = 1f - progress
+                    btnReset.alpha = 1f - progress
+                    btnClose.alpha = 1f - progress
                 }
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     if (!isIslandExpanded) {
-                        leftControls.visibility = View.GONE
-                        rightControls.visibility = View.GONE
+                        btnPlayPause.visibility = View.GONE
+                        btnReset.visibility = View.GONE
+                        btnClose.visibility = View.GONE
                     }
                 }
             })
@@ -374,9 +390,6 @@ class OverlayBubbleService : Service() {
         overlayView!!.findViewById<View>(R.id.island_btn_reset)?.setOnClickListener {
             resetActiveTimerState()
         }
-        overlayView!!.findViewById<View>(R.id.island_btn_add_time)?.setOnClickListener {
-            addOneMinuteToActiveTimer()
-        }
         overlayView!!.findViewById<View>(R.id.island_btn_close)?.setOnClickListener {
             stopSelf()
         }
@@ -482,7 +495,7 @@ class OverlayBubbleService : Service() {
         if (islandPlayPause != null) {
             val isRunning = (isTimerActive && state.timerStatus == TimerStatus.RUNNING) || (isSwActive && state.swStatus == StopwatchStatus.RUNNING)
             islandPlayPause.setImageResource(
-                if (isRunning) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
+                if (isRunning) R.drawable.ic_pause_symbol else R.drawable.ic_play_symbol
             )
             islandPlayPause.setColorFilter(android.graphics.Color.WHITE)
         }
@@ -490,11 +503,6 @@ class OverlayBubbleService : Service() {
         islandReset?.setColorFilter(android.graphics.Color.WHITE)
         val islandClose = view.findViewById<ImageView>(R.id.island_btn_close)
         islandClose?.setColorFilter(android.graphics.Color.WHITE)
-
-        val islandAddTime = view.findViewById<TextView>(R.id.island_btn_add_time)
-        if (islandAddTime != null) {
-            islandAddTime.visibility = if (isTimerActive) View.VISIBLE else View.GONE
-        }
 
         // 2. UPDATE FLOATING BUBBLE UI
         val collapsedTimeText = view.findViewById<TextView>(R.id.collapsed_time_text)
