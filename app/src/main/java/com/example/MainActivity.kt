@@ -695,7 +695,7 @@ fun SlidingTabSwitcher(
         // Sliding glassmorphic indicator capsule
         Box(
             modifier = Modifier
-                .offset(x = (tabProgress * 77).dp)
+                .offset(x = (tabProgress * 74).dp)
                 .width(stretchWidth)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(16.dp))
@@ -759,7 +759,7 @@ fun VisualModeSwitcher(
     ) {
         Box(
             modifier = Modifier
-                .offset(x = (tabProgress * 72).dp)
+                .offset(x = (tabProgress * 69).dp)
                 .width(stretchWidth)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(16.dp))
