@@ -2089,41 +2089,6 @@ fun DesignTabContent(viewModel: TimerStopwatchViewModel) {
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(14.dp))
-                
-                // Wallpaper configuration
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Button(
-                        onClick = {
-                            pickMedia.launch(
-                                PickVisualMediaRequest(
-                                    ActivityResultContracts.PickVisualMedia.ImageOnly
-                                )
-                            )
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.08f)),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        Icon(imageVector = Icons.Default.Layers, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Add Custom Wallpaper", color = Color.White, fontSize = 11.sp)
-                    }
-                    if (wallpaperUri.isNotEmpty()) {
-                        Button(
-                            onClick = { viewModel.setWallpaperUri("") },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0x3E610115)),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Text("Reset Backdrop", color = Color.White, fontSize = 11.sp)
-                        }
-                    }
-                }
             }
         }
 
@@ -3006,9 +2971,7 @@ fun AppearanceSettingsDialog(
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Dialog Body in LazyColumn for perfect scrollability
+                               // Dialog Body in LazyColumn for perfect scrollability
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -3025,48 +2988,73 @@ fun AppearanceSettingsDialog(
                                 )
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                listOf(
-                                    "System Default" to "default",
-                                    "AMOLED Black" to "black",
-                                    "Wallpaper Background" to "wallpaper"
-                                ).forEach { (label, key) ->
-                                    val isSelected = when (key) {
-                                        "default" -> config.floatingBubble.bgColor == "#0C0C12" && config.floatingBubble.opacity == 0.45f
-                                        "black" -> config.floatingBubble.bgColor == "#000000" && config.floatingBubble.opacity == 1.0f
-                                        "wallpaper" -> config.floatingBubble.bgColor == "#0C0C12" && config.floatingBubble.opacity == 0.18f
-                                        else -> false
+                            
+                            val presets = listOf(
+                                "System Default" to "default",
+                                "VisionOS Glass" to "visionos",
+                                "iOS Glass" to "ios",
+                                "Frosted Ice" to "frosted",
+                                "AMOLED Black" to "black",
+                                "Neon Cyberpunk" to "cyberpunk",
+                                "Emerald Dream" to "emerald",
+                                "Material You" to "material_you",
+                                "HyperOS" to "hyperos",
+                                "One UI" to "one_ui",
+                                "Nothing OS" to "nothing_os"
+                            )
+                            
+                            presets.chunked(2).forEach { rowItems ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    rowItems.forEach { (label, key) ->
+                                        val isSelected = when (key) {
+                                            "default" -> config.floatingBubble.bgColor == "#0C0C12" && config.floatingBubble.opacity == 0.45f
+                                            "visionos" -> config.floatingBubble.bgColor == "#FFFFFF" && config.floatingBubble.opacity == 0.15f
+                                            "ios" -> config.floatingBubble.bgColor == "#0F0F14" && config.floatingBubble.opacity == 0.35f
+                                            "frosted" -> config.floatingBubble.bgColor == "#E0F2FE" && config.floatingBubble.opacity == 0.18f
+                                            "black" -> config.floatingBubble.bgColor == "#000000" && config.floatingBubble.opacity == 1.0f
+                                            "cyberpunk" -> config.floatingBubble.bgColor == "#03000A" && config.floatingBubble.borderColor == "#FF2A6D"
+                                            "emerald" -> config.floatingBubble.bgColor == "#02150F"
+                                            "material_you" -> config.floatingBubble.bgColor == "#1F1B24"
+                                            "hyperos" -> config.floatingBubble.bgColor == "#121214"
+                                            "one_ui" -> config.floatingBubble.bgColor == "#1C1C1E"
+                                            "nothing_os" -> config.floatingBubble.bgColor == "#000000" && config.floatingBubble.borderColor == "#FFFFFF"
+                                            else -> false
+                                        }
+                                        
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(40.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(
+                                                    if (isSelected) Color.White.copy(alpha = 0.12f)
+                                                    else Color.White.copy(alpha = 0.04f)
+                                                )
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = if (isSelected) PurpleGlow else Color.White.copy(alpha = 0.08f),
+                                                    shape = RoundedCornerShape(10.dp)
+                                                )
+                                                .clickable {
+                                                    viewModel.applyPreset(label)
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = label,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center,
+                                                color = if (isSelected) PurpleGlow else Color.White.copy(alpha = 0.7f)
+                                            )
+                                        }
                                     }
-                                    
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(44.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(
-                                                if (isSelected) Color.White.copy(alpha = 0.12f)
-                                                else Color.White.copy(alpha = 0.04f)
-                                            )
-                                            .border(
-                                                width = 1.dp,
-                                                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.08f),
-                                                shape = RoundedCornerShape(12.dp)
-                                            )
-                                            .clickable {
-                                                viewModel.applyPreset(label)
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = label,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            textAlign = TextAlign.Center,
-                                            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f)
-                                        )
+                                    // if chunk has only 1 item, pad the Row
+                                    if (rowItems.size < 2) {
+                                        Spacer(modifier = Modifier.weight(1f))
                                     }
                                 }
                             }

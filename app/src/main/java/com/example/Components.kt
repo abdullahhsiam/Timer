@@ -130,32 +130,7 @@ fun AnimatedGradientBackground(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        // 1. Wallpaper Backdrop Layer
-        if (wallpaperUri.isNotEmpty()) {
-            val context = LocalContext.current
-            val painter = rememberAsyncImagePainter(
-                model = ImageRequest.Builder(context)
-                    .data(wallpaperUri)
-                    .crossfade(true)
-                    .build()
-            )
-            Image(
-                painter = painter,
-                contentDescription = "User Selected Backdrop",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                            Modifier.blur(glassBlur.dp)
-                        } else {
-                            Modifier
-                        }
-                    ),
-                contentScale = ContentScale.Crop
-            )
-        }
-
-        // 2. Ambient Gradient Overlay Box
+        // Ambient Gradient Overlay Box
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -173,11 +148,7 @@ fun AnimatedGradientBackground(
                             radius = sizeVal.minDimension * 0.9f,
                             center = center
                         )
-                    } else if (wallpaperUri.isNotEmpty()) {
-                        // Blend wall-paper, apply configuring glass opacity & tint
-                        drawRect(color = Color.Black.copy(alpha = glassOpacity.coerceIn(0f, 1f)))
-                        drawRect(color = tintOverlayColor)
-                    } else if (isRunningActive) {
+                    } else {
                         val activeAngle = if (isAnimated && glassAnimationSpeed > 0f) angleRad else 0f
                         val activeDrift1 = if (isAnimated && glassAnimationSpeed > 0f) driftOffset1 else 0f
                         val activeDrift2 = if (isAnimated && glassAnimationSpeed > 0f) driftOffset2 else 0f
@@ -205,13 +176,14 @@ fun AnimatedGradientBackground(
                         drawRect(brush = activeBrush)
 
                         // Glowing ambient circles based on users tint selection
+                        val glowAlpha = if (isRunningActive) 0.55f else 0.35f
                         val glowTintAccent = when (glassTint.lowercase()) {
                             "cyan" -> Color(0x3E00E6FF)
                             "pink" -> Color(0x3EFF2A6D)
                             "yellow" -> Color(0x3EFFD600)
                             "green" -> Color(0x3E00FF87)
                             else -> Color(0x3E312E81) // lavender
-                        }
+                        }.copy(alpha = glowAlpha)
 
                         drawCircle(
                             brush = Brush.radialGradient(
@@ -226,35 +198,6 @@ fun AnimatedGradientBackground(
                             center = Offset(
                                 x = sizeVal.width * -0.05f + activeDrift1 * 1.5f,
                                 y = sizeVal.height * -0.1f + activeDrift2 * 1.5f
-                            )
-                        )
-                    } else {
-                        val passiveDrift1 = if (isAnimated && glassAnimationSpeed > 0f) driftOffset1 else 0f
-                        val passiveDrift2 = if (isAnimated && glassAnimationSpeed > 0f) driftOffset2 else 0f
-
-                        drawRect(color = Color(0xFF0F0F12))
-
-                        val primaryGlowAccent = when (glassTint.lowercase()) {
-                            "cyan" -> Color(0x2300E6FF)
-                            "pink" -> Color(0x23FF2A6D)
-                            "yellow" -> Color(0x23FFD600)
-                            "green" -> Color(0x2300FF87)
-                            else -> Color(0x33312E81) // purple/indigo
-                        }
-
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(primaryGlowAccent, Color.Transparent),
-                                center = Offset(
-                                    x = sizeVal.width * -0.1f + passiveDrift1,
-                                    y = sizeVal.height * -0.15f + passiveDrift2
-                                ),
-                                radius = sizeVal.width * 0.9f
-                            ),
-                            radius = sizeVal.width * 0.9f,
-                            center = Offset(
-                                x = sizeVal.width * -0.1f + passiveDrift1,
-                                y = sizeVal.height * -0.15f + passiveDrift2
                             )
                         )
                     }
