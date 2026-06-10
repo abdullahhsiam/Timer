@@ -47,6 +47,38 @@ class OverlayBubbleService : Service() {
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         setupOverlayBubble()
         observeTimerStopwatch()
+
+        // Sync and reconfigure layout based on dynamic style settings
+        serviceScope.launch {
+            TimerStopwatchStateManager.overlayMode.collectLatest { mode ->
+                if (mode == 2) {
+                    stopSelf()
+                } else {
+                    reconfigureLayoutParams(mode)
+                }
+            }
+        }
+    }
+
+    private fun reconfigureLayoutParams(mode: Int) {
+        val currentParams = params ?: return
+        val currentView = overlayView ?: return
+
+        if (mode == 0) {
+            // Dynamic Island Mode: Horizontal center-aligned narrow notch bar
+            currentParams.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            currentParams.x = 0
+            currentParams.y = 20
+        } else {
+            // Free Bubble Mode: Top-Left floating draggable anchor
+            currentParams.gravity = Gravity.TOP or Gravity.START
+            currentParams.x = 100
+            currentParams.y = 200
+        }
+
+        try {
+            windowManager.updateViewLayout(currentView, currentParams)
+        } catch (e: Exception) {}
     }
 
     private fun setupOverlayBubble() {
@@ -86,6 +118,23 @@ class OverlayBubbleService : Service() {
         overlayView!!.setOnTouchListener(object : View.OnTouchListener {
             override fun onTouch(v: View, event: MotionEvent): Boolean {
                 val currentParams = params ?: return false
+                val activeMode = TimerStopwatchStateManager.overlayMode.value
+
+                if (activeMode == 0) {
+                    // Dynamic Island Mode: static notch at top screen center, touches toggle expansion directly!
+                    if (event.action == MotionEvent.ACTION_UP) {
+                        if (collapsedContainer.visibility == View.VISIBLE) {
+                            collapsedContainer.visibility = View.GONE
+                            expandedContainer.visibility = View.VISIBLE
+                        } else {
+                            collapsedContainer.visibility = View.VISIBLE
+                            expandedContainer.visibility = View.GONE
+                        }
+                    }
+                    return true
+                }
+
+                // Dragging mechanics for Free Bubble Mode
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         initialX = currentParams.x

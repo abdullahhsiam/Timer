@@ -12,6 +12,9 @@ import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LayersClear
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.*
@@ -367,10 +370,10 @@ fun MainScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Custom Low-Opacity Pill Tab Switcher (bg-white/5)
+                        // Custom Low-Opacity Pill Tab Switcher (bg-white/5, expanded to fit 3 options)
                         Row(
                             modifier = Modifier
-                                .width(220.dp)
+                                .width(310.dp)
                                 .height(48.dp)
                                 .clip(RoundedCornerShape(24.dp))
                                 .background(Color.White.copy(alpha = 0.05f))
@@ -399,6 +402,16 @@ fun MainScreen(
                                     .fillMaxHeight()
                                     .testTag("tab_stopwatch")
                             )
+                            TabItem(
+                                label = "Design",
+                                selected = activeTab == 2,
+                                icon = Icons.Filled.Layers,
+                                onClick = { viewModel.selectTab(2) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .testTag("tab_styling")
+                            )
                         }
                     }
                 }
@@ -412,8 +425,10 @@ fun MainScreen(
                 ) {
                     if (activeTab == 0) {
                         TimerTabContent(viewModel = viewModel)
-                    } else {
+                    } else if (activeTab == 1) {
                         StopwatchTabContent(viewModel = viewModel)
+                    } else {
+                        DesignTabContent(viewModel = viewModel)
                     }
                 }
 
@@ -1593,6 +1608,388 @@ fun IntroSplashAnimation(onFinished: () -> Unit) {
                 )
             }
         }
+    }
+}
+
+@Composable
+fun DesignTabContent(viewModel: TimerStopwatchViewModel) {
+    val glassBlur by viewModel.glassBlur.collectAsState()
+    val glassOpacity by viewModel.glassOpacity.collectAsState()
+    val glassGlow by viewModel.glassGlow.collectAsState()
+    val glassCornerRadius by viewModel.glassCornerRadius.collectAsState()
+    val glassTint by viewModel.glassTint.collectAsState()
+    val glassShadow by viewModel.glassShadow.collectAsState()
+    val glassAnimationSpeed by viewModel.glassAnimationSpeed.collectAsState()
+    val wallpaperUri by viewModel.wallpaperUri.collectAsState()
+    val overlayMode by viewModel.overlayMode.collectAsState()
+
+    val context = LocalContext.current
+
+    // Wallpaper Photo Picker launcher
+    val pickMedia = rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            // Persist URI access permission so it loads after restarts
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (e: Exception) {}
+            viewModel.setWallpaperUri(uri.toString())
+        }
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(bottom = 24.dp)
+    ) {
+        // Core Visual Backdrop Choice
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.04f))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "BACKDROP SELECTION",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PurpleGlow,
+                    letterSpacing = 1.5.sp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            pickMedia.launch(
+                                PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                                )
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.10f))
+                    ) {
+                        Text("Pick Photo", color = Color.White, fontSize = 13.sp)
+                    }
+                    if (wallpaperUri.isNotEmpty()) {
+                        Button(
+                            onClick = { viewModel.setWallpaperUri("") },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0x3E610115))
+                        ) {
+                            Text("Reset Backdrop", color = Color.White, fontSize = 13.sp)
+                        }
+                    }
+                }
+                if (wallpaperUri.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Active wallpaper: Selected Gallery Photo",
+                        fontSize = 11.sp,
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Default ambient cosmic gradient backdrop is active",
+                        fontSize = 11.sp,
+                        color = Color.White.copy(alpha = 0.4f)
+                    )
+                }
+            }
+        }
+
+        // Color Accent / Design Tint selection
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.04f))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "VISUAL ACCENT TINT",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PurpleGlow,
+                    letterSpacing = 1.5.sp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                val tints = listOf("lavender", "cyan", "pink", "yellow", "green")
+                val colorsMap = mapOf(
+                    "lavender" to Color(0xFFD0BCFF),
+                    "cyan" to Color(0xFF00E6FF),
+                    "pink" to Color(0xFFFF2A6D),
+                    "yellow" to Color(0xFFFFD600),
+                    "green" to Color(0xFF00FF87)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    tints.forEach { t ->
+                        val isSelected = glassTint.lowercase() == t.lowercase()
+                        val color = colorsMap[t] ?: Color.White
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(color)
+                                .border(
+                                    width = if (isSelected) 3.dp else 0.dp,
+                                    color = Color.White,
+                                    shape = CircleShape
+                                )
+                                .clickable {
+                                    viewModel.updateStyleOptions(
+                                        blur = glassBlur,
+                                        opacity = glassOpacity,
+                                        glow = glassGlow,
+                                        cornerRadius = glassCornerRadius,
+                                        tint = t,
+                                        shadow = glassShadow,
+                                        animSpeed = glassAnimationSpeed
+                                    )
+                                }
+                        )
+                    }
+                }
+            }
+        }
+
+        // Overlay Mode selection (Dynamic Island vs Draggable Bubble)
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.04f))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "SYSTEM OVERLAY MODE",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PurpleGlow,
+                    letterSpacing = 1.5.sp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(42.dp)
+                        .clip(RoundedCornerShape(21.dp))
+                        .background(Color.White.copy(alpha = 0.04f))
+                        .padding(2.dp)
+                ) {
+                    val overlayLabels = listOf("Dockable Island", "Free Bubble", "Disabled")
+                    overlayLabels.forEachIndexed { idx, label ->
+                        val isSel = overlayMode == idx
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(19.dp))
+                                .background(if (isSel) PurpleGlow else Color.Transparent)
+                                .clickable { viewModel.setOverlayMode(idx) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isSel) Color.Black else Color.White.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Slider Slates
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.04f))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Blur Option
+                CustomSettingSlider(
+                    title = "GLASS BLUR STRENGTH",
+                    value = glassBlur,
+                    valueRange = 0f..50f,
+                    displaySuffix = "dp",
+                    onValueChange = {
+                        viewModel.updateStyleOptions(
+                            blur = it,
+                            opacity = glassOpacity,
+                            glow = glassGlow,
+                            cornerRadius = glassCornerRadius,
+                            tint = glassTint,
+                            shadow = glassShadow,
+                            animSpeed = glassAnimationSpeed
+                        )
+                    }
+                )
+
+                // Opacity Option
+                CustomSettingSlider(
+                    title = "GLASS ACRYLIC OPACITY",
+                    value = glassOpacity * 100f,
+                    valueRange = 0f..100f,
+                    displaySuffix = "%",
+                    onValueChange = {
+                        viewModel.updateStyleOptions(
+                            blur = glassBlur,
+                            opacity = it / 100f,
+                            glow = glassGlow,
+                            cornerRadius = glassCornerRadius,
+                            tint = glassTint,
+                            shadow = glassShadow,
+                            animSpeed = glassAnimationSpeed
+                        )
+                    }
+                )
+
+                // Border Glow Strength
+                CustomSettingSlider(
+                    title = "BORDER GLOW OPACITY",
+                    value = glassGlow * 100f,
+                    valueRange = 0f..100f,
+                    displaySuffix = "%",
+                    onValueChange = {
+                        viewModel.updateStyleOptions(
+                            blur = glassBlur,
+                            opacity = glassOpacity,
+                            glow = it / 100f,
+                            cornerRadius = glassCornerRadius,
+                            tint = glassTint,
+                            shadow = glassShadow,
+                            animSpeed = glassAnimationSpeed
+                        )
+                    }
+                )
+
+                // Corner Radius
+                CustomSettingSlider(
+                    title = "GLASS CORNER RADIUS",
+                    value = glassCornerRadius.toFloat(),
+                    valueRange = 12f..40f,
+                    displaySuffix = "dp",
+                    onValueChange = {
+                        viewModel.updateStyleOptions(
+                            blur = glassBlur,
+                            opacity = glassOpacity,
+                            glow = glassGlow,
+                            cornerRadius = it.toInt(),
+                            tint = glassTint,
+                            shadow = glassShadow,
+                            animSpeed = glassAnimationSpeed
+                        )
+                    }
+                )
+
+                // Shadow Depth
+                CustomSettingSlider(
+                    title = "FROSTED SHADOW DEPTH",
+                    value = glassShadow,
+                    valueRange = 0f..12f,
+                    displaySuffix = "dp",
+                    onValueChange = {
+                        viewModel.updateStyleOptions(
+                            blur = glassBlur,
+                            opacity = glassOpacity,
+                            glow = glassGlow,
+                            cornerRadius = glassCornerRadius,
+                            tint = glassTint,
+                            shadow = it,
+                            animSpeed = glassAnimationSpeed
+                        )
+                    }
+                )
+
+                // Animation velocity multiplier
+                CustomSettingSlider(
+                    title = "AMBIENT ANIMATION VELOCITY",
+                    value = glassAnimationSpeed,
+                    valueRange = 0f..3f,
+                    displaySuffix = "x",
+                    onValueChange = {
+                        viewModel.updateStyleOptions(
+                            blur = glassBlur,
+                            opacity = glassOpacity,
+                            glow = glassGlow,
+                            cornerRadius = glassCornerRadius,
+                            tint = glassTint,
+                            shadow = glassShadow,
+                            animSpeed = it
+                        )
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CustomSettingSlider(
+    title: String,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    displaySuffix: String,
+    onValueChange: (Float) -> Unit
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = title,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White.copy(alpha = 0.5f),
+                letterSpacing = 1.sp
+            )
+            Text(
+                text = String.format("%.0f%s", value, displaySuffix),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = PurpleGlow
+            )
+        }
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = valueRange,
+            colors = SliderDefaults.colors(
+                thumbColor = PurpleGlow,
+                activeTrackColor = PurpleGlow.copy(alpha = 0.7f),
+                inactiveTrackColor = Color.White.copy(alpha = 0.08f)
+            )
+        )
     }
 }
 

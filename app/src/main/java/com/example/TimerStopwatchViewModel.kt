@@ -128,4 +128,45 @@ class TimerStopwatchViewModel : ViewModel() {
     fun resetStopwatch() {
         TimerStopwatchStateManager.resetStopwatch()
     }
+
+    // ==========================================
+    // STYLING & ECOSYSTEM DELEGATIONS
+    // ==========================================
+    val glassBlur: StateFlow<Float> = TimerStopwatchStateManager.glassBlur
+    val glassOpacity: StateFlow<Float> = TimerStopwatchStateManager.glassOpacity
+    val glassGlow: StateFlow<Float> = TimerStopwatchStateManager.glassGlow
+    val glassCornerRadius: StateFlow<Int> = TimerStopwatchStateManager.glassCornerRadius
+    val glassTint: StateFlow<String> = TimerStopwatchStateManager.glassTint
+    val glassShadow: StateFlow<Float> = TimerStopwatchStateManager.glassShadow
+    val glassAnimationSpeed: StateFlow<Float> = TimerStopwatchStateManager.glassAnimationSpeed
+    val wallpaperUri: StateFlow<String> = TimerStopwatchStateManager.wallpaperUri
+    val overlayMode: StateFlow<Int> = TimerStopwatchStateManager.overlayMode
+
+    fun updateStyleOptions(
+        blur: Float,
+        opacity: Float,
+        glow: Float,
+        cornerRadius: Int,
+        tint: String,
+        shadow: Float,
+        animSpeed: Float
+    ) {
+        TimerStopwatchStateManager.updateStyleOptions(
+            blur = blur,
+            opacity = opacity,
+            glow = glow,
+            cornerRadius = cornerRadius,
+            tint = tint,
+            shadow = shadow,
+            animSpeed = animSpeed
+        )
+    }
+
+    fun setWallpaperUri(uri: String) {
+        TimerStopwatchStateManager.setWallpaperUri(uri)
+    }
+
+    fun setOverlayMode(mode: Int) {
+        TimerStopwatchStateManager.setOverlayMode(mode)
+    }
 }

@@ -36,6 +36,17 @@ object TimerStopwatchStateManager {
             putString("stopwatch_status", _stopwatchStatus.value.name)
             putLong("stopwatch_elapsed_ms", _stopwatchElapsedMs.value)
             putLong("stopwatch_target_wall_time", if (_stopwatchStatus.value == StopwatchStatus.RUNNING) System.currentTimeMillis() - _stopwatchElapsedMs.value else 0L)
+            
+            // Premium custom styling params
+            putFloat("glass_blur", _glassBlur.value)
+            putFloat("glass_opacity", _glassOpacity.value)
+            putFloat("glass_glow", _glassGlow.value)
+            putInt("glass_corner_radius", _glassCornerRadius.value)
+            putString("glass_tint", _glassTint.value)
+            putFloat("glass_shadow", _glassShadow.value)
+            putFloat("glass_animation_speed", _glassAnimationSpeed.value)
+            putString("wallpaper_uri", _wallpaperUri.value)
+            putInt("overlay_mode", _overlayMode.value)
             apply()
         }
     }
@@ -44,6 +55,16 @@ object TimerStopwatchStateManager {
         val context = appContext ?: return
         val prefs = context.getSharedPreferences("timer_stopwatch_states", Context.MODE_PRIVATE)
         
+        _glassBlur.value = prefs.getFloat("glass_blur", 25f)
+        _glassOpacity.value = prefs.getFloat("glass_opacity", 0.18f)
+        _glassGlow.value = prefs.getFloat("glass_glow", 0.45f)
+        _glassCornerRadius.value = prefs.getInt("glass_corner_radius", 24)
+        _glassTint.value = prefs.getString("glass_tint", "lavender") ?: "lavender"
+        _glassShadow.value = prefs.getFloat("glass_shadow", 4f)
+        _glassAnimationSpeed.value = prefs.getFloat("glass_animation_speed", 1.0f)
+        _wallpaperUri.value = prefs.getString("wallpaper_uri", "") ?: ""
+        _overlayMode.value = prefs.getInt("overlay_mode", 0)
+
         // RESTORE TIMER
         val timerStatusStr = prefs.getString("timer_status", TimerStatus.IDLE.name) ?: TimerStatus.IDLE.name
         val savedTimerRemaining = prefs.getLong("timer_remaining_ms", 0L)
@@ -83,6 +104,65 @@ object TimerStopwatchStateManager {
             _stopwatchElapsedMs.value = savedSwElapsed
             _stopwatchStatus.value = swStatus
         }
+    }
+
+    // --- Glassmorphic Styling State Flows ---
+    private val _glassBlur = MutableStateFlow(25f)
+    val glassBlur: StateFlow<Float> = _glassBlur.asStateFlow()
+
+    private val _glassOpacity = MutableStateFlow(0.18f)
+    val glassOpacity: StateFlow<Float> = _glassOpacity.asStateFlow()
+
+    private val _glassGlow = MutableStateFlow(0.45f)
+    val glassGlow: StateFlow<Float> = _glassGlow.asStateFlow()
+
+    private val _glassCornerRadius = MutableStateFlow(24)
+    val glassCornerRadius: StateFlow<Int> = _glassCornerRadius.asStateFlow()
+
+    private val _glassTint = MutableStateFlow("lavender")
+    val glassTint: StateFlow<String> = _glassTint.asStateFlow()
+
+    private val _glassShadow = MutableStateFlow(4f)
+    val glassShadow: StateFlow<Float> = _glassShadow.asStateFlow()
+
+    private val _glassAnimationSpeed = MutableStateFlow(1.0f)
+    val glassAnimationSpeed: StateFlow<Float> = _glassAnimationSpeed.asStateFlow()
+
+    private val _wallpaperUri = MutableStateFlow("")
+    val wallpaperUri: StateFlow<String> = _wallpaperUri.asStateFlow()
+
+    private val _overlayMode = MutableStateFlow(0) // 0: Auto/Dockable, 1: Floating Bubble, 2: Dynamic Island
+    val overlayMode: StateFlow<Int> = _overlayMode.asStateFlow()
+
+    fun updateStyleOptions(
+        blur: Float,
+        opacity: Float,
+        glow: Float,
+        cornerRadius: Int,
+        tint: String,
+        shadow: Float,
+        animSpeed: Float
+    ) {
+        _glassBlur.value = blur
+        _glassOpacity.value = opacity
+        _glassGlow.value = glow
+        _glassCornerRadius.value = cornerRadius
+        _glassTint.value = tint
+        _glassShadow.value = shadow
+        _glassAnimationSpeed.value = animSpeed
+        saveState()
+        triggerWidgetUpdate()
+    }
+
+    fun setWallpaperUri(uri: String) {
+        _wallpaperUri.value = uri
+        saveState()
+    }
+
+    fun setOverlayMode(mode: Int) {
+        _overlayMode.value = mode
+        saveState()
+        triggerWidgetUpdate()
     }
 
     // --- Sound Selection State ---
