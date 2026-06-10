@@ -348,7 +348,7 @@ fun MainScreen(
                                     DropdownMenuItem(
                                         text = { 
                                             Text(
-                                                text = if (isBackgroundAnimated) "✨ Animations: Enabled" else "static: Animations Disabled", 
+                                                text = if (isBackgroundAnimated) "Background: Animated" else "Background: Static Fluid", 
                                                 color = Color.White, 
                                                 fontSize = 14.sp
                                             ) 
