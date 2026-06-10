@@ -52,6 +52,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -186,6 +190,36 @@ fun MainScreen(
     val overlayMode by viewModel.overlayMode.collectAsState()
 
     var menuExpanded by remember { mutableStateOf(false) }
+    var popupVisibleState by remember { mutableStateOf(false) }
+
+    LaunchedEffect(menuExpanded) {
+        if (menuExpanded) {
+            popupVisibleState = true
+        } else {
+            delay(180)
+            popupVisibleState = false
+        }
+    }
+
+    val menuScale by animateFloatAsState(
+        targetValue = if (menuExpanded) 1f else 0.85f,
+        animationSpec = if (menuExpanded) {
+            spring(
+                dampingRatio = 0.75f,
+                stiffness = Spring.StiffnessMediumLow
+            )
+        } else {
+            tween(durationMillis = 150, easing = FastOutLinearInEasing)
+        },
+        label = "menu_scale"
+    )
+
+    val menuAlpha by animateFloatAsState(
+        targetValue = if (menuExpanded) 1f else 0f,
+        animationSpec = tween(durationMillis = if (menuExpanded) 200 else 150, easing = LinearOutSlowInEasing),
+        label = "menu_alpha"
+    )
+
     var showSoundDialog by remember { mutableStateOf(false) }
     var showAppearanceDialog by remember { mutableStateOf(false) }
 
@@ -379,96 +413,107 @@ fun MainScreen(
                                     .clip(CircleShape)
                                     .clickable { menuExpanded = true }
                             )
-                            DropdownMenu(
-                                expanded = menuExpanded,
-                                onDismissRequest = { menuExpanded = false },
-                                modifier = Modifier.background(Color(0xFF141419))
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("🔊 Alarm Sound Settings", color = Color.White, fontSize = 14.sp) },
-                                    onClick = {
-                                        menuExpanded = false
-                                        showSoundDialog = true
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { 
-                                        Text(
-                                            text = if (isBackgroundAnimated) "Background: Animated" else "Background: Static Fluid", 
-                                            color = Color.White, 
-                                            fontSize = 14.sp
-                                        ) 
-                                    },
-                                    onClick = {
-                                        menuExpanded = false
-                                        viewModel.setBackgroundAnimated(!isBackgroundAnimated)
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("--- OVERLAY MODE ---", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-                                    onClick = {},
-                                    enabled = false
-                                )
-                                DropdownMenuItem(
-                                    text = { 
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = "🏝️ Dockable Island", 
-                                                color = if (overlayMode == 0) PurpleGlow else Color.White, 
-                                                fontSize = 14.sp,
-                                                fontWeight = if (overlayMode == 0) FontWeight.Bold else FontWeight.Normal
-                                            )
-                                            if (overlayMode == 0) {
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Text("✓", color = PurpleGlow)
+                            if (popupVisibleState) {
+                                Popup(
+                                    alignment = Alignment.TopEnd,
+                                    offset = IntOffset(0, 30),
+                                    onDismissRequest = { menuExpanded = false },
+                                    properties = PopupProperties(focusable = true)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .graphicsLayer {
+                                                scaleX = menuScale
+                                                scaleY = menuScale
+                                                alpha = menuAlpha
+                                                transformOrigin = TransformOrigin(1f, 0f)
                                             }
-                                        }
-                                    },
-                                    onClick = {
-                                        menuExpanded = false
-                                        viewModel.setOverlayMode(0)
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { 
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            .width(230.dp)
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(Color(0xFB090810))
+                                            .border(1.dp, Color(0x28FFFFFF), RoundedCornerShape(16.dp))
+                                            .padding(vertical = 8.dp, horizontal = 8.dp)
+                                    ) {
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
                                             Text(
-                                                text = "💬 Floating Bubble", 
-                                                color = if (overlayMode == 1) PurpleGlow else Color.White, 
-                                                fontSize = 14.sp,
-                                                fontWeight = if (overlayMode == 1) FontWeight.Bold else FontWeight.Normal
+                                                text = "CONTROL CENTRE",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 1.2.sp,
+                                                color = Color.White.copy(alpha = 0.4f),
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                             )
-                                            if (overlayMode == 1) {
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Text("✓", color = PurpleGlow)
-                                            }
-                                        }
-                                    },
-                                    onClick = {
-                                        menuExpanded = false
-                                        viewModel.setOverlayMode(1)
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { 
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
+
+                                            CustomPopupMenuItem(
+                                                icon = Icons.Default.MusicNote,
+                                                text = "Alarm Sound Settings",
+                                                onClick = {
+                                                    menuExpanded = false
+                                                    showSoundDialog = true
+                                                }
+                                            )
+
+                                            CustomPopupMenuItem(
+                                                icon = if (isBackgroundAnimated) Icons.Default.Layers else Icons.Default.LayersClear,
+                                                text = if (isBackgroundAnimated) "Background: Animated" else "Background: Static Fluid",
+                                                onClick = {
+                                                    menuExpanded = false
+                                                    viewModel.setBackgroundAnimated(!isBackgroundAnimated)
+                                                }
+                                            )
+
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(1.dp)
+                                                    .background(Color(0x1AFFFFFF))
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+
                                             Text(
-                                                text = "❌ Disable Overlays", 
-                                                color = if (overlayMode == 2) PurpleGlow else Color.White, 
-                                                fontSize = 14.sp,
-                                                fontWeight = if (overlayMode == 2) FontWeight.Bold else FontWeight.Normal
+                                                text = "OVERLAY MODE",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 1.2.sp,
+                                                color = Color.White.copy(alpha = 0.4f),
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                             )
-                                            if (overlayMode == 2) {
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Text("✓", color = PurpleGlow)
-                                            }
+
+                                            CustomPopupSelectableItem(
+                                                emoji = "🏝️",
+                                                label = "Dockable Island",
+                                                isSelected = overlayMode == 0,
+                                                onClick = {
+                                                    menuExpanded = false
+                                                    viewModel.setOverlayMode(0)
+                                                }
+                                            )
+
+                                            CustomPopupSelectableItem(
+                                                emoji = "💬",
+                                                label = "Floating Bubble",
+                                                isSelected = overlayMode == 1,
+                                                onClick = {
+                                                    menuExpanded = false
+                                                    viewModel.setOverlayMode(1)
+                                                }
+                                            )
+
+                                            CustomPopupSelectableItem(
+                                                emoji = "❌",
+                                                label = "Disable Overlays",
+                                                isSelected = overlayMode == 2,
+                                                onClick = {
+                                                    menuExpanded = false
+                                                    viewModel.setOverlayMode(2)
+                                                }
+                                            )
                                         }
-                                    },
-                                    onClick = {
-                                        menuExpanded = false
-                                        viewModel.setOverlayMode(2)
                                     }
-                                )
+                                }
                             }
                         }
 
@@ -1080,6 +1125,93 @@ fun DigitGroup(digits: String, label: String, active: Boolean) {
             color = highlightColor,
             modifier = Modifier.padding(bottom = 6.dp, start = 2.dp)
         )
+    }
+}
+
+@Composable
+fun CustomPopupMenuItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable { onClick() }
+            .padding(vertical = 10.dp, horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.7f),
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            text = text,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.White.copy(alpha = 0.9f)
+        )
+    }
+}
+
+@Composable
+fun CustomPopupSelectableItem(
+    emoji: String,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val bgAlphaState by animateFloatAsState(
+        targetValue = if (isSelected) 0.15f else 0.0f,
+        label = "selectable_bg_alpha"
+    )
+    
+    val textWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+    val textColor = if (isSelected) PurpleGlow else Color.White.copy(alpha = 0.75f)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(PurpleGlow.copy(alpha = bgAlphaState))
+            .border(
+                width = 1.dp,
+                color = if (isSelected) PurpleGlow.copy(alpha = 0.25f) else Color.Transparent,
+                shape = RoundedCornerShape(10.dp)
+            )
+            .clickable { onClick() }
+            .padding(vertical = 10.dp, horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = emoji,
+                fontSize = 14.sp
+            )
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                fontWeight = textWeight,
+                color = textColor
+            )
+        }
+        
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(GlowGreen)
+            )
+        }
     }
 }
 
