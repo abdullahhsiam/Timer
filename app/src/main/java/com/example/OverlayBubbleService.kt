@@ -124,18 +124,24 @@ class OverlayBubbleService : Service() {
 
         // Text Colors
         val collapsedTimeText = root.findViewById<TextView>(R.id.collapsed_time_text)
-        if (collapsedTimeText != null) {
-            collapsedTimeText.setTextColor(android.graphics.Color.parseColor(collapsedStyle.accentColor))
-        }
-
         val expandedTimeText = root.findViewById<TextView>(R.id.expanded_time_text)
-        if (expandedTimeText != null) {
-            expandedTimeText.setTextColor(android.graphics.Color.parseColor(expandedStyle.textColor))
+        val expandedTitle = root.findViewById<TextView>(R.id.expanded_title)
+
+        val isTimerActive = TimerStopwatchStateManager.timerStatus.value != TimerStatus.IDLE
+        val isSwActive = TimerStopwatchStateManager.stopwatchStatus.value != StopwatchStatus.IDLE
+        val isPaused = (isTimerActive && TimerStopwatchStateManager.timerStatus.value == TimerStatus.PAUSED) || (isSwActive && TimerStopwatchStateManager.stopwatchStatus.value == StopwatchStatus.PAUSED)
+        val timeColor = if (isPaused) android.graphics.Color.RED else android.graphics.Color.WHITE
+
+        if (collapsedTimeText != null) {
+            collapsedTimeText.setTextColor(timeColor)
         }
 
-        val expandedTitle = root.findViewById<TextView>(R.id.expanded_title)
+        if (expandedTimeText != null) {
+            expandedTimeText.setTextColor(timeColor)
+        }
+
         if (expandedTitle != null) {
-            expandedTitle.setTextColor(android.graphics.Color.parseColor(expandedStyle.accentColor))
+            expandedTitle.setTextColor(android.graphics.Color.WHITE)
         }
 
         // Apply styling to individual buttons inside expanded overlay
@@ -145,11 +151,11 @@ class OverlayBubbleService : Service() {
 
         listOf(btnPausePlay, btnAddTime, btnReset).forEach { btn ->
             if (btn != null) {
-                btn.setTextColor(android.graphics.Color.parseColor(expandedStyle.textColor))
+                btn.setTextColor(android.graphics.Color.WHITE)
                 val btnStyle = ComponentStyle(
                     bgColor = expandedStyle.bgColor,
                     opacity = 0.15f,
-                    borderColor = expandedStyle.accentColor,
+                    borderColor = "#33FFFFFF",
                     borderThickness = 1.0f,
                     cornerRadius = 10
                 )
@@ -338,6 +344,13 @@ class OverlayBubbleService : Service() {
 
         val isTimerActive = state.timerStatus != TimerStatus.IDLE
         val isSwActive = state.swStatus != StopwatchStatus.IDLE
+        val isPaused = (isTimerActive && state.timerStatus == TimerStatus.PAUSED) || (isSwActive && state.swStatus == StopwatchStatus.PAUSED)
+        val timeColor = if (isPaused) android.graphics.Color.RED else android.graphics.Color.WHITE
+
+        // Ensure all other titles/buttons remain white
+        expandedTitle.setTextColor(android.graphics.Color.WHITE)
+        btnPausePlay.setTextColor(android.graphics.Color.WHITE)
+        btnAddTime.setTextColor(android.graphics.Color.WHITE)
 
         if (isTimerActive) {
             expandedTitle.text = "ACTIVE TIMER"
@@ -353,7 +366,8 @@ class OverlayBubbleService : Service() {
 
             collapsedTimeText.text = readableText
             expandedTimeText.text = readableText
-            collapsedTimeText.setTextColor(resources.getColor(R.color.purple_glow, null))
+            collapsedTimeText.setTextColor(timeColor)
+            expandedTimeText.setTextColor(timeColor)
 
             btnAddTime.visibility = View.VISIBLE
 
@@ -374,7 +388,8 @@ class OverlayBubbleService : Service() {
 
             collapsedTimeText.text = readableText
             expandedTimeText.text = readableText
-            collapsedTimeText.setTextColor(resources.getColor(R.color.neon_pink, null))
+            collapsedTimeText.setTextColor(timeColor)
+            expandedTimeText.setTextColor(timeColor)
 
             btnAddTime.visibility = View.GONE
 
@@ -390,7 +405,8 @@ class OverlayBubbleService : Service() {
             expandedTitle.text = "SYSTEM IDLE"
             collapsedTimeText.text = "00:00"
             expandedTimeText.text = "00:00"
-            collapsedTimeText.setTextColor(resources.getColor(R.color.off_white, null))
+            collapsedTimeText.setTextColor(android.graphics.Color.WHITE)
+            expandedTimeText.setTextColor(android.graphics.Color.WHITE)
             glowingDot.visibility = View.GONE
             btnPausePlay.text = "Start"
             btnAddTime.visibility = View.GONE

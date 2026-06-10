@@ -193,86 +193,22 @@ object TimerStopwatchStateManager {
     fun applyPreset(presetName: String) {
         val defaultConfig = AppAppearanceConfig()
         val config = when (presetName.lowercase()) {
-            "default glass" -> defaultConfig
-            "amoled black", "amoled slate" -> AppAppearanceConfig(
-                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.98f, blur = 0f, borderColor = "#1A1A1A", borderThickness = 1.0f, glowColor = "#FFFFFF", glowStrength = 0.05f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#FFFFFF", shadowIntensity = 8f),
-                floatingBubble = ComponentStyle(bgColor = "#000000", opacity = 0.98f, blur = 0f, borderColor = "#2C2C2E", borderThickness = 1.0f, glowColor = "#CCCCCC", glowStrength = 0.05f, cornerRadius = 28, textColor = "#E5E5EA", accentColor = "#FFFFFF", shadowIntensity = 6f),
-                expandedBubblePanel = ComponentStyle(bgColor = "#000000", opacity = 0.98f, blur = 0f, borderColor = "#2C2C2E", borderThickness = 1.2f, glowColor = "#CCCCCC", glowStrength = 0.05f, cornerRadius = 24, textColor = "#E5E5EA", accentColor = "#FFFFFF", shadowIntensity = 8f),
-                timerWidget = ComponentStyle(bgColor = "#000000", opacity = 1.0f, blur = 0f, borderColor = "#222222", borderThickness = 1f, cornerRadius = 20, textColor = "#FFFFFF", accentColor = "#FFFFFF", glowStrength = 0f),
-                stopwatchWidget = ComponentStyle(bgColor = "#000000", opacity = 1.0f, blur = 0f, borderColor = "#222222", borderThickness = 1f, cornerRadius = 20, textColor = "#FFFFFF", accentColor = "#FFFFFF", glowStrength = 0f),
+            "system default" -> defaultConfig
+            "amoled black" -> AppAppearanceConfig(
+                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.98f, blur = 0f, borderColor = "#22FFFFFF", borderThickness = 1.0f, glowColor = "#FFFFFF", glowStrength = 0.0f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#FFFFFF", shadowIntensity = 8f),
+                floatingBubble = ComponentStyle(bgColor = "#000000", opacity = 1.0f, blur = 0f, borderColor = "#333333", borderThickness = 1.0f, glowColor = "#FFFFFF", glowStrength = 0.0f, cornerRadius = 28, textColor = "#FFFFFF", accentColor = "#FFFFFF", shadowIntensity = 6f),
+                expandedBubblePanel = ComponentStyle(bgColor = "#000000", opacity = 1.0f, blur = 0f, borderColor = "#333333", borderThickness = 1.0f, glowColor = "#FFFFFF", glowStrength = 0.0f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#FFFFFF", shadowIntensity = 8f),
+                timerWidget = ComponentStyle(bgColor = "#000000", opacity = 1.0f, blur = 0f, borderColor = "#333333", borderThickness = 1.0f, cornerRadius = 20, textColor = "#FFFFFF", accentColor = "#FFFFFF", glowStrength = 0f),
+                stopwatchWidget = ComponentStyle(bgColor = "#000000", opacity = 1.0f, blur = 0f, borderColor = "#333333", borderThickness = 1.0f, cornerRadius = 20, textColor = "#FFFFFF", accentColor = "#FFFFFF", glowStrength = 0f),
                 notificationControls = ComponentStyle(bgColor = "#000000", opacity = 1.0f, textColor = "#FFFFFF", accentColor = "#FFFFFF")
             )
-            "visionos glass" -> AppAppearanceConfig(
-                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 4f, borderColor = "#1A1A1A", borderThickness = 1.0f, glowColor = "#FFFFFF", glowStrength = 0.1f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#FFFFFF", shadowIntensity = 8f),
-                floatingBubble = ComponentStyle(bgColor = "#FFFFFF", opacity = 0.22f, blur = 32f, borderColor = "#FFFFFF", borderThickness = 1.5f, glowColor = "#FFFFFF", glowStrength = 0.35f, cornerRadius = 28, textColor = "#FFFFFF", accentColor = "#A5F3FC", shadowIntensity = 4f),
-                expandedBubblePanel = ComponentStyle(bgColor = "#FFFFFF", opacity = 0.25f, blur = 35f, borderColor = "#FFFFFF", borderThickness = 1.5f, glowColor = "#FFFFFF", glowStrength = 0.40f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#A5F3FC", shadowIntensity = 5f),
-                timerWidget = ComponentStyle(bgColor = "#FFFFFF", opacity = 0.30f, blur = 25f, borderColor = "#FFFFFF", borderThickness = 1.2f, cornerRadius = 20, textColor = "#FFFFFF", accentColor = "#A5F3FC", shadowIntensity = 3f, wallpaperAware = true),
-                stopwatchWidget = ComponentStyle(bgColor = "#FFFFFF", opacity = 0.30f, blur = 25f, borderColor = "#FFFFFF", borderThickness = 1.2f, cornerRadius = 20, textColor = "#FFFFFF", accentColor = "#A5F3FC", shadowIntensity = 3f, wallpaperAware = true),
-                notificationControls = ComponentStyle(bgColor = "#FFFFFF", opacity = 0.40f, textColor = "#FFFFFF", accentColor = "#93C5FD")
-            )
-            "ios glass" -> AppAppearanceConfig(
-                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 4f, borderColor = "#1A1A1A", borderThickness = 1.0f, glowColor = "#FFFFFF", glowStrength = 0.1f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#E5E5EA", shadowIntensity = 8f),
-                floatingBubble = ComponentStyle(bgColor = "#1C1C1E", opacity = 0.55f, blur = 25f, borderColor = "#545456", borderThickness = 1.0f, glowColor = "#FFFFFF", glowStrength = 0.15f, cornerRadius = 28, textColor = "#FFFFFF", accentColor = "#0A84FF", shadowIntensity = 6f),
-                expandedBubblePanel = ComponentStyle(bgColor = "#1C1C1E", opacity = 0.60f, blur = 28f, borderColor = "#545456", borderThickness = 1.2f, glowColor = "#FFFFFF", glowStrength = 0.15f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#0A84FF", shadowIntensity = 8f),
-                timerWidget = ComponentStyle(bgColor = "#1C1C1E", opacity = 0.65f, blur = 22f, borderColor = "#48484A", borderThickness = 1f, cornerRadius = 20, textColor = "#FFFFFF", accentColor = "#0A84FF", shadowIntensity = 4f, wallpaperAware = true),
-                stopwatchWidget = ComponentStyle(bgColor = "#1C1C1E", opacity = 0.65f, blur = 22f, borderColor = "#48484A", borderThickness = 1f, cornerRadius = 20, textColor = "#FFFFFF", accentColor = "#0A84FF", shadowIntensity = 4f, wallpaperAware = true),
-                notificationControls = ComponentStyle(bgColor = "#1C1C1E", opacity = 0.8f, textColor = "#FFFFFF", accentColor = "#0A84FF")
-            )
-            "material you" -> AppAppearanceConfig(
-                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 4f, borderColor = "#1A1A1A", borderThickness = 1.0f, glowColor = "#FFFFFF", glowStrength = 0.1f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#FFD8E4", shadowIntensity = 8f),
-                floatingBubble = ComponentStyle(bgColor = "#31101D", opacity = 0.70f, blur = 18f, borderColor = "#FFD8E4", borderThickness = 1.2f, glowColor = "#EC4899", glowStrength = 0.20f, cornerRadius = 28, textColor = "#FFD8E4", accentColor = "#F9A8D4", shadowIntensity = 6f),
-                expandedBubblePanel = ComponentStyle(bgColor = "#31101D", opacity = 0.75f, blur = 20f, borderColor = "#FFD8E4", borderThickness = 1.2f, glowColor = "#EC4899", glowStrength = 0.20f, cornerRadius = 24, textColor = "#FFD8E4", accentColor = "#F9A8D4", shadowIntensity = 8f),
-                timerWidget = ComponentStyle(bgColor = "#2D1622", opacity = 0.85f, blur = 15f, borderColor = "#F472B6", borderThickness = 1f, cornerRadius = 22, textColor = "#FFF1F2", accentColor = "#F472B6", shadowIntensity = 4f, wallpaperAware = true),
-                stopwatchWidget = ComponentStyle(bgColor = "#2D1622", opacity = 0.85f, blur = 15f, borderColor = "#F472B6", borderThickness = 1f, cornerRadius = 22, textColor = "#FFF1F2", accentColor = "#F472B6", shadowIntensity = 4f, wallpaperAware = true),
-                notificationControls = ComponentStyle(bgColor = "#2D1622", opacity = 1.0f, textColor = "#FFD8E4", accentColor = "#F472B6")
-            )
-            "hyperos" -> AppAppearanceConfig(
-                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 4f, borderColor = "#1A1A1A", borderThickness = 1.0f, glowColor = "#FFFFFF", glowStrength = 0.1f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#38BDF8", shadowIntensity = 8f),
-                floatingBubble = ComponentStyle(bgColor = "#111827", opacity = 0.80f, blur = 14f, borderColor = "#374151", borderThickness = 1.0f, glowColor = "#0284C7", glowStrength = 0.15f, cornerRadius = 24, textColor = "#F3F4F6", accentColor = "#38BDF8", shadowIntensity = 5f),
-                expandedBubblePanel = ComponentStyle(bgColor = "#111827", opacity = 0.85f, blur = 16f, borderColor = "#374151", borderThickness = 1.0f, glowColor = "#0284C7", glowStrength = 0.15f, cornerRadius = 20, textColor = "#F3F4F6", accentColor = "#38BDF8", shadowIntensity = 7f),
-                timerWidget = ComponentStyle(bgColor = "#111827", opacity = 0.85f, blur = 12f, borderColor = "#1F2937", borderThickness = 1f, cornerRadius = 18, textColor = "#F9FAFB", accentColor = "#38BDF8", shadowIntensity = 3f, wallpaperAware = true),
-                stopwatchWidget = ComponentStyle(bgColor = "#111827", opacity = 0.85f, blur = 12f, borderColor = "#1F2937", borderThickness = 1f, cornerRadius = 18, textColor = "#F9FAFB", accentColor = "#38BDF8", shadowIntensity = 3f, wallpaperAware = true),
-                notificationControls = ComponentStyle(bgColor = "#111827", opacity = 1.0f, textColor = "#F3F4F6", accentColor = "#38BDF8")
-            )
-            "one ui" -> AppAppearanceConfig(
-                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 4f, borderColor = "#1A1A1A", borderThickness = 1.0f, glowColor = "#FFFFFF", glowStrength = 0.1f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#60A5FA", shadowIntensity = 8f),
-                floatingBubble = ComponentStyle(bgColor = "#1A1D26", opacity = 0.72f, blur = 24f, borderColor = "#3B82F6", borderThickness = 1.2f, glowColor = "#2563EB", glowStrength = 0.25f, cornerRadius = 28, textColor = "#F8FAFC", accentColor = "#60A5FA", shadowIntensity = 6f),
-                expandedBubblePanel = ComponentStyle(bgColor = "#1A1D26", opacity = 0.76f, blur = 26f, borderColor = "#3B82F6", borderThickness = 1.2f, glowColor = "#2563EB", glowStrength = 0.25f, cornerRadius = 24, textColor = "#F8FAFC", accentColor = "#60A5FA", shadowIntensity = 8f),
-                timerWidget = ComponentStyle(bgColor = "#1E293B", opacity = 0.80f, blur = 18f, borderColor = "#475569", borderThickness = 1f, cornerRadius = 24, textColor = "#F1F5F9", accentColor = "#60A5FA", shadowIntensity = 4f, wallpaperAware = true),
-                stopwatchWidget = ComponentStyle(bgColor = "#1E293B", opacity = 0.80f, blur = 18f, borderColor = "#475569", borderThickness = 1f, cornerRadius = 24, textColor = "#F1F5F9", accentColor = "#60A5FA", shadowIntensity = 4f, wallpaperAware = true),
-                notificationControls = ComponentStyle(bgColor = "#1E293B", opacity = 1.0f, textColor = "#F1F5F9", accentColor = "#3B82F6")
-            )
-            "nothing os" -> AppAppearanceConfig(
-                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.98f, blur = 0f, borderColor = "#FFFFFF", borderThickness = 1.0f, glowColor = "#000000", glowStrength = 0f, cornerRadius = 14, textColor = "#FFFFFF", accentColor = "#FF3333", shadowIntensity = 8f),
-                floatingBubble = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 0f, borderColor = "#FFFFFF", borderThickness = 1.0f, glowColor = "#000000", glowStrength = 0f, cornerRadius = 12, textColor = "#FFFFFF", accentColor = "#FF3333", shadowIntensity = 6f),
-                expandedBubblePanel = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 0f, borderColor = "#FFFFFF", borderThickness = 1.0f, glowColor = "#000000", glowStrength = 0f, cornerRadius = 12, textColor = "#FFFFFF", accentColor = "#FF3333", shadowIntensity = 8f),
-                timerWidget = ComponentStyle(bgColor = "#000000", opacity = 1.0f, blur = 0f, borderColor = "#FFFFFF", borderThickness = 1.2f, cornerRadius = 14, textColor = "#FFFFFF", accentColor = "#FF3333", shadowIntensity = 4f),
-                stopwatchWidget = ComponentStyle(bgColor = "#000000", opacity = 1.0f, blur = 0f, borderColor = "#FFFFFF", borderThickness = 1.2f, cornerRadius = 14, textColor = "#FFFFFF", accentColor = "#FF3333", shadowIntensity = 4f),
-                notificationControls = ComponentStyle(bgColor = "#000000", opacity = 1.0f, textColor = "#FFFFFF", accentColor = "#FF3333")
-            )
-            "frosted ice" -> AppAppearanceConfig(
-                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 4f, borderColor = "#1A1A1A", borderThickness = 1.0f, glowColor = "#FFFFFF", glowStrength = 0.1f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#38BDF8", shadowIntensity = 8f),
-                floatingBubble = ComponentStyle(bgColor = "#E0F2FE", opacity = 0.38f, blur = 32f, borderColor = "#BAE6FD", borderThickness = 1.2f, glowColor = "#38BDF8", glowStrength = 0.45f, cornerRadius = 28, textColor = "#0369A1", accentColor = "#0EA5E9", shadowIntensity = 6f),
-                expandedBubblePanel = ComponentStyle(bgColor = "#E0F2FE", opacity = 0.42f, blur = 35f, borderColor = "#BAE6FD", borderThickness = 1.2f, glowColor = "#38BDF8", glowStrength = 0.45f, cornerRadius = 24, textColor = "#0369A1", accentColor = "#0EA5E9", shadowIntensity = 8f),
-                timerWidget = ComponentStyle(bgColor = "#F0F9FF", opacity = 0.45f, blur = 25f, borderColor = "#7DD3FC", borderThickness = 1f, cornerRadius = 20, textColor = "#0369A1", accentColor = "#0ea5e9", shadowIntensity = 3f, wallpaperAware = true),
-                stopwatchWidget = ComponentStyle(bgColor = "#F0F9FF", opacity = 0.45f, blur = 25f, borderColor = "#7DD3FC", borderThickness = 1f, cornerRadius = 20, textColor = "#0369A1", accentColor = "#0ea5e9", shadowIntensity = 3f, wallpaperAware = true),
-                notificationControls = ComponentStyle(bgColor = "#E0F2FE", opacity = 0.6f, textColor = "#0369A1", accentColor = "#0EA5E9")
-            )
-            "emerald dream" -> AppAppearanceConfig(
-                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 4f, borderColor = "#1A1A1A", borderThickness = 1.2f, glowColor = "#FFFFFF", glowStrength = 0.15f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#34D399", shadowIntensity = 8f),
-                floatingBubble = ComponentStyle(bgColor = "#042F1A", opacity = 0.72f, blur = 20f, borderColor = "#34D399", borderThickness = 1.0f, glowColor = "#10B981", glowStrength = 0.45f, cornerRadius = 28, textColor = "#ECFDF5", accentColor = "#34D399", shadowIntensity = 6f, gradientEnabled = true, gradientStartColor = "#022C1A", gradientEndColor = "#020B14"),
-                expandedBubblePanel = ComponentStyle(bgColor = "#042F1A", opacity = 0.75f, blur = 25f, borderColor = "#34D399", borderThickness = 1.2f, glowColor = "#10B981", glowStrength = 0.45f, cornerRadius = 24, textColor = "#ECFDF5", accentColor = "#34D399", shadowIntensity = 8f, gradientEnabled = true, gradientStartColor = "#022C1A", gradientEndColor = "#020B14"),
-                timerWidget = ComponentStyle(bgColor = "#022C1A", opacity = 0.85f, blur = 15f, borderColor = "#059669", borderThickness = 1f, cornerRadius = 20, textColor = "#ECFDF5", accentColor = "#34D399", shadowIntensity = 3f, wallpaperAware = true),
-                stopwatchWidget = ComponentStyle(bgColor = "#022C1A", opacity = 0.85f, blur = 15f, borderColor = "#059669", borderThickness = 1f, cornerRadius = 20, textColor = "#ECFDF5", accentColor = "#34D399", shadowIntensity = 3f, wallpaperAware = true),
-                notificationControls = ComponentStyle(bgColor = "#022C1A", opacity = 1.0f, textColor = "#ECFDF5", accentColor = "#34D399")
-            )
-            "neon cyberpunk" -> AppAppearanceConfig(
-                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 4f, borderColor = "#1A1A1A", borderThickness = 1.2f, glowColor = "#FFFFFF", glowStrength = 0.15f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#FF007F", shadowIntensity = 8f),
-                floatingBubble = ComponentStyle(bgColor = "#0B0214", opacity = 0.72f, blur = 22f, borderColor = "#FF2A6D", borderThickness = 1.5f, glowColor = "#FF2A6D", glowStrength = 0.55f, cornerRadius = 28, textColor = "#FFFFFF", accentColor = "#00E6FF", shadowIntensity = 10f, gradientEnabled = true, gradientStartColor = "#1B0230", gradientEndColor = "#010714"),
-                expandedBubblePanel = ComponentStyle(bgColor = "#0B0214", opacity = 0.76f, blur = 26f, borderColor = "#FF2A6D", borderThickness = 1.5f, glowColor = "#FF2A6D", glowStrength = 0.60f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#00E6FF", shadowIntensity = 12f, gradientEnabled = true, gradientStartColor = "#1B0230", gradientEndColor = "#010714"),
-                timerWidget = ComponentStyle(bgColor = "#04001A", opacity = 0.90f, blur = 14f, borderColor = "#FF2A6D", borderThickness = 1.2f, glowColor = "#00E6FF", glowStrength = 0.45f, cornerRadius = 18, textColor = "#00FF87", accentColor = "#FF2A6D", shadowIntensity = 6f, wallpaperAware = true),
-                stopwatchWidget = ComponentStyle(bgColor = "#04001A", opacity = 0.90f, blur = 14f, borderColor = "#FF2A6D", borderThickness = 1.2f, glowColor = "#00E6FF", glowStrength = 0.45f, cornerRadius = 18, textColor = "#00FF87", accentColor = "#FF2A6D", shadowIntensity = 6f, wallpaperAware = true),
-                notificationControls = ComponentStyle(bgColor = "#04001A", opacity = 1.0f, textColor = "#00FF87", accentColor = "#FF2A6D")
+            "use wallpaper background" -> AppAppearanceConfig(
+                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 0f, borderColor = "#33FFFFFF", borderThickness = 1.0f, glowColor = "#FFFFFF", glowStrength = 0.0f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#FFFFFF", shadowIntensity = 8f),
+                floatingBubble = ComponentStyle(bgColor = "#0C0C12", opacity = 0.18f, blur = 35f, borderColor = "#40FFFFFF", borderThickness = 1.0f, glowColor = "#FFFFFF", glowStrength = 0.0f, cornerRadius = 28, textColor = "#FFFFFF", accentColor = "#FFFFFF", shadowIntensity = 6f),
+                expandedBubblePanel = ComponentStyle(bgColor = "#0C0C12", opacity = 0.22f, blur = 35f, borderColor = "#40FFFFFF", borderThickness = 1.0f, glowColor = "#FFFFFF", glowStrength = 0.0f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#FFFFFF", shadowIntensity = 8f),
+                timerWidget = ComponentStyle(bgColor = "#0C0C12", opacity = 0.18f, blur = 30f, borderColor = "#40FFFFFF", borderThickness = 1.0f, cornerRadius = 20, textColor = "#FFFFFF", accentColor = "#FFFFFF", shadowIntensity = 4f, wallpaperAware = true),
+                stopwatchWidget = ComponentStyle(bgColor = "#0C0C12", opacity = 0.18f, blur = 30f, borderColor = "#40FFFFFF", borderThickness = 1.0f, cornerRadius = 20, textColor = "#FFFFFF", accentColor = "#FFFFFF", shadowIntensity = 4f, wallpaperAware = true),
+                notificationControls = ComponentStyle(bgColor = "#0C0C12", opacity = 0.25f, textColor = "#FFFFFF", accentColor = "#FFFFFF")
             )
             else -> defaultConfig
         }

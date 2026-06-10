@@ -39,6 +39,8 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.ui.window.Dialog
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -184,6 +186,7 @@ fun MainScreen(
 
     var menuExpanded by remember { mutableStateOf(false) }
     var showSoundDialog by remember { mutableStateOf(false) }
+    var showAppearanceDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
@@ -342,6 +345,13 @@ fun MainScreen(
                                         }
                                     )
                                     DropdownMenuItem(
+                                        text = { Text("Appearance Settings", color = Color.White, fontSize = 14.sp) },
+                                        onClick = {
+                                            menuExpanded = false
+                                            showAppearanceDialog = true
+                                        }
+                                    )
+                                    DropdownMenuItem(
                                         text = { 
                                             Text(
                                                 text = if (isBackgroundAnimated) "Background: Animated" else "Background: Static Fluid", 
@@ -367,14 +377,21 @@ fun MainScreen(
                                     onStopPreview = onStopPreview
                                 )
                             }
+
+                            if (showAppearanceDialog) {
+                                AppearanceSettingsDialog(
+                                    viewModel = viewModel,
+                                    onDismiss = { showAppearanceDialog = false }
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Custom Low-Opacity Pill Tab Switcher (bg-white/5, expanded to fit 3 options)
+                        // Custom Low-Opacity Pill Tab Switcher (bg-white/5, 2 options)
                         Row(
                             modifier = Modifier
-                                .width(310.dp)
+                                .width(210.dp)
                                 .height(48.dp)
                                 .clip(RoundedCornerShape(24.dp))
                                 .background(Color.White.copy(alpha = 0.05f))
@@ -403,16 +420,6 @@ fun MainScreen(
                                     .fillMaxHeight()
                                     .testTag("tab_stopwatch")
                             )
-                            TabItem(
-                                label = "Design",
-                                selected = activeTab == 2,
-                                icon = Icons.Filled.Layers,
-                                onClick = { viewModel.selectTab(2) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .testTag("tab_styling")
-                            )
                         }
                     }
                 }
@@ -426,10 +433,8 @@ fun MainScreen(
                 ) {
                     if (activeTab == 0) {
                         TimerTabContent(viewModel = viewModel)
-                    } else if (activeTab == 1) {
-                        StopwatchTabContent(viewModel = viewModel)
                     } else {
-                        DesignTabContent(viewModel = viewModel)
+                        StopwatchTabContent(viewModel = viewModel)
                     }
                 }
 
@@ -2947,6 +2952,546 @@ fun CustomSettingSlider(
                 inactiveTrackColor = Color.White.copy(alpha = 0.08f)
             )
         )
+    }
+}
+
+@Composable
+fun AppearanceSettingsDialog(
+    viewModel: TimerStopwatchViewModel,
+    onDismiss: () -> Unit
+) {
+    val config by viewModel.appearanceConfigState.collectAsState()
+    val overlayMode by viewModel.overlayMode.collectAsState()
+    
+    // Choose active preview tab
+    var previewTab by remember { mutableStateOf("overlays") } // "overlays" or "widgets"
+    
+    // Simulated state for previewing paused vs running
+    var previewPaused by remember { mutableStateOf(false) }
+    
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F12)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.9f)
+                .padding(4.dp)
+                .border(2.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(28.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Appearance",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color.White.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Dialog Body in LazyColumn for perfect scrollability
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // PRESET SELECTION SECTION
+                    item {
+                        Column {
+                            Text(
+                                text = "THEME DESIGN",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    letterSpacing = 1.sp
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(
+                                    "System Default" to "default",
+                                    "AMOLED Black" to "black",
+                                    "Wallpaper Background" to "wallpaper"
+                                ).forEach { (label, key) ->
+                                    val isSelected = when (key) {
+                                        "default" -> config.floatingBubble.bgColor == "#0C0C12" && config.floatingBubble.opacity == 0.45f
+                                        "black" -> config.floatingBubble.bgColor == "#000000" && config.floatingBubble.opacity == 1.0f
+                                        "wallpaper" -> config.floatingBubble.bgColor == "#0C0C12" && config.floatingBubble.opacity == 0.18f
+                                        else -> false
+                                    }
+                                    
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isSelected) Color.White.copy(alpha = 0.12f)
+                                                else Color.White.copy(alpha = 0.04f)
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.08f),
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
+                                            .clickable {
+                                                viewModel.applyPreset(label)
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = TextAlign.Center,
+                                            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // OVERLAY MODE SELECTION SECTION
+                    item {
+                        Column {
+                            Text(
+                                text = "OVERLAY MODE",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    letterSpacing = 1.sp
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(
+                                    "Dockable Island" to 0,
+                                    "Floating Bubble" to 1,
+                                    "No Overlays" to 2
+                                ).forEach { (label, mode) ->
+                                    val isSelected = overlayMode == mode
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isSelected) Color.White.copy(alpha = 0.12f)
+                                                else Color.White.copy(alpha = 0.04f)
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.08f),
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
+                                            .clickable {
+                                                viewModel.setOverlayMode(mode)
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = TextAlign.Center,
+                                            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // PREVIEW STATE CONTROLLER SECTION
+                    item {
+                        Column {
+                            Text(
+                                text = "SIMULATED TIMER STATE",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    letterSpacing = 1.sp
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(
+                                    "Running (White Time)" to false,
+                                    "Paused (Red Time)" to true
+                                ).forEach { (label, isPausedState) ->
+                                    val isSelected = previewPaused == isPausedState
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(36.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(
+                                                if (isSelected) Color.White.copy(alpha = 0.10f)
+                                                else Color.White.copy(alpha = 0.03f)
+                                            )
+                                            .border(
+                                                width = 0.8.dp,
+                                                color = if (isSelected) Color.White.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.06f),
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+                                            .clickable {
+                                                previewPaused = isPausedState
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // PREVIEW TAB SELECTOR SECTION
+                    item {
+                        Column {
+                            Text(
+                                text = "LIVE EXTERNAL SURFACE PREVIEWS",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    letterSpacing = 1.sp
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(
+                                    "Overlays Preview" to "overlays",
+                                    "Widgets Preview" to "widgets"
+                                ).forEach { (label, tabKey) ->
+                                    val isSelected = previewTab == tabKey
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(36.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(
+                                                if (isSelected) Color.White.copy(alpha = 0.10f)
+                                                else Color.White.copy(alpha = 0.03f)
+                                            )
+                                            .border(
+                                                width = 0.8.dp,
+                                                color = if (isSelected) Color.White.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.06f),
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+                                            .clickable {
+                                                previewTab = tabKey
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // VISUAL CONTENT CONTAINER
+                    item {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.Black.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                                .border(1.dp, Color.White.copy(alpha = 0.04f), RoundedCornerShape(16.dp))
+                                .padding(12.dp)
+                        ) {
+                            val timeValColor = if (previewPaused) Color.Red else Color.White
+                            
+                            if (previewTab == "overlays") {
+                                // 1. Dockable Island Preview Card
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = Color.Black),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth().border(0.5.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(12.dp))
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("DOCKABLE ISLAND", fontSize = 8.sp, color = Color.White.copy(alpha = 0.4f), fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        
+                                        // Simulated Black Capsule Status bar notch
+                                        Row(
+                                            modifier = Modifier
+                                                .width(180.dp)
+                                                .height(32.dp)
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(Color(0xFF000000))
+                                                .border(0.8.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                                                .padding(horizontal = 14.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(6.dp)
+                                                        .clip(CircleShape)
+                                                        .background(if (previewPaused) Color.Gray else Color.Green)
+                                                )
+                                                Text("ACTIVE TIMER", fontSize = 8.sp, color = Color.White.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
+                                            }
+                                            Text("12:34", fontSize = 11.sp, color = timeValColor, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                                
+                                // 2. Floating Bubble & Expanded Panel Preview
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.3f)),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth().border(0.5.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(12.dp))
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("FLOATING BUBBLE OVERLAY", fontSize = 8.sp, color = Color.White.copy(alpha = 0.4f), fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceEvenly,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            // Floating Bubble
+                                            val bubbleBg = config.floatingBubble.getComposeBgColor()
+                                            val bubbleBorder = config.floatingBubble.getComposeBorderColor()
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(54.dp)
+                                                        .clip(RoundedCornerShape(27.dp))
+                                                        .background(bubbleBg)
+                                                        .border(0.8.dp, bubbleBorder, RoundedCornerShape(27.dp)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text("12:34", fontSize = 11.sp, color = timeValColor, fontWeight = FontWeight.Bold)
+                                                }
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text("Bubble", fontSize = 8.sp, color = Color.White.copy(alpha = 0.5f))
+                                            }
+                                            
+                                            // Expanded Bubble Panel Card
+                                            val expandBg = config.expandedBubblePanel.getComposeBgColor()
+                                            val expandBorder = config.expandedBubblePanel.getComposeBorderColor()
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Card(
+                                                    colors = CardDefaults.cardColors(containerColor = expandBg),
+                                                    shape = RoundedCornerShape(14.dp),
+                                                    modifier = Modifier
+                                                        .width(160.dp)
+                                                        .border(0.8.dp, expandBorder, RoundedCornerShape(14.dp))
+                                                ) {
+                                                    Column(
+                                                        modifier = Modifier.padding(10.dp),
+                                                        horizontalAlignment = Alignment.CenterHorizontally
+                                                    ) {
+                                                        Text("ACTIVE TIMER", fontSize = 7.sp, color = Color.White.copy(alpha = 0.5f), fontWeight = FontWeight.Bold)
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Text("12:34", fontSize = 16.sp, color = timeValColor, fontWeight = FontWeight.Bold)
+                                                        Spacer(modifier = Modifier.height(8.dp))
+                                                        Row(
+                                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                        ) {
+                                                            listOf("Pause", "+1m", "Reset").forEach { bLabel ->
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .weight(1f)
+                                                                        .height(18.dp)
+                                                                        .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(4.dp)),
+                                                                    contentAlignment = Alignment.Center
+                                                                ) {
+                                                                    Text(bLabel, fontSize = 7.sp, color = Color.White)
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text("Expanded Panel", fontSize = 8.sp, color = Color.White.copy(alpha = 0.5f))
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                // 3. Widgets Previews: Timer Widget & Stopwatch Widget
+                                val amoledOverride = config.timerWidget.bgColor == "#000000" && config.timerWidget.opacity == 1.0f
+                                
+                                // Timer Widget Card
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (amoledOverride) Color.Black else Color(0xFF0C0C12).copy(alpha = 0.7f)
+                                    ),
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (amoledOverride) Color(0xFF333333) else Color.White.copy(alpha = 0.12f),
+                                            shape = RoundedCornerShape(16.dp)
+                                        )
+                                ) {
+                                    Column(modifier = Modifier.padding(14.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                                Icon(
+                                                    imageVector = Icons.Default.HourglassEmpty,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(12.dp),
+                                                    tint = Color.White
+                                                )
+                                                Text("Timer: Active", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                            }
+                                            Text("WIDGET PREVIEW", fontSize = 8.sp, color = Color.White.copy(alpha = 0.4f))
+                                        }
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Text(
+                                            text = "12:34",
+                                            fontSize = 28.sp,
+                                            color = timeValColor,
+                                            fontWeight = FontWeight.ExtraLight,
+                                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(28.dp)
+                                                    .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(6.dp)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text("+1 Min", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(28.dp)
+                                                    .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(6.dp)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text("Pause", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                // Stopwatch Widget Card
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (amoledOverride) Color.Black else Color(0xFF0C0C12).copy(alpha = 0.7f)
+                                    ),
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (amoledOverride) Color(0xFF333333) else Color.White.copy(alpha = 0.12f),
+                                            shape = RoundedCornerShape(16.dp)
+                                        )
+                                ) {
+                                    Column(modifier = Modifier.padding(14.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Schedule,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(12.dp),
+                                                    tint = Color.White
+                                                )
+                                                Text("Stopwatch", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                            }
+                                            Text("WIDGET PREVIEW", fontSize = 8.sp, color = Color.White.copy(alpha = 0.4f))
+                                        }
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Text(
+                                            text = "12:34.56",
+                                            fontSize = 28.sp,
+                                            color = timeValColor,
+                                            fontWeight = FontWeight.ExtraLight,
+                                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(28.dp)
+                                                    .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(6.dp)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text("Reset", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(28.dp)
+                                                    .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(6.dp)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text("Pause", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

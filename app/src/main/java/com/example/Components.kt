@@ -370,7 +370,7 @@ fun CircleProgressTimer(
             // Giant extralight time tracking string
             Text(
                 text = displayString,
-                color = OffWhite,
+                color = if (statusText.uppercase().contains("PAUSE")) Color(0xFFFF3333) else Color.White,
                 fontSize = textFontSize,
                 fontWeight = FontWeight.ExtraLight,
                 fontFamily = FontFamily.SansSerif,
