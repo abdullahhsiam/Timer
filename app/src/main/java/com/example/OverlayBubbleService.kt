@@ -39,6 +39,7 @@ class OverlayBubbleService : Service() {
 
     private var isIslandExpanded = false
     private var islandWidthAnimator: ValueAnimator? = null
+    private var bubbleAnimator: ValueAnimator? = null
 
     // Fine-grained state cache for performance optimization (eliminates redundant UI redraw and findViewById lookups)
     private var lastFormattedTime = ""
@@ -456,33 +457,73 @@ class OverlayBubbleService : Service() {
                     }
                     MotionEvent.ACTION_UP -> {
                         if (!isMoving) {
-                            val rootGroup = overlayView as? android.view.ViewGroup
-                            if (rootGroup != null) {
-                                // Add a beautiful, smooth Material layout transition
-                                val scaleAndFadeTransition = android.transition.TransitionSet().apply {
-                                    ordering = android.transition.TransitionSet.ORDERING_TOGETHER
-                                    duration = 550
-                                    interpolator = android.view.animation.PathInterpolator(0.12f, 0.95f, 0.15f, 1.04f)
-                                    addTransition(android.transition.ChangeBounds())
-                                    addTransition(android.transition.Fade())
-                                }
-                                android.transition.TransitionManager.beginDelayedTransition(rootGroup, scaleAndFadeTransition)
-                            }
+                            val collapsed = collapsedContainer ?: return true
+                            val expanded = expandedContainer ?: return true
+                            
+                            val densityVal = density
+                            val collapsedWidth = (100 * densityVal).toInt()
+                            val collapsedHeight = (44 * densityVal).toInt()
+                            val expandedWidth = (230 * densityVal).toInt()
+                            val expandedHeight = (136 * densityVal).toInt()
 
-                            if (collapsedContainer.visibility == View.VISIBLE) {
-                                collapsedContainer.visibility = View.GONE
-                                expandedContainer.visibility = View.VISIBLE
-                                currentParams.width = (230 * density).toInt()
-                                currentParams.height = WindowManager.LayoutParams.WRAP_CONTENT
-                            } else {
-                                collapsedContainer.visibility = View.VISIBLE
-                                expandedContainer.visibility = View.GONE
-                                currentParams.width = WindowManager.LayoutParams.WRAP_CONTENT
-                                currentParams.height = WindowManager.LayoutParams.WRAP_CONTENT
+                            bubbleAnimator?.cancel()
+                            
+                            val isExpanding = collapsed.visibility == View.VISIBLE
+                            
+                            val startW = if (isExpanding) collapsedWidth else expandedWidth
+                            val endW = if (isExpanding) expandedWidth else collapsedWidth
+                            val startH = if (isExpanding) collapsedHeight else expandedHeight
+                            val endH = if (isExpanding) expandedHeight else collapsedHeight
+                            
+                            collapsed.visibility = View.VISIBLE
+                            expanded.visibility = View.VISIBLE
+                            
+                            val customInterpolator = android.view.animation.PathInterpolator(0.12f, 0.95f, 0.15f, 1.04f)
+                            
+                            bubbleAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+                                duration = 850
+                                interpolator = customInterpolator
+                                addUpdateListener { animator ->
+                                    val progress = animator.animatedValue as Float
+                                    val currentWidth = (startW + (endW - startW) * progress).toInt()
+                                    val currentHeight = (startH + (endH - startH) * progress).toInt()
+                                    
+                                    currentParams.width = currentWidth
+                                    currentParams.height = currentHeight
+                                    try {
+                                        windowManager.updateViewLayout(overlayView, currentParams)
+                                    } catch (e: Exception) {}
+                                    
+                                    // Fade collapsed container
+                                    val collapsedAlpha = if (isExpanding) 1f - progress else progress
+                                    collapsed.alpha = collapsedAlpha
+                                    collapsed.scaleX = 0.75f + 0.25f * collapsedAlpha
+                                    collapsed.scaleY = 0.75f + 0.25f * collapsedAlpha
+                                    
+                                    // Fade expanded container
+                                    val expandedAlpha = if (isExpanding) progress else 1f - progress
+                                    expanded.alpha = expandedAlpha
+                                    expanded.scaleX = 0.75f + 0.25f * expandedAlpha
+                                    expanded.scaleY = 0.75f + 0.25f * expandedAlpha
+                                }
+                                addListener(object : android.animation.AnimatorListenerAdapter() {
+                                    override fun onAnimationEnd(animation: android.animation.Animator) {
+                                        if (isExpanding) {
+                                            collapsed.visibility = View.GONE
+                                            currentParams.width = expandedWidth
+                                            currentParams.height = WindowManager.LayoutParams.WRAP_CONTENT
+                                        } else {
+                                            expanded.visibility = View.GONE
+                                            currentParams.width = WindowManager.LayoutParams.WRAP_CONTENT
+                                            currentParams.height = WindowManager.LayoutParams.WRAP_CONTENT
+                                        }
+                                        try {
+                                            windowManager.updateViewLayout(overlayView, currentParams)
+                                        } catch (e: Exception) {}
+                                    }
+                                })
+                                start()
                             }
-                            try {
-                                windowManager.updateViewLayout(overlayView, currentParams)
-                            } catch (e: Exception) {}
                         }
                         return true
                     }
@@ -673,6 +714,8 @@ class OverlayBubbleService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         TimerStopwatchStateManager.setOverlayActive(false)
+        islandWidthAnimator?.cancel()
+        bubbleAnimator?.cancel()
         updateJob?.cancel()
         job.cancel()
         overlayView?.let {

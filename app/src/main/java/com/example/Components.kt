@@ -210,9 +210,10 @@ fun CircleProgressTimer(
 ) {
     // Smooth progress fraction anim
     val progressFraction = if (totalMs > 0) remainingMs.toFloat() / totalMs.toFloat() else 0f
+    val isRunning = statusText.uppercase().contains("RUNNING")
     val animatedProgress by animateFloatAsState(
         targetValue = progressFraction.coerceIn(0f, 1f),
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow),
+        animationSpec = if (isRunning) snap() else spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "elapsed_radial"
     )
 

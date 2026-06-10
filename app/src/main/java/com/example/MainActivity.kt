@@ -42,14 +42,7 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.ui.window.Dialog
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
@@ -283,344 +276,415 @@ fun MainScreen(
             // Full screen active Alert dialog overlay
             ActiveAlarmOverlay(viewModel = viewModel)
         } else {
-            // Main Standard Navigation and Layout Structure
+            // Main Standard Navigation and Layout Structure with stable coordinates
             val isFullScreenDisplay = ((timerStatus == TimerStatus.RUNNING || timerStatus == TimerStatus.PAUSED) && activeTab == 0) || 
                                       ((stopwatchStatus == StopwatchStatus.RUNNING || stopwatchStatus == StopwatchStatus.PAUSED) && activeTab == 1)
 
-            Column(
+            val fullScreenTransitionProgress by animateFloatAsState(
+                targetValue = if (isFullScreenDisplay) 1f else 0f,
+                animationSpec = spring(stiffness = Spring.StiffnessLow),
+                label = "full_screen_transition"
+            )
+
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .windowInsetsPadding(WindowInsets.statusBars)
                     .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
             ) {
-                // Header (Hidden in immersive Full-Screen Display Mode to keep design clean and non-distracting)
-                AnimatedVisibility(
-                    visible = !isFullScreenDisplay,
-                    enter = fadeIn() + slideInVertically(),
-                    exit = fadeOut() + slideOutVertically()
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 12.dp, bottom = 12.dp, start = 4.dp, end = 4.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = "Focus Mode",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = 2.sp,
-                                    color = Color.White.copy(alpha = 0.60f)
-                                )
-                                // Active status pulse green dot
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(GlowGreen)
-                                )
-                            }
-                            
-                            // Options Trigger & Dropdown Menu
-                            Box {
-                                Icon(
-                                    imageVector = Icons.Default.MoreVert,
-                                    contentDescription = "More Options",
-                                    tint = Color.White.copy(alpha = 0.4f),
-                                    modifier = Modifier
-                                        .size(20.dp)
-                                        .clip(CircleShape)
-                                        .clickable { menuExpanded = true }
-                                )
-                                DropdownMenu(
-                                    expanded = menuExpanded,
-                                    onDismissRequest = { menuExpanded = false },
-                                    modifier = Modifier.background(Color(0xFF141419))
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text("🔊 Alarm Sound Settings", color = Color.White, fontSize = 14.sp) },
-                                        onClick = {
-                                            menuExpanded = false
-                                            showSoundDialog = true
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { 
-                                            Text(
-                                                text = if (isBackgroundAnimated) "Background: Animated" else "Background: Static Fluid", 
-                                                color = Color.White, 
-                                                fontSize = 14.sp
-                                            ) 
-                                        },
-                                        onClick = {
-                                            menuExpanded = false
-                                            viewModel.setBackgroundAnimated(!isBackgroundAnimated)
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("--- OVERLAY MODE ---", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-                                        onClick = {},
-                                        enabled = false
-                                    )
-                                    DropdownMenuItem(
-                                        text = { 
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Text(
-                                                    text = "🏝️ Dockable Island", 
-                                                    color = if (overlayMode == 0) PurpleGlow else Color.White, 
-                                                    fontSize = 14.sp,
-                                                    fontWeight = if (overlayMode == 0) FontWeight.Bold else FontWeight.Normal
-                                                )
-                                                if (overlayMode == 0) {
-                                                    Spacer(modifier = Modifier.width(6.dp))
-                                                    Text("✓", color = PurpleGlow)
-                                                }
-                                            }
-                                        },
-                                        onClick = {
-                                            menuExpanded = false
-                                            viewModel.setOverlayMode(0)
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { 
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Text(
-                                                    text = "💬 Floating Bubble", 
-                                                    color = if (overlayMode == 1) PurpleGlow else Color.White, 
-                                                    fontSize = 14.sp,
-                                                    fontWeight = if (overlayMode == 1) FontWeight.Bold else FontWeight.Normal
-                                                )
-                                                if (overlayMode == 1) {
-                                                    Spacer(modifier = Modifier.width(6.dp))
-                                                    Text("✓", color = PurpleGlow)
-                                                }
-                                            }
-                                        },
-                                        onClick = {
-                                            menuExpanded = false
-                                            viewModel.setOverlayMode(1)
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { 
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Text(
-                                                    text = "❌ Disable Overlays", 
-                                                    color = if (overlayMode == 2) PurpleGlow else Color.White, 
-                                                    fontSize = 14.sp,
-                                                    fontWeight = if (overlayMode == 2) FontWeight.Bold else FontWeight.Normal
-                                                )
-                                                if (overlayMode == 2) {
-                                                    Spacer(modifier = Modifier.width(6.dp))
-                                                    Text("✓", color = PurpleGlow)
-                                                }
-                                            }
-                                        },
-                                        onClick = {
-                                            menuExpanded = false
-                                            viewModel.setOverlayMode(2)
-                                        }
-                                    )
-                                }
-                            }
-
-                            if (showSoundDialog) {
-                                val selectedSound by viewModel.selectedSound.collectAsState()
-                                SoundSelectionDialog(
-                                    currentSelection = selectedSound,
-                                    onSelect = { preset -> viewModel.selectSound(preset) },
-                                    onDismiss = { showSoundDialog = false },
-                                    onPlayPreview = onPlayPreview,
-                                    onStopPreview = onStopPreview
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Custom Low-Opacity Pill Tab Switcher (bg-white/5, 2 options)
-                        Row(
-                            modifier = Modifier
-                                .width(210.dp)
-                                .height(48.dp)
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(Color.White.copy(alpha = 0.05f))
-                                .border(width = 1.dp, color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(24.dp))
-                                .padding(3.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            TabItem(
-                                label = "Timer",
-                                selected = activeTab == 0,
-                                icon = Icons.Default.Timer,
-                                onClick = { viewModel.selectTab(0) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .testTag("tab_timer")
-                            )
-                            TabItem(
-                                label = "Watch",
-                                selected = activeTab == 1,
-                                icon = Icons.Default.Schedule,
-                                onClick = { viewModel.selectTab(1) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .testTag("tab_stopwatch")
-                            )
-                        }
-                    }
-                }
-
-                // Main Display Center content with premium "blurry morph" transition
-                AnimatedContent(
-                    targetState = activeTab,
-                    transitionSpec = {
-                        val duration = 550
-                        fadeIn(animationSpec = tween(duration, easing = FastOutSlowInEasing)) +
-                                scaleIn(initialScale = 0.94f, animationSpec = tween(duration, easing = FastOutSlowInEasing)) togetherWith
-                                fadeOut(animationSpec = tween(duration, easing = FastOutSlowInEasing)) +
-                                scaleOut(targetScale = 0.94f, animationSpec = tween(duration, easing = FastOutSlowInEasing))
-                    },
+                // 1. CENTER CONTAINER (DIALER & TIMERS): Perfect geometric anchoring
+                Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    label = "tab_switch_transition"
-                ) { targetTab ->
-                    // Dynamic blur transition that flares beautifully during tab switches
-                    val isAnimationsEnabled by viewModel.isBackgroundAnimated.collectAsState()
-                    val transition = updateTransition(targetState = targetTab == activeTab, label = "tab_morph_blur")
-                    val progress by transition.animateFloat(
-                        transitionSpec = { tween(550, easing = FastOutSlowInEasing) },
-                        label = "morph_progress"
-                    ) { active ->
-                        if (active) 1f else 0f
-                    }
-                    
-                    val morphBlur = if (isAnimationsEnabled) {
-                        // Bell curve for liquid flare feel in the middle of transition
-                        val bell = kotlin.math.sin(progress * Math.PI).toFloat()
-                        (bell * 18f).dp
-                    } else {
-                        0.dp
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .blur(morphBlur),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (targetTab == 0) {
-                            TimerTabContent(viewModel = viewModel)
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            // Symmetrical dynamic upscale "blown to the whole screen" without displacing central coordinates
+                            val scale = 1.0f + (0.12f * fullScreenTransitionProgress)
+                            scaleX = scale
+                            scaleY = scale
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    AnimatedContent(
+                        targetState = activeTab,
+                        transitionSpec = {
+                            val duration = 550
+                            fadeIn(animationSpec = tween(duration, easing = FastOutSlowInEasing)) +
+                                    scaleIn(initialScale = 0.94f, animationSpec = tween(duration, easing = FastOutSlowInEasing)) togetherWith
+                                    fadeOut(animationSpec = tween(duration, easing = FastOutSlowInEasing)) +
+                                    scaleOut(targetScale = 0.94f, animationSpec = tween(duration, easing = FastOutSlowInEasing))
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        label = "tab_switch_transition"
+                    ) { targetTab ->
+                        val isAnimationsEnabled by viewModel.isBackgroundAnimated.collectAsState()
+                        val transition = updateTransition(targetState = targetTab == activeTab, label = "tab_morph_blur")
+                        val progress by transition.animateFloat(
+                            transitionSpec = { tween(550, easing = FastOutSlowInEasing) },
+                            label = "morph_progress"
+                        ) { active ->
+                            if (active) 1f else 0f
+                        }
+                        
+                        val morphBlur = if (isAnimationsEnabled) {
+                            val bell = kotlin.math.sin(progress * Math.PI).toFloat()
+                            (bell * 18f).dp
                         } else {
-                            StopwatchTabContent(viewModel = viewModel)
+                            0.dp
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .blur(morphBlur),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (targetTab == 0) {
+                                TimerTabContent(viewModel = viewModel)
+                            } else {
+                                StopwatchTabContent(viewModel = viewModel)
+                            }
                         }
                     }
                 }
 
-                // Global Settings Bottom Footer (Hidden during immersive lock to satisfy Always On requirements)
-                AnimatedVisibility(
-                    visible = !isFullScreenDisplay,
-                    enter = fadeIn(),
-                    exit = fadeOut()
+                // 2. TOP CONTAINER (OPTIONS HEADER & SLIDING PILL TAB SELECTOR)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .graphicsLayer {
+                            alpha = 1f - fullScreenTransitionProgress
+                            translationY = -35.dp.toPx() * fullScreenTransitionProgress
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(top = 12.dp, bottom = 12.dp, start = 4.dp, end = 4.dp)
                     ) {
-                        val context = LocalContext.current
-                        val overlayActive by viewModel.overlayActive.collectAsState()
-                        val hasOverlayPermission = Settings.canDrawOverlays(context)
-
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.weight(1f)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
+                            Text(
+                                text = "Focus Mode",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 2.sp,
+                                color = Color.White.copy(alpha = 0.60f)
+                            )
+                            // Active status pulse green dot
+                            Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(Color(0x06FFFFFF))
-                                    .clickable { viewModel.toggleAlwaysOn() }
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(GlowGreen)
+                            )
+                        }
+                        
+                        // Options Trigger & Dropdown Menu
+                        Box {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "More Options",
+                                tint = Color.White.copy(alpha = 0.4f),
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(CircleShape)
+                                    .clickable { menuExpanded = true }
+                            )
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false },
+                                modifier = Modifier.background(Color(0xFF141419))
                             ) {
-                                Icon(
-                                    imageVector = if (isAlwaysOn) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
-                                    contentDescription = "AOD State",
-                                    tint = if (isAlwaysOn) PurpleGlow else Color.Gray,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = if (isAlwaysOn) "Always-On Enforced" else "Screen Sleep Allowed",
-                                    fontSize = 11.sp,
-                                    color = if (isAlwaysOn) Color.White else Color.Gray,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(Color(0x06FFFFFF))
-                                    .clickable {
-                                        if (Settings.canDrawOverlays(context)) {
-                                            if (overlayActive) {
-                                                context.stopService(Intent(context, OverlayBubbleService::class.java))
-                                            } else {
-                                                context.startService(Intent(context, OverlayBubbleService::class.java))
-                                            }
-                                        } else {
-                                            val intent = Intent(
-                                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                                Uri.parse("package:${context.packageName}")
-                                            )
-                                            context.startActivity(intent)
-                                        }
+                                DropdownMenuItem(
+                                    text = { Text("🔊 Alarm Sound Settings", color = Color.White, fontSize = 14.sp) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        showSoundDialog = true
                                     }
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (overlayActive) Icons.Default.Layers else Icons.Default.LayersClear,
-                                    contentDescription = "Overlay State",
-                                    tint = if (overlayActive) PurpleGlow else Color.Gray,
-                                    modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = if (!hasOverlayPermission) "Grant Overlay Permission" else if (overlayActive) "Floating Bubble Active" else "Enable Floating Bubble",
-                                    fontSize = 11.sp,
-                                    color = if (overlayActive) Color.White else Color.Gray,
-                                    fontWeight = FontWeight.Medium
+                                DropdownMenuItem(
+                                    text = { 
+                                        Text(
+                                            text = if (isBackgroundAnimated) "Background: Animated" else "Background: Static Fluid", 
+                                            color = Color.White, 
+                                            fontSize = 14.sp
+                                        ) 
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        viewModel.setBackgroundAnimated(!isBackgroundAnimated)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("--- OVERLAY MODE ---", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                                    onClick = {},
+                                    enabled = false
+                                )
+                                DropdownMenuItem(
+                                    text = { 
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = "🏝️ Dockable Island", 
+                                                color = if (overlayMode == 0) PurpleGlow else Color.White, 
+                                                fontSize = 14.sp,
+                                                fontWeight = if (overlayMode == 0) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                            if (overlayMode == 0) {
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text("✓", color = PurpleGlow)
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        viewModel.setOverlayMode(0)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { 
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = "💬 Floating Bubble", 
+                                                color = if (overlayMode == 1) PurpleGlow else Color.White, 
+                                                fontSize = 14.sp,
+                                                fontWeight = if (overlayMode == 1) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                            if (overlayMode == 1) {
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text("✓", color = PurpleGlow)
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        viewModel.setOverlayMode(1)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { 
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = "❌ Disable Overlays", 
+                                                color = if (overlayMode == 2) PurpleGlow else Color.White, 
+                                                fontSize = 14.sp,
+                                                fontWeight = if (overlayMode == 2) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                            if (overlayMode == 2) {
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text("✓", color = PurpleGlow)
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        viewModel.setOverlayMode(2)
+                                    }
                                 )
                             }
                         }
 
-                        Text(
-                            text = "v1.0.0 Stable",
-                            fontSize = 11.sp,
-                            color = Color.DarkGray,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
+                        if (showSoundDialog) {
+                            val selectedSound by viewModel.selectedSound.collectAsState()
+                            SoundSelectionDialog(
+                                currentSelection = selectedSound,
+                                onSelect = { preset -> viewModel.selectSound(preset) },
+                                onDismiss = { showSoundDialog = false },
+                                onPlayPreview = onPlayPreview,
+                                onStopPreview = onStopPreview
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Sliding Premium Glassmorphic Tab Switcher (Fluid, Stretch & Morph)
+                    SlidingTabSwitcher(
+                        activeTab = activeTab,
+                        onTabSelected = { viewModel.selectTab(it) }
+                    )
+                }
+
+                // 3. BOTTOM CONTAINER (ALWAYS-ON & BUBBLE CONFIG FOOTER ACTIONS)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 8.dp)
+                        .graphicsLayer {
+                            alpha = 1f - fullScreenTransitionProgress
+                            translationY = 35.dp.toPx() * fullScreenTransitionProgress
+                        },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val context = LocalContext.current
+                    val overlayActive by viewModel.overlayActive.collectAsState()
+                    val hasOverlayPermission = Settings.canDrawOverlays(context)
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0x06FFFFFF))
+                                .clickable { viewModel.toggleAlwaysOn() }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isAlwaysOn) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
+                                contentDescription = "AOD State",
+                                tint = if (isAlwaysOn) PurpleGlow else Color.Gray,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isAlwaysOn) "Always-On Enforced" else "Screen Sleep Allowed",
+                                fontSize = 11.sp,
+                                color = if (isAlwaysOn) Color.White else Color.Gray,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0x06FFFFFF))
+                                .clickable {
+                                    if (Settings.canDrawOverlays(context)) {
+                                        if (overlayActive) {
+                                            context.stopService(Intent(context, OverlayBubbleService::class.java))
+                                        } else {
+                                            context.startService(Intent(context, OverlayBubbleService::class.java))
+                                        }
+                                    } else {
+                                        val intent = Intent(
+                                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                            Uri.parse("package:${context.packageName}")
+                                        )
+                                        context.startActivity(intent)
+                                    }
+                                }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (overlayActive) Icons.Default.Layers else Icons.Default.LayersClear,
+                                contentDescription = "Overlay State",
+                                tint = if (overlayActive) PurpleGlow else Color.Gray,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (!hasOverlayPermission) "Grant Overlay Permission" else if (overlayActive) "Floating Bubble Active" else "Enable Floating Bubble",
+                                fontSize = 11.sp,
+                                color = if (overlayActive) Color.White else Color.Gray,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "v1.0.0 Stable",
+                        fontSize = 11.sp,
+                        color = Color.DarkGray,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun SlidingTabSwitcher(
+    activeTab: Int,
+    onTabSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isAnimationsEnabled by TimerStopwatchStateManager.isBackgroundAnimated.collectAsState()
+    
+    // Smooth tab selection index progress (0f to 1f)
+    val tabProgress by animateFloatAsState(
+        targetValue = activeTab.toFloat(),
+        animationSpec = if (isAnimationsEnabled) {
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium
+            )
+        } else {
+            snap()
+        },
+        label = "sliding_tab_progress"
+    )
+
+    // Liquid organic stretch: pill temporarily elongates as it slides across the divide
+    val stretchWidth = 102.dp + if (isAnimationsEnabled) {
+        val bell = kotlin.math.sin(tabProgress * Math.PI).toFloat()
+        (16.dp * bell)
+    } else {
+        0.dp
+    }
+
+    Box(
+        modifier = modifier
+            .width(210.dp)
+            .height(48.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+            .border(width = 1.dp, color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(24.dp))
+            .padding(3.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        // Sliding glassmorphic indicator capsule
+        Box(
+            modifier = Modifier
+                .offset(x = (tabProgress * 102).dp)
+                .width(stretchWidth)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color.White.copy(alpha = 0.12f))
+                .blur(if (isAnimationsEnabled) {
+                    val bell = kotlin.math.sin(tabProgress * Math.PI).toFloat()
+                    (4.dp * bell)
+                } else {
+                    0.dp
+                })
+        )
+
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TabItem(
+                label = "Timer",
+                selected = activeTab == 0,
+                icon = Icons.Default.Timer,
+                onClick = { onTabSelected(0) },
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .testTag("tab_timer")
+            )
+            TabItem(
+                label = "Watch",
+                selected = activeTab == 1,
+                icon = Icons.Default.Schedule,
+                onClick = { onTabSelected(1) },
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .testTag("tab_stopwatch")
+            )
         }
     }
 }
@@ -635,7 +699,7 @@ fun TabItem(
 ) {
     val isAnimationsEnabled by TimerStopwatchStateManager.isBackgroundAnimated.collectAsState()
     
-    // Smooth selection background transparency transition
+    // Smooth selection background transparency transition (reserved for potential press feedback)
     val animAlpha by animateFloatAsState(
         targetValue = if (selected) 0.12f else 0.0f,
         animationSpec = if (isAnimationsEnabled) spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium) else snap(),
@@ -666,7 +730,6 @@ fun TabItem(
                 scaleY = scale
             }
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White.copy(alpha = animAlpha))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
