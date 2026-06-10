@@ -26,6 +26,14 @@ data class LapRecord(
 
 class TimerStopwatchViewModel : ViewModel() {
 
+    // --- Sound Selection State ---
+    private val _selectedSound = MutableStateFlow(AlarmSoundPreset.ETHEREAL_CHIME)
+    val selectedSound: StateFlow<AlarmSoundPreset> = _selectedSound.asStateFlow()
+
+    fun selectSound(preset: AlarmSoundPreset) {
+        _selectedSound.value = preset
+    }
+
     // --- Tab Selection State ---
     private val _activeTab = MutableStateFlow(0) // 0: Timer, 1: Stopwatch
     val activeTab: StateFlow<Int> = _activeTab.asStateFlow()

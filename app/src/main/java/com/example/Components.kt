@@ -47,15 +47,28 @@ import kotlin.math.sin
 /**
  * AnimatedGradientBackground draws key ambient dynamic dark-colored shifting radial gradients
  * mimicking the exact HTML specification's blur layers (indigo-900/20 & purple-900/10 glows).
+ * If isRunningActive is true, it triggers a fully dynamic fluid rotating multi-colored gradient sequence.
  */
 @Composable
 fun AnimatedGradientBackground(
     modifier: Modifier = Modifier,
     isPulsingAlarm: Boolean = false,
+    isRunningActive: Boolean = false,
     content: @Composable BoxScope.() -> Unit
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "ambient_glow")
     
+    // Rotating gradient angle animation for the active running state
+    val angleRad by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2 * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(12000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation_angle"
+    )
+
     // Animate fluid movement coordinates for the ambient blurry radial indicators
     val driftOffset1 by infiniteTransition.animateFloat(
         initialValue = -50f,
@@ -107,6 +120,62 @@ fun AnimatedGradientBackground(
                         ),
                         radius = sizeVal.minDimension * 0.9f,
                         center = center
+                    )
+                } else if (isRunningActive) {
+                    // Gorgeous, highly polished rotating cosmic fluid dark multi-color gradient
+                    val cosVal = cos(angleRad) * 0.45f
+                    val sinVal = sin(angleRad) * 0.45f
+                    
+                    val activeBrush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF090812), // Deep space black base
+                            Color(0xFF160E2E), // Low-luminance velvet cosmic purple
+                            Color(0xFF0F1E28), // Deep therapeutic teal
+                            Color(0xFF20113B), // Mystic amethyst violet
+                            Color(0xFF090812)
+                        ),
+                        start = Offset(
+                            x = sizeVal.width * (0.5f + cosVal),
+                            y = sizeVal.height * (0.5f - sinVal)
+                        ),
+                        end = Offset(
+                            x = sizeVal.width * (0.5f - cosVal),
+                            y = sizeVal.height * (0.5f + sinVal)
+                        )
+                    )
+                    drawRect(brush = activeBrush)
+
+                    // Draw layered active glowing radial accents on top for extra visual depth!
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(Color(0x3E312E81), Color.Transparent), // Stronger indigo layer
+                            center = Offset(
+                                x = sizeVal.width * -0.05f + driftOffset1 * 1.5f,
+                                y = sizeVal.height * -0.1f + driftOffset2 * 1.5f
+                            ),
+                            radius = sizeVal.width * 1.0f
+                        ),
+                        radius = sizeVal.width * 1.0f,
+                        center = Offset(
+                            x = sizeVal.width * -0.05f + driftOffset1 * 1.5f,
+                            y = sizeVal.height * -0.1f + driftOffset2 * 1.5f
+                        )
+                    )
+
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(Color(0x2B581C87), Color.Transparent), // Stronger lavender purple layer
+                            center = Offset(
+                                x = sizeVal.width * 1.05f - driftOffset2 * 1.5f,
+                                y = sizeVal.height * 1.0f - driftOffset1 * 1.5f
+                            ),
+                            radius = sizeVal.width * 0.9f
+                        ),
+                        radius = sizeVal.width * 0.9f,
+                        center = Offset(
+                            x = sizeVal.width * 1.05f - driftOffset2 * 1.5f,
+                            y = sizeVal.height * 1.0f - driftOffset1 * 1.5f
+                        )
                     )
                 } else {
                     // Clean Minimalism Dark solid canvas base

@@ -27,6 +27,9 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.ui.window.Dialog
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
@@ -67,10 +70,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         alarmController = AlarmController(applicationContext)
+        viewModel.selectSound(alarmController.getSelectedSound())
 
         setContent {
             MyApplicationTheme {
                 val alarmTriggered by viewModel.alarmTriggered.collectAsState()
+                val selectedSound by viewModel.selectedSound.collectAsState()
 
                 // Trigger or close alarm audio/vibe relative to ViewModel reactive states
                 LaunchedEffect(alarmTriggered) {
@@ -81,11 +86,21 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // Keep sound controller synchronized with state flow changes
+                LaunchedEffect(selectedSound) {
+                    alarmController.saveSelectedSound(selectedSound)
+                }
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen(viewModel = viewModel, alarmTriggered = alarmTriggered)
+                    MainScreen(
+                        viewModel = viewModel,
+                        alarmTriggered = alarmTriggered,
+                        onPlayPreview = { preset -> alarmController.playPreview(preset) },
+                        onStopPreview = { alarmController.stopAlarm() }
+                    )
                 }
             }
         }
@@ -101,11 +116,19 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainScreen(viewModel: TimerStopwatchViewModel, alarmTriggered: Boolean) {
+fun MainScreen(
+    viewModel: TimerStopwatchViewModel,
+    alarmTriggered: Boolean,
+    onPlayPreview: (AlarmSoundPreset) -> Unit,
+    onStopPreview: () -> Unit
+) {
     val activeTab by viewModel.activeTab.collectAsState()
     val isAlwaysOn by viewModel.isAlwaysOn.collectAsState()
     val timerStatus by viewModel.timerStatus.collectAsState()
     val stopwatchStatus by viewModel.stopwatchStatus.collectAsState()
+
+    var menuExpanded by remember { mutableStateOf(false) }
+    var showSoundDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
@@ -134,7 +157,10 @@ fun MainScreen(viewModel: TimerStopwatchViewModel, alarmTriggered: Boolean) {
     }
 
     // Wrap entire layout in standard animated background
-    AnimatedGradientBackground(isPulsingAlarm = alarmTriggered) {
+    AnimatedGradientBackground(
+        isPulsingAlarm = alarmTriggered,
+        isRunningActive = timerStatus == TimerStatus.RUNNING || stopwatchStatus == StopwatchStatus.RUNNING
+    ) {
         if (alarmTriggered) {
             // Full screen active Alert dialog overlay
             ActiveAlarmOverlay(viewModel = viewModel)
@@ -185,16 +211,42 @@ fun MainScreen(viewModel: TimerStopwatchViewModel, alarmTriggered: Boolean) {
                                 )
                             }
                             
-                            // Options Trigger Symbol
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More Options",
-                                tint = Color.White.copy(alpha = 0.4f),
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clip(CircleShape)
-                                    .clickable { /* Subtle mock action */ }
-                            )
+                            // Options Trigger & Dropdown Menu
+                            Box {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "More Options",
+                                    tint = Color.White.copy(alpha = 0.4f),
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clip(CircleShape)
+                                        .clickable { menuExpanded = true }
+                                )
+                                DropdownMenu(
+                                    expanded = menuExpanded,
+                                    onDismissRequest = { menuExpanded = false },
+                                    modifier = Modifier.background(Color(0xFF141419))
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Alarm Sound Settings", color = Color.White, fontSize = 14.sp) },
+                                        onClick = {
+                                            menuExpanded = false
+                                            showSoundDialog = true
+                                        }
+                                    )
+                                }
+                            }
+
+                            if (showSoundDialog) {
+                                val selectedSound by viewModel.selectedSound.collectAsState()
+                                SoundSelectionDialog(
+                                    currentSelection = selectedSound,
+                                    onSelect = { preset -> viewModel.selectSound(preset) },
+                                    onDismiss = { showSoundDialog = false },
+                                    onPlayPreview = onPlayPreview,
+                                    onStopPreview = onStopPreview
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -821,6 +873,169 @@ fun ActiveAlarmOverlay(viewModel: TimerStopwatchViewModel) {
                     .height(54.dp)
                     .testTag("alarm_snooze_btn")
             )
+        }
+    }
+}
+
+
+// ==========================================
+// CUSTOM ALARM SOUND SELECTOR DIALOG
+// ==========================================
+@Composable
+fun SoundSelectionDialog(
+    currentSelection: AlarmSoundPreset,
+    onSelect: (AlarmSoundPreset) -> Unit,
+    onDismiss: () -> Unit,
+    onPlayPreview: (AlarmSoundPreset) -> Unit,
+    onStopPreview: () -> Unit
+) {
+    var previewingId by remember { mutableStateOf<String?>(null) }
+
+    // Terminate preview playback on dialog dismiss
+    DisposableEffect(Unit) {
+        onDispose {
+            onStopPreview()
+        }
+    }
+
+    Dialog(onDismissRequest = {
+        onStopPreview()
+        onDismiss()
+    }) {
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF141419)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(24.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header details
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = PurpleGlow,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Sound Profiles",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Choose ringtone or wellness chime",
+                            fontSize = 12.sp,
+                            color = Color.White.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Scrollable choices
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 280.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(AlarmSoundPreset.values()) { preset ->
+                        val isSelected = preset == currentSelection
+                        val isCurrentlyPreviewing = previewingId == preset.id
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (isSelected) Color.White.copy(alpha = 0.05f) else Color.Transparent)
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isSelected) PurpleGlow.copy(alpha = 0.3f) else Color.Transparent,
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .clickable {
+                                    onSelect(preset)
+                                }
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = preset.displayName,
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (isSelected) Color.White else Color.White.copy(alpha = 0.7f)
+                                )
+                                // Elegant description text
+                                val desc = when (preset) {
+                                    AlarmSoundPreset.ETHEREAL_CHIME -> "528Hz – Cellular energy & healing"
+                                    AlarmSoundPreset.ZEN_RESONANCE -> "432Hz – Therapeutic cosmic tuning"
+                                    AlarmSoundPreset.MINIMAL_PULSE -> "880Hz – High-efficiency pulse beep"
+                                    AlarmSoundPreset.SYSTEM_ALARM -> "Standard default alarm sound"
+                                    AlarmSoundPreset.SYSTEM_RINGTONE -> "Your phone's standard ringtone"
+                                    AlarmSoundPreset.SYSTEM_NOTIFICATION -> "Compact systemic alert chime"
+                                }
+                                Text(
+                                    text = desc,
+                                    fontSize = 11.sp,
+                                    color = if (isSelected) Color.White.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.3f)
+                                )
+                            }
+
+                            // Preview floating action trigger
+                            IconButton(
+                                onClick = {
+                                    if (isCurrentlyPreviewing) {
+                                        onStopPreview()
+                                        previewingId = null
+                                    } else {
+                                        onPlayPreview(preset)
+                                        previewingId = preset.id
+                                    }
+                                },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isCurrentlyPreviewing) PurpleGlow else Color.White.copy(alpha = 0.05f))
+                            ) {
+                                Icon(
+                                    imageVector = if (isCurrentlyPreviewing) Icons.Default.Stop else Icons.Default.PlayArrow,
+                                    contentDescription = "Preview",
+                                    tint = if (isCurrentlyPreviewing) Color(0xFF381E72) else Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Close button
+                ActionButton(
+                    text = "Confirm Choice",
+                    isPrimary = true,
+                    onClick = {
+                        onStopPreview()
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
