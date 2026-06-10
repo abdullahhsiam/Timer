@@ -457,7 +457,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.weight(1.1f)
+                            modifier = Modifier.weight(0.9f)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -523,16 +523,18 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                             }
                         }
 
-                        // Right column Keypad
+                        // Right column Keypad (more weight, larger buttons)
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.weight(0.9f)
+                            modifier = Modifier.weight(1.1f)
                         ) {
                             ModernKeypad(
-                                buttonSize = 48.dp,
+                                buttonSize = 58.dp,
                                 spacing = 6.dp,
-                                horizontalSpacing = 10.dp,
+                                horizontalSpacing = 14.dp,
+                                fontSize = 24.sp,
+                                actionFontSize = 18.sp,
                                 onDigitClicked = { viewModel.appendDigit(it) },
                                 onDeleteClicked = { viewModel.deleteDigit() },
                                 onClearAllClicked = { viewModel.clearTimerInput() }

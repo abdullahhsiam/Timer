@@ -347,6 +347,8 @@ fun ModernKeypad(
     buttonSize: androidx.compose.ui.unit.Dp = 72.dp,
     spacing: androidx.compose.ui.unit.Dp = 12.dp,
     horizontalSpacing: androidx.compose.ui.unit.Dp = 16.dp,
+    fontSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
+    actionFontSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
     onDigitClicked: (Int) -> Unit,
     onDeleteClicked: () -> Unit,
     onClearAllClicked: () -> Unit
@@ -374,6 +376,8 @@ fun ModernKeypad(
                     KeypadButton(
                         label = label,
                         modifier = Modifier.size(buttonSize),
+                        fontSize = fontSize,
+                        actionFontSize = actionFontSize,
                         onClick = {
                             when (label) {
                                 "C" -> onClearAllClicked()
@@ -393,6 +397,8 @@ fun ModernKeypad(
 fun KeypadButton(
     label: String,
     modifier: Modifier = Modifier,
+    fontSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
+    actionFontSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
     onClick: () -> Unit,
     isAction: Boolean = false
 ) {
@@ -412,9 +418,14 @@ fun KeypadButton(
             ),
         contentAlignment = Alignment.Center
     ) {
+        val resolvedFontSize = if (isAction) {
+            if (actionFontSize != androidx.compose.ui.unit.TextUnit.Unspecified) actionFontSize else 16.sp
+        } else {
+            if (fontSize != androidx.compose.ui.unit.TextUnit.Unspecified) fontSize else 22.sp
+        }
         Text(
             text = label,
-            fontSize = if (label == "C" || label == "⌫") 16.sp else 22.sp,
+            fontSize = resolvedFontSize,
             fontWeight = FontWeight.Light,
             color = if (isAction) PurpleGlow else OffWhite
         )
