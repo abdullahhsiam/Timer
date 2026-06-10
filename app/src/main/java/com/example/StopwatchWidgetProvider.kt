@@ -37,17 +37,19 @@ class StopwatchWidgetProvider : AppWidgetProvider() {
                 val colorWithAlpha = (bgAlpha shl 24) or (baseBgColor and 0x00FFFFFF)
                 views.setInt(android.R.id.background, "setBackgroundColor", colorWithAlpha)
 
-                val textColorVal = android.graphics.Color.parseColor(widgetStyle.textColor)
-                val accentColorVal = android.graphics.Color.parseColor(widgetStyle.accentColor)
+                // Paused -> RED, Running/Idle -> WHITE
+                val isPaused = stopwatchStatus != StopwatchStatus.RUNNING && stopwatchStatus != StopwatchStatus.IDLE
+                val displayTextColor = if (isPaused) android.graphics.Color.RED else android.graphics.Color.WHITE
+                val staticWhite = android.graphics.Color.WHITE
 
-                views.setTextColor(R.id.widget_stopwatch_title, accentColorVal)
-                views.setTextColor(R.id.widget_stopwatch_text, textColorVal)
+                views.setTextColor(R.id.widget_stopwatch_title, staticWhite)
+                views.setTextColor(R.id.widget_stopwatch_text, displayTextColor)
 
-                val btnBgVal = (35 shl 24) or (accentColorVal and 0x00FFFFFF)
-                views.setTextColor(R.id.btn_widget_stopwatch_toggle, accentColorVal)
+                val btnBgVal = (35 shl 24) or (staticWhite and 0x00FFFFFF)
+                views.setTextColor(R.id.btn_widget_stopwatch_toggle, staticWhite)
                 views.setInt(R.id.btn_widget_stopwatch_toggle, "setBackgroundColor", btnBgVal)
 
-                views.setTextColor(R.id.btn_widget_stopwatch_reset, textColorVal)
+                views.setTextColor(R.id.btn_widget_stopwatch_reset, staticWhite)
                 views.setInt(R.id.btn_widget_stopwatch_reset, "setBackgroundColor", btnBgVal)
             } catch (e: Exception) {}
 

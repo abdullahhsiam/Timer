@@ -37,23 +37,25 @@ class TimerWidgetProvider : AppWidgetProvider() {
                 val colorWithAlpha = (bgAlpha shl 24) or (baseBgColor and 0x00FFFFFF)
                 views.setInt(android.R.id.background, "setBackgroundColor", colorWithAlpha)
 
-                val textColorVal = android.graphics.Color.parseColor(widgetStyle.textColor)
-                val accentColorVal = android.graphics.Color.parseColor(widgetStyle.accentColor)
+                // Pauesd -> RED, Running/Idle -> WHITE
+                val isPaused = timerStatus == TimerStatus.PAUSED
+                val displayTextColor = if (isPaused) android.graphics.Color.RED else android.graphics.Color.WHITE
+                val staticWhite = android.graphics.Color.WHITE
 
-                views.setTextColor(R.id.widget_timer_title, accentColorVal)
-                views.setTextColor(R.id.widget_timer_text, textColorVal)
+                views.setTextColor(R.id.widget_timer_title, staticWhite)
+                views.setTextColor(R.id.widget_timer_text, displayTextColor)
 
-                val btnBgVal = (35 shl 24) or (accentColorVal and 0x00FFFFFF)
-                views.setTextColor(R.id.btn_widget_timer_toggle, accentColorVal)
+                val btnBgVal = (35 shl 24) or (staticWhite and 0x00FFFFFF)
+                views.setTextColor(R.id.btn_widget_timer_toggle, staticWhite)
                 views.setInt(R.id.btn_widget_timer_toggle, "setBackgroundColor", btnBgVal)
 
-                views.setTextColor(R.id.btn_widget_timer_reset, textColorVal)
+                views.setTextColor(R.id.btn_widget_timer_reset, staticWhite)
                 views.setInt(R.id.btn_widget_timer_reset, "setBackgroundColor", btnBgVal)
 
-                views.setTextColor(R.id.btn_widget_timer_add_1, accentColorVal)
+                views.setTextColor(R.id.btn_widget_timer_add_1, staticWhite)
                 views.setInt(R.id.btn_widget_timer_add_1, "setBackgroundColor", btnBgVal)
 
-                views.setTextColor(R.id.btn_widget_timer_add_5, accentColorVal)
+                views.setTextColor(R.id.btn_widget_timer_add_5, staticWhite)
                 views.setInt(R.id.btn_widget_timer_add_5, "setBackgroundColor", btnBgVal)
             } catch (e: Exception) {}
 

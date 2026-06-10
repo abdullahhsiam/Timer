@@ -4,13 +4,102 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content">
 
-    <!-- 1. COLLAPSED VIEW: A small, glowing, compact circular bubble -->
+    <!-- 1. DOCKABLE ISLAND LAYOUT: Horizontal center-aligned narrow pill -->
+    <LinearLayout
+        android:id="@+id/dockable_island_container"
+        android:layout_width="110dp"
+        android:layout_height="38dp"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
+        android:visibility="gone">
+
+        <!-- Left Controls Group -->
+        <LinearLayout
+            android:id="@+id/island_left_controls"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/island_btn_play_pause"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_marginEnd="12dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:src="@android:drawable/ic_media_play"
+                android:contentDescription="Play/Pause" />
+
+            <ImageView
+                android:id="@+id/island_btn_reset"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_marginEnd="12dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:src="@android:drawable/ic_menu_revert"
+                android:contentDescription="Reset" />
+        </LinearLayout>
+
+        <!-- Center Time Text Display (Always Visible) -->
+        <TextView
+            android:id="@+id/island_time_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="00:00"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <!-- Right Controls Group -->
+        <LinearLayout
+            android:id="@+id/island_right_controls"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/island_btn_add_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:fontFamily="sans-serif-medium"
+                android:text="+1m"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/island_btn_close"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginStart="12dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:contentDescription="Close" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 2. FLOATING BUBBLE COLLAPSED VIEW -->
     <LinearLayout
         android:id="@+id/collapsed_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/timer_widget_bg"
-        android:elevation="6dp"
         android:gravity="center"
         android:orientation="horizontal"
         android:paddingHorizontal="16dp"
@@ -32,18 +121,16 @@
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif-medium"
             android:text="00:00"
-            android:textColor="@color/purple_glow"
+            android:textColor="#FFFFFF"
             android:textSize="15sp"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- 2. EXPANDED VIEW: Complete glassmorphic card with rich interactive control buttons -->
+    <!-- 3. FLOATING BUBBLE EXPANDED VIEW -->
     <LinearLayout
         android:id="@+id/expanded_container"
         android:layout_width="230dp"
         android:layout_height="wrap_content"
-        android:background="@drawable/timer_widget_bg"
-        android:elevation="8dp"
         android:orientation="vertical"
         android:padding="14dp"
         android:visibility="gone">
@@ -63,7 +150,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:letterSpacing="0.1"
                 android:text="ACTIVE TIMER"
-                android:textColor="@color/purple_glow"
+                android:textColor="#FFFFFF"
                 android:textSize="11sp" />
 
             <ImageView
@@ -88,7 +175,7 @@
             android:fontFamily="sans-serif-thin"
             android:gravity="center"
             android:text="00:00"
-            android:textColor="@color/off_white"
+            android:textColor="#FFFFFF"
             android:textSize="28sp" />
 
         <!-- Control Actions Row -->
@@ -104,13 +191,12 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="6dp"
                 android:layout_weight="1"
-                android:background="@drawable/timer_widget_bg"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center"
                 android:paddingVertical="6dp"
                 android:text="Pause"
-                android:textColor="@color/purple_glow"
+                android:textColor="#FFFFFF"
                 android:textSize="12sp" />
 
             <TextView
@@ -119,13 +205,12 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="6dp"
                 android:layout_weight="1"
-                android:background="@drawable/timer_widget_bg"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center"
                 android:paddingVertical="6dp"
                 android:text="+1m"
-                android:textColor="@color/cyan_glow"
+                android:textColor="#FFFFFF"
                 android:textSize="12sp" />
 
             <TextView
@@ -133,13 +218,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:background="@drawable/timer_widget_bg"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center"
                 android:paddingVertical="6dp"
                 android:text="Reset"
-                android:textColor="@color/off_white"
+                android:textColor="#FFFFFF"
                 android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>

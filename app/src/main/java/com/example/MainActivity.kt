@@ -2991,19 +2991,11 @@ fun AppearanceSettingsDialog(
                             
                             val presets = listOf(
                                 "System Default" to "default",
-                                "VisionOS Glass" to "visionos",
-                                "iOS Glass" to "ios",
-                                "Frosted Ice" to "frosted",
                                 "AMOLED Black" to "black",
-                                "Neon Cyberpunk" to "cyberpunk",
-                                "Emerald Dream" to "emerald",
-                                "Material You" to "material_you",
-                                "HyperOS" to "hyperos",
-                                "One UI" to "one_ui",
-                                "Nothing OS" to "nothing_os"
+                                "Use Wallpaper Background" to "wallpaper"
                             )
                             
-                            presets.chunked(2).forEach { rowItems ->
+                            presets.chunked(1).forEach { rowItems ->
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -3011,24 +3003,16 @@ fun AppearanceSettingsDialog(
                                     rowItems.forEach { (label, key) ->
                                         val isSelected = when (key) {
                                             "default" -> config.floatingBubble.bgColor == "#0C0C12" && config.floatingBubble.opacity == 0.45f
-                                            "visionos" -> config.floatingBubble.bgColor == "#FFFFFF" && config.floatingBubble.opacity == 0.15f
-                                            "ios" -> config.floatingBubble.bgColor == "#0F0F14" && config.floatingBubble.opacity == 0.35f
-                                            "frosted" -> config.floatingBubble.bgColor == "#E0F2FE" && config.floatingBubble.opacity == 0.18f
                                             "black" -> config.floatingBubble.bgColor == "#000000" && config.floatingBubble.opacity == 1.0f
-                                            "cyberpunk" -> config.floatingBubble.bgColor == "#03000A" && config.floatingBubble.borderColor == "#FF2A6D"
-                                            "emerald" -> config.floatingBubble.bgColor == "#02150F"
-                                            "material_you" -> config.floatingBubble.bgColor == "#1F1B24"
-                                            "hyperos" -> config.floatingBubble.bgColor == "#121214"
-                                            "one_ui" -> config.floatingBubble.bgColor == "#1C1C1E"
-                                            "nothing_os" -> config.floatingBubble.bgColor == "#000000" && config.floatingBubble.borderColor == "#FFFFFF"
+                                            "wallpaper" -> config.floatingBubble.wallpaperAware
                                             else -> false
                                         }
                                         
                                         Box(
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .height(40.dp)
-                                                .clip(RoundedCornerShape(10.dp))
+                                                .height(44.dp)
+                                                .clip(RoundedCornerShape(12.dp))
                                                 .background(
                                                     if (isSelected) Color.White.copy(alpha = 0.12f)
                                                     else Color.White.copy(alpha = 0.04f)
@@ -3036,7 +3020,7 @@ fun AppearanceSettingsDialog(
                                                 .border(
                                                     width = 1.dp,
                                                     color = if (isSelected) PurpleGlow else Color.White.copy(alpha = 0.08f),
-                                                    shape = RoundedCornerShape(10.dp)
+                                                    shape = RoundedCornerShape(12.dp)
                                                 )
                                                 .clickable {
                                                     viewModel.applyPreset(label)
@@ -3045,16 +3029,12 @@ fun AppearanceSettingsDialog(
                                         ) {
                                             Text(
                                                 text = label,
-                                                fontSize = 10.sp,
+                                                fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 textAlign = TextAlign.Center,
                                                 color = if (isSelected) PurpleGlow else Color.White.copy(alpha = 0.7f)
                                             )
                                         }
-                                    }
-                                    // if chunk has only 1 item, pad the Row
-                                    if (rowItems.size < 2) {
-                                        Spacer(modifier = Modifier.weight(1f))
                                     }
                                 }
                             }
