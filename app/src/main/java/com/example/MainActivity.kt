@@ -298,8 +298,8 @@ fun MainScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer {
-                            // Symmetrical dynamic upscale "blown to the whole screen" without displacing central coordinates
-                            val scale = 1.0f + (0.12f * fullScreenTransitionProgress)
+                            // Symmetrical dynamic scale kept at 1.0f to prevent controls from scaling out of screen bounds
+                            val scale = 1.0f
                             scaleX = scale
                             scaleY = scale
                         },
@@ -317,26 +317,8 @@ fun MainScreen(
                         modifier = Modifier.fillMaxSize(),
                         label = "tab_switch_transition"
                     ) { targetTab ->
-                        val isAnimationsEnabled by viewModel.isBackgroundAnimated.collectAsState()
-                        val transition = updateTransition(targetState = targetTab == activeTab, label = "tab_morph_blur")
-                        val progress by transition.animateFloat(
-                            transitionSpec = { tween(550, easing = FastOutSlowInEasing) },
-                            label = "morph_progress"
-                        ) { active ->
-                            if (active) 1f else 0f
-                        }
-                        
-                        val morphBlur = if (isAnimationsEnabled) {
-                            val bell = kotlin.math.sin(progress * Math.PI).toFloat()
-                            (bell * 18f).dp
-                        } else {
-                            0.dp
-                        }
-
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .blur(morphBlur),
+                            modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
                             if (targetTab == 0) {
@@ -802,8 +784,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         alpha = dialerAlpha
                         scaleX = dialerScale
                         scaleY = dialerScale
-                    }
-                    .blur(transitionBlur),
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 if (isLandscape) {
@@ -1000,8 +981,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         alpha = timerAlpha
                         scaleX = timerScale
                         scaleY = timerScale
-                    }
-                    .blur(transitionBlur),
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 // Countdown radial displaying Always On look
