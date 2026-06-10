@@ -344,26 +344,6 @@ fun MainScreen(
                                             showSoundDialog = true
                                         }
                                     )
-                                    DropdownMenuItem(
-                                        text = { Text("Appearance Settings", color = Color.White, fontSize = 14.sp) },
-                                        onClick = {
-                                            menuExpanded = false
-                                            showAppearanceDialog = true
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { 
-                                            Text(
-                                                text = if (isBackgroundAnimated) "Background: Animated" else "Background: Static Fluid", 
-                                                color = Color.White, 
-                                                fontSize = 14.sp
-                                            ) 
-                                        },
-                                        onClick = {
-                                            menuExpanded = false
-                                            viewModel.setBackgroundAnimated(!isBackgroundAnimated)
-                                        }
-                                    )
                                 }
                             }
 
@@ -375,13 +355,6 @@ fun MainScreen(
                                     onDismiss = { showSoundDialog = false },
                                     onPlayPreview = onPlayPreview,
                                     onStopPreview = onStopPreview
-                                )
-                            }
-
-                            if (showAppearanceDialog) {
-                                AppearanceSettingsDialog(
-                                    viewModel = viewModel,
-                                    onDismiss = { showAppearanceDialog = false }
                                 )
                             }
                         }

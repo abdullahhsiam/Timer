@@ -64,45 +64,34 @@ fun AnimatedGradientBackground(
     isAnimated: Boolean = true,
     content: @Composable BoxScope.() -> Unit
 ) {
-    val wallpaperUri by TimerStopwatchStateManager.wallpaperUri.collectAsState()
-    val glassBlur by TimerStopwatchStateManager.glassBlur.collectAsState()
-    val glassOpacity by TimerStopwatchStateManager.glassOpacity.collectAsState()
-    val glassGlow by TimerStopwatchStateManager.glassGlow.collectAsState()
-    val glassTint by TimerStopwatchStateManager.glassTint.collectAsState()
-    val glassAnimationSpeed by TimerStopwatchStateManager.glassAnimationSpeed.collectAsState()
-
     val infiniteTransition = rememberInfiniteTransition(label = "ambient_glow")
-    
-    // Animate rotation angle, adjusting speed based on user preference
-    val speedFactor = if (glassAnimationSpeed > 0f) glassAnimationSpeed else 1.0f
-    val animDuration = (12000 / speedFactor).toInt().coerceIn(2000, 120000)
-    
+
+    // Slow rotation/drift animations for when it's ACTIVE
     val angleRad by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = (2 * Math.PI).toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(animDuration, easing = LinearEasing),
+            animation = tween(15000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "rotation_angle"
     )
 
-    // Drift offsets with speed scaling
     val driftOffset1 by infiniteTransition.animateFloat(
-        initialValue = -50f,
-        targetValue = 50f,
+        initialValue = -60f,
+        targetValue = 60f,
         animationSpec = infiniteRepeatable(
-            animation = tween((8000 / speedFactor).toInt().coerceIn(1000, 80000), easing = SineCrossingEasing()),
+            animation = tween(10000, easing = SineCrossingEasing()),
             repeatMode = RepeatMode.Reverse
         ),
         label = "drift_1"
     )
 
     val driftOffset2 by infiniteTransition.animateFloat(
-        initialValue = 40f,
-        targetValue = -40f,
+        initialValue = 50f,
+        targetValue = -50f,
         animationSpec = infiniteRepeatable(
-            animation = tween((10000 / speedFactor).toInt().coerceIn(1000, 100000), easing = SineCrossingEasing()),
+            animation = tween(12000, easing = SineCrossingEasing()),
             repeatMode = RepeatMode.Reverse
         ),
         label = "drift_2"
@@ -119,18 +108,9 @@ fun AnimatedGradientBackground(
         label = "alarm_color"
     )
 
-    val tintOverlayColor = when (glassTint.lowercase()) {
-        "cyan" -> Color(0x1F00E6FF)
-        "pink" -> Color(0x1FFF2A6D)
-        "yellow" -> Color(0x1FFFD600)
-        "green" -> Color(0x1F00FF87)
-        else -> Color(0x22D0BCFF) // Default lavender
-    }
-
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        // Ambient Gradient Overlay Box
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -148,20 +128,17 @@ fun AnimatedGradientBackground(
                             radius = sizeVal.minDimension * 0.9f,
                             center = center
                         )
-                    } else {
-                        val activeAngle = if (isAnimated && glassAnimationSpeed > 0f) angleRad else 0f
-                        val activeDrift1 = if (isAnimated && glassAnimationSpeed > 0f) driftOffset1 else 0f
-                        val activeDrift2 = if (isAnimated && glassAnimationSpeed > 0f) driftOffset2 else 0f
-
-                        val cosVal = cos(activeAngle) * 0.45f
-                        val sinVal = sin(activeAngle) * 0.45f
+                    } else if (isRunningActive) {
+                        // Fluid shifting dynamic animated background when working
+                        val cosVal = cos(angleRad) * 0.45f
+                        val sinVal = sin(angleRad) * 0.45f
                         
                         val activeBrush = Brush.linearGradient(
                             colors = listOf(
                                 Color(0xFF090812),
                                 Color(0xFF160E2E),
                                 Color(0xFF0F1E28),
-                                Color(0xFF20113B),
+                                Color(0xFF2E124D),
                                 Color(0xFF090812)
                             ),
                             start = Offset(
@@ -175,30 +152,62 @@ fun AnimatedGradientBackground(
                         )
                         drawRect(brush = activeBrush)
 
-                        // Glowing ambient circles based on users tint selection
-                        val glowAlpha = if (isRunningActive) 0.55f else 0.35f
-                        val glowTintAccent = when (glassTint.lowercase()) {
-                            "cyan" -> Color(0x3E00E6FF)
-                            "pink" -> Color(0x3EFF2A6D)
-                            "yellow" -> Color(0x3EFFD600)
-                            "green" -> Color(0x3E00FF87)
-                            else -> Color(0x3E312E81) // lavender
-                        }.copy(alpha = glowAlpha)
-
+                        // Ambient glowing circles floating behind
                         drawCircle(
                             brush = Brush.radialGradient(
-                                colors = listOf(glowTintAccent, Color.Transparent),
+                                colors = listOf(Color(0x409D4EDD), Color.Transparent), // Glowing lavender
                                 center = Offset(
-                                    x = sizeVal.width * -0.05f + activeDrift1 * 1.5f,
-                                    y = sizeVal.height * -0.1f + activeDrift2 * 1.5f
+                                    x = sizeVal.width * -0.05f + driftOffset1 * 1.5f,
+                                    y = sizeVal.height * -0.1f + driftOffset2 * 1.5f
                                 ),
                                 radius = sizeVal.width * 1.0f
                             ),
                             radius = sizeVal.width * 1.0f,
                             center = Offset(
-                                x = sizeVal.width * -0.05f + activeDrift1 * 1.5f,
-                                y = sizeVal.height * -0.1f + activeDrift2 * 1.5f
+                                x = sizeVal.width * -0.05f + driftOffset1 * 1.5f,
+                                y = sizeVal.height * -0.1f + driftOffset2 * 1.5f
                             )
+                        )
+
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(Color(0x3000E6FF), Color.Transparent), // Glowing Cyan
+                                center = Offset(
+                                    x = sizeVal.width * 0.85f + driftOffset2 * 1.2f,
+                                    y = sizeVal.height * 0.85f + driftOffset1 * 1.2f
+                                ),
+                                radius = sizeVal.width * 0.9f
+                            ),
+                            radius = sizeVal.width * 0.9f,
+                            center = Offset(
+                                x = sizeVal.width * 0.85f + driftOffset2 * 1.2f,
+                                y = sizeVal.height * 0.85f + driftOffset1 * 1.2f
+                            )
+                        )
+                    } else {
+                        // Corner gradient background in main interface (completely static)
+                        drawRect(color = Color(0xFF070510))
+
+                        // Left-top purple/lavender corner glow
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(Color(0x356C3082), Color.Transparent),
+                                center = Offset(0f, 0f),
+                                radius = sizeVal.width * 0.85f
+                            ),
+                            radius = sizeVal.width * 0.85f,
+                            center = Offset(0f, 0f)
+                        )
+
+                        // Right-bottom cyan corner glow
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(Color(0x2500E6FF), Color.Transparent),
+                                center = Offset(sizeVal.width, sizeVal.height),
+                                radius = sizeVal.width * 0.85f
+                            ),
+                            radius = sizeVal.width * 0.85f,
+                            center = Offset(sizeVal.width, sizeVal.height)
                         )
                     }
                 }

@@ -247,12 +247,10 @@ class OverlayBubbleService : Service() {
         isIslandExpanded = !isIslandExpanded
         islandWidthAnimator?.cancel()
 
-        val startWidth = islandContainer.width
-        val endWidth = if (isIslandExpanded) {
-            (240 * density).toInt()
-        } else {
-            (130 * density).toInt()
-        }
+        // Deterministic morphing widths (completely independent of dynamic measuring race conditions)
+        val startWidth = if (isIslandExpanded) (130 * density).toInt() else (240 * density).toInt()
+        val endWidth = if (isIslandExpanded) (240 * density).toInt() else (130 * density).toInt()
+        val fixedCapsuleHeight = (46 * density).toInt()
 
         if (isIslandExpanded) {
             btnPlayPause.visibility = View.VISIBLE
@@ -270,6 +268,7 @@ class OverlayBubbleService : Service() {
                 val currentWidth = animator.animatedValue as Int
                 val currentParams = params ?: return@addUpdateListener
                 currentParams.width = currentWidth
+                currentParams.height = fixedCapsuleHeight // Strictly maintain horizontal capsule height
                 try {
                     windowManager.updateViewLayout(root, currentParams)
                 } catch (e: Exception) {}
@@ -287,6 +286,14 @@ class OverlayBubbleService : Service() {
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
+                    val currentParams = params
+                    if (currentParams != null) {
+                        currentParams.width = endWidth
+                        currentParams.height = fixedCapsuleHeight
+                        try {
+                            windowManager.updateViewLayout(root, currentParams)
+                        } catch (e: Exception) {}
+                    }
                     if (!isIslandExpanded) {
                         btnPlayPause.visibility = View.GONE
                         btnReset.visibility = View.GONE
@@ -320,7 +327,13 @@ class OverlayBubbleService : Service() {
         }
 
         this.params = layoutParams
-        windowManager.addView(overlayView, layoutParams)
+        try {
+            windowManager.addView(overlayView, layoutParams)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            stopSelf()
+            return
+        }
 
         val collapsedContainer = overlayView!!.findViewById<View>(R.id.collapsed_container)
         val expandedContainer = overlayView!!.findViewById<View>(R.id.expanded_container)
