@@ -1,6 +1,8 @@
 package com.example
 
 import android.app.Activity
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -30,12 +32,16 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.ui.window.Dialog
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -102,16 +108,26 @@ class MainActivity : ComponentActivity() {
                     editPrefs.edit().putBoolean("is_background_animated", isBackgroundAnimated).apply()
                 }
 
+                var showSplash by remember { mutableStateOf(true) }
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen(
-                        viewModel = viewModel,
-                        alarmTriggered = alarmTriggered,
-                        onPlayPreview = { preset -> alarmController.playPreview(preset) },
-                        onStopPreview = { alarmController.stopAlarm() }
-                    )
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        MainScreen(
+                            viewModel = viewModel,
+                            alarmTriggered = alarmTriggered,
+                            onPlayPreview = { preset -> alarmController.playPreview(preset) },
+                            onStopPreview = { alarmController.stopAlarm() }
+                        )
+
+                        if (showSplash) {
+                            IntroSplashAnimation(
+                                onFinished = { showSplash = false }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1134,3 +1150,85 @@ fun LiveDigitalClock() {
         }
     }
 }
+
+// ==========================================
+// PREMIUM APP OPENING SPLASH ANIMATION
+// ==========================================
+@Composable
+fun IntroSplashAnimation(onFinished: () -> Unit) {
+    val scale = remember { Animatable(0f) }
+    val glowScaling = remember { Animatable(0f) }
+    val alpha = remember { Animatable(1f) }
+
+    LaunchedEffect(Unit) {
+        // Step 1: Smoothly present the white dot from the center
+        scale.animateTo(
+            targetValue = 1.0f,
+            animationSpec = tween(durationMillis = 650, easing = FastOutSlowInEasing)
+        )
+        
+        // Step 2: Zoom out dot aggressively while expanding/blurring gradient aura and fading screen
+        launch {
+            scale.animateTo(
+                targetValue = 26f,
+                animationSpec = tween(durationMillis = 950, easing = FastOutSlowInEasing)
+            )
+        }
+        launch {
+            glowScaling.animateTo(
+                targetValue = 1.0f,
+                animationSpec = tween(durationMillis = 950, easing = FastOutSlowInEasing)
+            )
+        }
+        alpha.animateTo(
+            targetValue = 0f,
+            animationSpec = tween(durationMillis = 950, easing = LinearEasing)
+        )
+        onFinished()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0C0C0E).copy(alpha = alpha.value)),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val baseDotRadius = 14.dp.toPx()
+            
+            // Premium background bloom gradient behind the dot as it expands
+            if (glowScaling.value > 0f) {
+                // Decay the alpha as glow expands to simulate organic blur spread fading out
+                val bloomAlpha = ((1f - glowScaling.value) * alpha.value * 0.75f).coerceIn(0f, 1f)
+                val bloomRadius = size.width * 0.85f * glowScaling.value
+                
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = bloomAlpha * 0.85f),
+                            Color(0xFF5B21B6).copy(alpha = bloomAlpha * 0.55f), // Premium Royal Purple Inner Glow
+                            Color(0xFF00E6FF).copy(alpha = bloomAlpha * 0.25f), // Shifting Cyan Outer Glow
+                            Color.Transparent
+                        ),
+                        center = center,
+                        radius = bloomRadius
+                    ),
+                    center = center,
+                    radius = bloomRadius
+                )
+            }
+
+            // Draw primary middle white dot representing app icon
+            if (alpha.value > 0f) {
+                val dotRadius = baseDotRadius * scale.value
+                drawCircle(
+                    color = Color.White.copy(alpha = alpha.value),
+                    radius = dotRadius,
+                    center = center
+                )
+            }
+        }
+    }
+}
+
