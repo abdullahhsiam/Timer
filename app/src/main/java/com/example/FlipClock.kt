@@ -67,38 +67,71 @@ fun FlipCardDigit(
         // Static back halves:
         // Top static = current digit
         DigitHalf(digit = currentDigit, isTop = true, height = height, width = width, textSize = textSize)
+        
         // Bottom static = previous digit
-        DigitHalf(digit = previousDigit, isTop = false, height = height, width = width, textSize = textSize)
+        Box(modifier = Modifier.width(width).height(height)) {
+            DigitHalf(digit = previousDigit, isTop = false, height = height, width = width, textSize = textSize)
+            // Shadow over the bottom static half cast by the top flap coming down
+            val staticShadowAlpha = if (rot < 90f) (rot / 90f) * 0.5f else 0f
+            if (staticShadowAlpha > 0f) {
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(height / 2)
+                    .offset(y = height / 2)
+                    .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                    .background(Color.Black.copy(alpha = staticShadowAlpha))
+                )
+            }
+        }
 
         // The flipping flap
         if (rot < 90f) {
             // Flap represents the top half of the *previous* digit flipping down
-            DigitHalf(
-                digit = previousDigit,
-                isTop = true,
-                height = height,
-                width = width,
-                textSize = textSize,
-                modifier = Modifier.graphicsLayer {
-                    rotationX = rot
-                    transformOrigin = TransformOrigin(0.5f, 1f)
-                    cameraDistance = 8f * density
-                }
-            )
+            Box(
+                modifier = Modifier
+                    .width(width)
+                    .height(height)
+                    .graphicsLayer {
+                        rotationX = rot
+                        transformOrigin = TransformOrigin(0.5f, 0.5f)
+                        cameraDistance = 8f * density
+                    }
+            ) {
+                DigitHalf(digit = previousDigit, isTop = true, height = height, width = width, textSize = textSize)
+                
+                // Shadow on the flipping top half as it tilts away from the light
+                val flapShadow = (rot / 90f) * 0.6f
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(height / 2)
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    .background(Color.Black.copy(alpha = flapShadow))
+                )
+            }
         } else {
             // Flap represents the bottom half of the *current* digit landing down
-            DigitHalf(
-                digit = currentDigit,
-                isTop = false,
-                height = height,
-                width = width,
-                textSize = textSize,
-                modifier = Modifier.graphicsLayer {
-                    rotationX = rot - 180f
-                    transformOrigin = TransformOrigin(0.5f, 0f)
-                    cameraDistance = 8f * density
-                }
-            )
+            Box(
+                modifier = Modifier
+                    .width(width)
+                    .height(height)
+                    .graphicsLayer {
+                        rotationX = rot - 180f
+                        transformOrigin = TransformOrigin(0.5f, 0.5f)
+                        cameraDistance = 8f * density
+                    }
+            ) {
+                DigitHalf(digit = currentDigit, isTop = false, height = height, width = width, textSize = textSize)
+                
+                // Shadow on the flipping bottom half as it is coming down (it gets lighter as it lands)
+                val flapShadow = ((180f - rot) / 90f) * 0.6f
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(height / 2)
+                    .offset(y = height / 2)
+                    .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                    .background(Color.Black.copy(alpha = flapShadow))
+                )
+            }
         }
 
         // Middle shadow split line
@@ -121,29 +154,84 @@ fun DigitHalf(
     textSize: Float,
     modifier: Modifier = Modifier
 ) {
-    val align = if (isTop) Alignment.TopCenter else Alignment.BottomCenter
-    val clipShape = if (isTop) RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp) else RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-    
     Box(
         modifier = modifier
             .width(width)
-            .height(height / 2)
-            .clip(clipShape)
-            .background(Color(0xFF0F1522)),
-        contentAlignment = align
+            .height(height)
     ) {
-        Box(
-            modifier = Modifier
-                .height(height)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = digit.toString(),
-                fontSize = textSize.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                color = Color.White
+        if (isTop) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(height / 2)
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    .background(Color(0xFF0F1522))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(height),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = digit.toString(),
+                        fontSize = textSize.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color.White
+                    )
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(height / 2)
+                    .offset(y = height / 2)
+                    .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                    .background(Color(0xFF0F1522))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(height)
+                        .offset(y = -height / 2),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = digit.toString(),
+                        fontSize = textSize.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+        
+        // Add a subtle gradient/shadow inside for depth
+        if (isTop) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(height / 2)
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.3f))
+                        )
+                    )
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(height / 2)
+                    .offset(y = height / 2)
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            colors = listOf(Color.Black.copy(alpha = 0.3f), Color.Transparent)
+                        )
+                    )
             )
         }
     }
