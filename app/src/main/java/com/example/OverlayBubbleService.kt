@@ -223,22 +223,19 @@ class OverlayBubbleService : Service() {
 
         // Custom premium path interpolator with spring overshoot (BackEaseOut feel)
         val customInterpolator = if (isIslandExpanded) {
-            android.view.animation.OvershootInterpolator(1.2f)
+            android.view.animation.OvershootInterpolator(1.8f)
         } else {
-            android.view.animation.PathInterpolator(0.20f, 1f, 0.15f, 1f)
+            android.view.animation.OvershootInterpolator(1.2f)
         }
 
         islandWidthAnimator = ValueAnimator.ofInt(startWidth, endWidth).apply {
-            duration = 350
+            duration = 450
             interpolator = customInterpolator
             addUpdateListener { animator ->
                 val currentWidth = animator.animatedValue as Int
-                val currentParams = params ?: return@addUpdateListener
-                currentParams.width = currentWidth
-                currentParams.height = fixedCapsuleHeight
-                try {
-                    windowManager.updateViewLayout(root, currentParams)
-                } catch (e: Exception) {}
+                val layoutParams = islandContainer.layoutParams
+                layoutParams.width = currentWidth
+                islandContainer.layoutParams = layoutParams
 
                 val progress = animator.animatedFraction
                 
@@ -284,14 +281,10 @@ class OverlayBubbleService : Service() {
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    val currentParams = params
-                    if (currentParams != null) {
-                        currentParams.width = endWidth
-                        currentParams.height = fixedCapsuleHeight
-                        try {
-                            windowManager.updateViewLayout(root, currentParams)
-                        } catch (e: Exception) {}
-                    }
+                    val layoutParams = islandContainer.layoutParams
+                    layoutParams.width = endWidth
+                    islandContainer.layoutParams = layoutParams
+
                     if (!isIslandExpanded) {
                         btnPlayPause.visibility = View.GONE
                         btnReset.visibility = View.GONE
@@ -313,8 +306,8 @@ class OverlayBubbleService : Service() {
 
         val density = resources.displayMetrics.density
         val layoutParams = WindowManager.LayoutParams(
-            if (mode == 0) (130 * density).toInt() else WindowManager.LayoutParams.WRAP_CONTENT,
-            if (mode == 0) (46 * density).toInt() else WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             } else {
@@ -352,6 +345,7 @@ class OverlayBubbleService : Service() {
 
         if (mode == 0) {
             dockableContainer?.visibility = View.VISIBLE
+            dockableContainer?.layoutParams?.width = (130 * density).toInt()
             collapsedContainer?.visibility = View.GONE
             expandedContainer?.visibility = View.GONE
             
@@ -449,7 +443,7 @@ class OverlayBubbleService : Service() {
                             collapsed.visibility = View.VISIBLE
                             expanded.visibility = View.VISIBLE
                             
-                            val customInterpolator = android.view.animation.PathInterpolator(0.12f, 0.95f, 0.15f, 1.04f)
+                            val customInterpolator = android.view.animation.OvershootInterpolator(1.8f)
                             
                             bubbleAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
                                 duration = 350
