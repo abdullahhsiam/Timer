@@ -168,30 +168,28 @@ fun DigitHalfStatic(
                 else RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
             )
             .background(Color(0xFF0F1522)),
-        contentAlignment = if (isTop) Alignment.TopCenter else Alignment.BottomCenter
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .requiredHeight(height * 2),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = digit.toString(),
-                fontSize = textSize.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                color = Color.White,
-                textAlign = TextAlign.Center,
-                style = androidx.compose.ui.text.TextStyle(
-                    platformStyle = androidx.compose.ui.text.PlatformTextStyle(
-                        includeFontPadding = false
-                    ),
-                    lineHeight = textSize.sp
+        Text(
+            text = digit.toString(),
+            fontSize = textSize.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            style = androidx.compose.ui.text.TextStyle(
+                platformStyle = androidx.compose.ui.text.PlatformTextStyle(
+                    includeFontPadding = false
                 ),
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
-        }
+                lineHeight = textSize.sp
+            ),
+            modifier = Modifier
+                .wrapContentSize(unbounded = true)
+                .graphicsLayer {
+                    translationY = if (isTop) (height.toPx() / 2f) else -(height.toPx() / 2f)
+                }
+                .padding(horizontal = 4.dp)
+        )
         
         // Inner gradient for 3D realism
         Box(
