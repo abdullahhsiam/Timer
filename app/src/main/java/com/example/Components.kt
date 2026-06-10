@@ -261,9 +261,15 @@ fun CircleProgressTimer(
         label = "elapsed_radial"
     )
 
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val sizeD = if (isLandscape) 200.dp else 310.dp
+    val textFontSize = if (isLandscape) 36.sp else 52.sp
+    val subtitleTopPadding = if (isLandscape) 2.dp else 10.dp
+
     Box(
         modifier = modifier
-            .size(310.dp)
+            .size(sizeD)
             .aspectRatio(1f),
         contentAlignment = Alignment.Center
     ) {
@@ -308,14 +314,14 @@ fun CircleProgressTimer(
             Text(
                 text = displayString,
                 color = OffWhite,
-                fontSize = 52.sp,
+                fontSize = textFontSize,
                 fontWeight = FontWeight.ExtraLight,
                 fontFamily = FontFamily.SansSerif,
                 textAlign = TextAlign.Center,
                 letterSpacing = (-1).sp
             )
             
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(subtitleTopPadding))
             
             // Elegant sub-title text tracking state
             Text(
@@ -338,6 +344,9 @@ fun CircleProgressTimer(
 @Composable
 fun ModernKeypad(
     modifier: Modifier = Modifier,
+    buttonSize: androidx.compose.ui.unit.Dp = 72.dp,
+    spacing: androidx.compose.ui.unit.Dp = 12.dp,
+    horizontalSpacing: androidx.compose.ui.unit.Dp = 16.dp,
     onDigitClicked: (Int) -> Unit,
     onDeleteClicked: () -> Unit,
     onClearAllClicked: () -> Unit
@@ -351,12 +360,12 @@ fun ModernKeypad(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(spacing)
     ) {
         for (row in 0 until 4) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
+                horizontalArrangement = Arrangement.spacedBy(horizontalSpacing, Alignment.CenterHorizontally)
             ) {
                 for (col in 0 until 3) {
                     val index = row * 3 + col
@@ -364,7 +373,7 @@ fun ModernKeypad(
                     
                     KeypadButton(
                         label = label,
-                        modifier = Modifier.size(72.dp),
+                        modifier = Modifier.size(buttonSize),
                         onClick = {
                             when (label) {
                                 "C" -> onClearAllClicked()

@@ -439,91 +439,190 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
     val timerRemainingMs by viewModel.timerRemainingMs.collectAsState()
     val timerMaxMs by viewModel.timerMaxMs.collectAsState()
 
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+
     Crossfade(targetState = timerStatus, label = "timer_status_transition") { status ->
         when (status) {
             TimerStatus.IDLE -> {
-                // Setup Input layout
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    
-                    // Display text field representing entered details
+                if (isLandscape) {
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.Bottom
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val formatted = timerInput.padStart(6, '0')
-                        val h = formatted.substring(0, 2)
-                        val m = formatted.substring(2, 4)
-                        val s = formatted.substring(4, 6)
+                        // Left column
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.weight(1.1f)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.Bottom
+                            ) {
+                                val formatted = timerInput.padStart(6, '0')
+                                val h = formatted.substring(0, 2)
+                                val m = formatted.substring(2, 4)
+                                val s = formatted.substring(4, 6)
 
-                        DigitGroup(h, "h", active = timerInput.length >= 5)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        DigitGroup(m, "m", active = timerInput.length >= 3)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        DigitGroup(s, "s", active = timerInput.isNotEmpty())
-                    }
+                                DigitGroup(h, "h", active = timerInput.length >= 5)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                DigitGroup(m, "m", active = timerInput.length >= 3)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                DigitGroup(s, "s", active = timerInput.isNotEmpty())
+                            }
 
-                    // Preset Pill list row
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
-                    ) {
-                        ModernPresetButton(label = "+30s", onClick = { viewModel.startPresetTimer(30L) })
-                        ModernPresetButton(label = "1 Min", onClick = { viewModel.startPresetTimer(60L) })
-                        ModernPresetButton(label = "5 Min", onClick = { viewModel.startPresetTimer(300L) })
-                        ModernPresetButton(label = "10 Min", onClick = { viewModel.startPresetTimer(600L) })
-                    }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
+                            ) {
+                                ModernPresetButton(label = "+30s", onClick = { viewModel.startPresetTimer(30L) })
+                                ModernPresetButton(label = "1 Min", onClick = { viewModel.startPresetTimer(60L) })
+                                ModernPresetButton(label = "5 Min", onClick = { viewModel.startPresetTimer(300L) })
+                                ModernPresetButton(label = "10 Min", onClick = { viewModel.startPresetTimer(600L) })
+                            }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
 
-                    // Tactical numeric layout keys overlay
-                    ModernKeypad(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        onDigitClicked = { viewModel.appendDigit(it) },
-                        onDeleteClicked = { viewModel.deleteDigit() },
-                        onClearAllClicked = { viewModel.clearTimerInput() }
-                    )
+                            Box(
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(
+                                        if (timerInput.isNotEmpty()) {
+                                            PurpleGlow
+                                        } else {
+                                            Color.White.copy(alpha = 0.03f)
+                                        }
+                                    )
+                                    .then(
+                                        if (timerInput.isEmpty()) {
+                                            Modifier.border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
+                                        } else {
+                                            Modifier
+                                        }
+                                    )
+                                    .testTag("timer_start_button")
+                                    .clickable(enabled = timerInput.isNotEmpty()) { viewModel.startTimer() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = "Start Timer",
+                                    tint = if (timerInput.isNotEmpty()) com.example.ui.theme.DarkPurple else Color.White.copy(alpha = 0.2f),
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
 
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Giant minimalist START button
-                    Box(
-                        modifier = Modifier
-                            .size(76.dp)
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(
-                                if (timerInput.isNotEmpty()) {
-                                    PurpleGlow
-                                } else {
-                                    Color.White.copy(alpha = 0.03f)
-                                }
+                        // Right column Keypad
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.weight(0.9f)
+                        ) {
+                            ModernKeypad(
+                                buttonSize = 48.dp,
+                                spacing = 6.dp,
+                                horizontalSpacing = 10.dp,
+                                onDigitClicked = { viewModel.appendDigit(it) },
+                                onDeleteClicked = { viewModel.deleteDigit() },
+                                onClearAllClicked = { viewModel.clearTimerInput() }
                             )
-                            .then(
-                                if (timerInput.isEmpty()) {
-                                    Modifier.border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
-                                } else {
-                                    Modifier
-                                }
-                            )
-                            .testTag("timer_start_button")
-                            .clickable(enabled = timerInput.isNotEmpty()) { viewModel.startTimer() },
-                        contentAlignment = Alignment.Center
+                        }
+                    }
+                } else {
+                    // Setup Input layout
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Start Timer",
-                            tint = if (timerInput.isNotEmpty()) com.example.ui.theme.DarkPurple else Color.White.copy(alpha = 0.2f),
-                            modifier = Modifier.size(32.dp)
+                        Spacer(modifier = Modifier.height(10.dp))
+                        
+                        // Display text field representing entered details
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            val formatted = timerInput.padStart(6, '0')
+                            val h = formatted.substring(0, 2)
+                            val m = formatted.substring(2, 4)
+                            val s = formatted.substring(4, 6)
+
+                            DigitGroup(h, "h", active = timerInput.length >= 5)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            DigitGroup(m, "m", active = timerInput.length >= 3)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            DigitGroup(s, "s", active = timerInput.isNotEmpty())
+                        }
+
+                        // Preset Pill list row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                        ) {
+                            ModernPresetButton(label = "+30s", onClick = { viewModel.startPresetTimer(30L) })
+                            ModernPresetButton(label = "1 Min", onClick = { viewModel.startPresetTimer(60L) })
+                            ModernPresetButton(label = "5 Min", onClick = { viewModel.startPresetTimer(300L) })
+                            ModernPresetButton(label = "10 Min", onClick = { viewModel.startPresetTimer(600L) })
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Tactical numeric layout keys overlay
+                        ModernKeypad(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            onDigitClicked = { viewModel.appendDigit(it) },
+                            onDeleteClicked = { viewModel.deleteDigit() },
+                            onClearAllClicked = { viewModel.clearTimerInput() }
                         )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Giant minimalist START button
+                        Box(
+                            modifier = Modifier
+                                .size(76.dp)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(
+                                    if (timerInput.isNotEmpty()) {
+                                        PurpleGlow
+                                    } else {
+                                        Color.White.copy(alpha = 0.03f)
+                                    }
+                                )
+                                .then(
+                                    if (timerInput.isEmpty()) {
+                                        Modifier.border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
+                                    } else {
+                                        Modifier
+                                    }
+                                )
+                                .testTag("timer_start_button")
+                                .clickable(enabled = timerInput.isNotEmpty()) { viewModel.startTimer() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Start Timer",
+                                tint = if (timerInput.isNotEmpty()) com.example.ui.theme.DarkPurple else Color.White.copy(alpha = 0.2f),
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -552,12 +651,12 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         glowEnabled = status == TimerStatus.RUNNING
                     )
 
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 40.dp))
 
                     // Controls
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally)
+                        horizontalArrangement = Arrangement.spacedBy(if (isLandscape) 12.dp else 20.dp, Alignment.CenterHorizontally)
                     ) {
                         // Reset button
                         ActionButton(
@@ -565,7 +664,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                             isPrimary = false,
                             onClick = { viewModel.resetTimer() },
                             modifier = Modifier
-                                .width(110.dp)
+                                .width(if (isLandscape) 100.dp else 110.dp)
                                 .testTag("timer_reset_btn")
                         )
 
@@ -578,7 +677,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                                 if (status == TimerStatus.RUNNING) viewModel.pauseTimer() else viewModel.resumeTimer()
                             },
                             modifier = Modifier
-                                .width(130.dp)
+                                .width(if (isLandscape) 120.dp else 130.dp)
                                 .testTag("timer_toggle_btn")
                         )
 
@@ -588,7 +687,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                             isPrimary = false,
                             onClick = { viewModel.addOneMinute() },
                             modifier = Modifier
-                                .width(100.dp)
+                                .width(if (isLandscape) 90.dp else 100.dp)
                                 .testTag("timer_add_1m_btn")
                         )
                     }
@@ -636,6 +735,9 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
     val stopwatchStatus by viewModel.stopwatchStatus.collectAsState()
     val laps by viewModel.laps.collectAsState()
 
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+
     // Formatter centered on centisecond precision
     val totalSeconds = elapsedMs / 1000
     val m = (totalSeconds / 60) % 60
@@ -643,136 +745,275 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
     val cc = (elapsedMs / 10) % 100
     val readableTime = String.format("%02d:%02d.%02d", m, s, cc)
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Spacer(modifier = Modifier.height(18.dp))
-
-        // Display massive counting stopwatch layout
-        CircleProgressTimer(
-            remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
-            totalMs = 1L,
-            displayString = readableTime,
-            statusText = when (stopwatchStatus) {
-                StopwatchStatus.IDLE -> "STOPWATCH"
-                StopwatchStatus.RUNNING -> "RUNNING"
-                StopwatchStatus.PAUSED -> "PAUSED"
-            },
-            onProgressColor = PurpleGlow,
-            glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Lap Times list section (Takes remaining vertical scroll frame)
-        Box(
+    if (isLandscape) {
+        Row(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .background(Color(0x06FFFFFF))
-                .border(width = 0.5.dp, color = Color(0x0AFFFFFF), shape = RoundedCornerShape(18.dp))
+                .fillMaxSize()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            if (laps.isEmpty()) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "NO LAPS RECORDED",
-                        color = Color.DarkGray,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Record laps on running stopwatch.",
-                        color = Color.DarkGray,
-                        fontSize = 10.sp
-                    )
-                }
-            } else {
-                LazyColumn(
+            // Left Column: CircleProgressTimer
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                CircleProgressTimer(
+                    remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
+                    totalMs = 1L,
+                    displayString = readableTime,
+                    statusText = when (stopwatchStatus) {
+                        StopwatchStatus.IDLE -> "STOPWATCH"
+                        StopwatchStatus.RUNNING -> "RUNNING"
+                        StopwatchStatus.PAUSED -> "PAUSED"
+                    },
+                    onProgressColor = PurpleGlow,
+                    glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
+                )
+            }
+
+            // Right Column: Laps list and Controls below
+            Column(
+                modifier = Modifier
+                    .weight(1.1f)
+                    .fillMaxHeight()
+                    .padding(horizontal = 8.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Lap Times list section (Takes remaining vertical scroll frame)
+                Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color(0x06FFFFFF))
+                        .border(width = 0.5.dp, color = Color(0x0AFFFFFF), shape = RoundedCornerShape(18.dp))
                 ) {
-                    items(laps, key = { it.index }) { lap ->
-                        LapRowItem(lap = lap)
+                    if (laps.isEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "NO LAPS RECORDED",
+                                color = Color.DarkGray,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            items(laps, key = { it.index }) { lap ->
+                                LapRowItem(lap = lap)
+                            }
+                        }
+                    }
+                }
+
+                // Controls
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                ) {
+                    when (stopwatchStatus) {
+                        StopwatchStatus.IDLE -> {
+                            ActionButton(
+                                text = "Start",
+                                isPrimary = true,
+                                accentColor = PurpleGlow,
+                                onClick = { viewModel.startStopwatch() },
+                                modifier = Modifier
+                                    .width(140.dp)
+                                    .testTag("stopwatch_start_btn")
+                            )
+                        }
+                        StopwatchStatus.RUNNING -> {
+                            ActionButton(
+                                text = "Lap",
+                                isPrimary = false,
+                                onClick = { viewModel.addLap() },
+                                modifier = Modifier
+                                    .width(100.dp)
+                                    .testTag("stopwatch_lap_btn")
+                            )
+
+                            ActionButton(
+                                text = "Pause",
+                                isPrimary = true,
+                                accentColor = NeonPink,
+                                onClick = { viewModel.pauseStopwatch() },
+                                modifier = Modifier
+                                    .width(110.dp)
+                                    .testTag("stopwatch_pause_btn")
+                            )
+                        }
+                        StopwatchStatus.PAUSED -> {
+                            ActionButton(
+                                text = "Reset",
+                                isPrimary = false,
+                                onClick = { viewModel.resetStopwatch() },
+                                modifier = Modifier
+                                    .width(100.dp)
+                                    .testTag("stopwatch_reset_btn")
+                            )
+
+                            ActionButton(
+                                text = "Resume",
+                                isPrimary = true,
+                                accentColor = PurpleGlow,
+                                onClick = { viewModel.startStopwatch() },
+                                modifier = Modifier
+                                    .width(110.dp)
+                                    .testTag("stopwatch_resume_btn")
+                            )
+                        }
                     }
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Controls
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
+    } else {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            when (stopwatchStatus) {
-                StopwatchStatus.IDLE -> {
-                    // Start button only
-                    ActionButton(
-                        text = "Start",
-                        isPrimary = true,
-                        accentColor = PurpleGlow,
-                        onClick = { viewModel.startStopwatch() },
-                        modifier = Modifier
-                            .width(180.dp)
-                            .testTag("stopwatch_start_btn")
-                    )
-                }
-                StopwatchStatus.RUNNING -> {
-                    // Lap and Pause
-                    ActionButton(
-                        text = "Lap",
-                        isPrimary = false,
-                        onClick = { viewModel.addLap() },
-                        modifier = Modifier
-                            .width(120.dp)
-                            .testTag("stopwatch_lap_btn")
-                    )
+            Spacer(modifier = Modifier.height(18.dp))
 
-                    ActionButton(
-                        text = "Pause",
-                        isPrimary = true,
-                        accentColor = NeonPink,
-                        onClick = { viewModel.pauseStopwatch() },
-                        modifier = Modifier
-                            .width(150.dp)
-                            .testTag("stopwatch_pause_btn")
-                    )
-                }
-                StopwatchStatus.PAUSED -> {
-                    // Reset and Resume
-                    ActionButton(
-                        text = "Reset",
-                        isPrimary = false,
-                        onClick = { viewModel.resetStopwatch() },
-                        modifier = Modifier
-                            .width(120.dp)
-                            .testTag("stopwatch_reset_btn")
-                    )
+            // Display massive counting stopwatch layout
+            CircleProgressTimer(
+                remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
+                totalMs = 1L,
+                displayString = readableTime,
+                statusText = when (stopwatchStatus) {
+                    StopwatchStatus.IDLE -> "STOPWATCH"
+                    StopwatchStatus.RUNNING -> "RUNNING"
+                    StopwatchStatus.PAUSED -> "PAUSED"
+                },
+                onProgressColor = PurpleGlow,
+                glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
+            )
 
-                    ActionButton(
-                        text = "Resume",
-                        isPrimary = true,
-                        accentColor = PurpleGlow,
-                        onClick = { viewModel.startStopwatch() },
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Lap Times list section (Takes remaining vertical scroll frame)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0x06FFFFFF))
+                    .border(width = 0.5.dp, color = Color(0x0AFFFFFF), shape = RoundedCornerShape(18.dp))
+            ) {
+                if (laps.isEmpty()) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "NO LAPS RECORDED",
+                            color = Color.DarkGray,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Record laps on running stopwatch.",
+                            color = Color.DarkGray,
+                            fontSize = 10.sp
+                        )
+                    }
+                } else {
+                    LazyColumn(
                         modifier = Modifier
-                            .width(150.dp)
-                            .testTag("stopwatch_resume_btn")
-                    )
+                            .fillMaxSize()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(laps, key = { it.index }) { lap ->
+                            LapRowItem(lap = lap)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Controls
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
+            ) {
+                when (stopwatchStatus) {
+                    StopwatchStatus.IDLE -> {
+                        // Start button only
+                        ActionButton(
+                            text = "Start",
+                            isPrimary = true,
+                            accentColor = PurpleGlow,
+                            onClick = { viewModel.startStopwatch() },
+                            modifier = Modifier
+                                .width(180.dp)
+                                .testTag("stopwatch_start_btn")
+                        )
+                    }
+                    StopwatchStatus.RUNNING -> {
+                        // Lap and Pause
+                        ActionButton(
+                            text = "Lap",
+                            isPrimary = false,
+                            onClick = { viewModel.addLap() },
+                            modifier = Modifier
+                                .width(120.dp)
+                                .testTag("stopwatch_lap_btn")
+                        )
+
+                        ActionButton(
+                            text = "Pause",
+                            isPrimary = true,
+                            accentColor = NeonPink,
+                            onClick = { viewModel.pauseStopwatch() },
+                            modifier = Modifier
+                                .width(150.dp)
+                                .testTag("stopwatch_pause_btn")
+                        )
+                    }
+                    StopwatchStatus.PAUSED -> {
+                        // Reset and Resume
+                        ActionButton(
+                            text = "Reset",
+                            isPrimary = false,
+                            onClick = { viewModel.resetStopwatch() },
+                            modifier = Modifier
+                                .width(120.dp)
+                                .testTag("stopwatch_reset_btn")
+                        )
+
+                        ActionButton(
+                            text = "Resume",
+                            isPrimary = true,
+                            accentColor = PurpleGlow,
+                            onClick = { viewModel.startStopwatch() },
+                            modifier = Modifier
+                                .width(150.dp)
+                                .testTag("stopwatch_resume_btn")
+                        )
+                    }
                 }
             }
         }
