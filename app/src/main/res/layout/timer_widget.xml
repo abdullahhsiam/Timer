@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/timer_widget_bg"
@@ -15,6 +16,10 @@
         android:letterSpacing="0.15"
         android:text="TIMER"
         android:textColor="@color/purple_glow"
+        android:shadowColor="#CC000000"
+        android:shadowDx="1.5"
+        android:shadowDy="1.5"
+        android:shadowRadius="2"
         android:textSize="11sp" />
 
     <TextView
@@ -26,6 +31,10 @@
         android:fontFamily="sans-serif-light"
         android:text="00:00"
         android:textColor="@color/off_white"
+        android:shadowColor="#E4000000"
+        android:shadowDx="1.5"
+        android:shadowDy="1.5"
+        android:shadowRadius="3.5"
         android:textSize="28sp" />
 
     <!-- Core Controls Row -->
@@ -49,6 +58,10 @@
             android:paddingVertical="5dp"
             android:text="Play"
             android:textColor="@color/cyan_glow"
+            android:shadowColor="#CC000000"
+            android:shadowDx="1.0"
+            android:shadowDy="1.0"
+            android:shadowRadius="1.5"
             android:textSize="11sp"
             android:textStyle="bold"
             android:layout_marginEnd="4dp" />
@@ -66,6 +79,10 @@
             android:paddingVertical="5dp"
             android:text="Reset"
             android:textColor="@color/off_white"
+            android:shadowColor="#CC000000"
+            android:shadowDx="1.0"
+            android:shadowDy="1.0"
+            android:shadowRadius="1.5"
             android:textSize="11sp"
             android:textStyle="bold"
             android:layout_marginStart="4dp" />
@@ -91,6 +108,10 @@
             android:paddingVertical="5dp"
             android:text="+1 Min"
             android:textColor="@color/purple_glow"
+            android:shadowColor="#CC000000"
+            android:shadowDx="1.0"
+            android:shadowDy="1.0"
+            android:shadowRadius="1.5"
             android:textSize="11sp"
             android:layout_marginEnd="4dp" />
 
@@ -107,6 +128,10 @@
             android:paddingVertical="5dp"
             android:text="+5 Min"
             android:textColor="@color/purple_glow"
+            android:shadowColor="#CC000000"
+            android:shadowDx="1.0"
+            android:shadowDy="1.0"
+            android:shadowRadius="1.5"
             android:textSize="11sp"
             android:layout_marginStart="4dp" />
     </LinearLayout>
