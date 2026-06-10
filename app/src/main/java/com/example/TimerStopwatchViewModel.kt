@@ -36,6 +36,13 @@ class TimerStopwatchViewModel : ViewModel() {
         TimerStopwatchStateManager.toggleAlwaysOn()
     }
 
+    // --- Floating Bubble Overlay State ---
+    val overlayActive: StateFlow<Boolean> = TimerStopwatchStateManager.overlayActive
+
+    fun setOverlayActive(active: Boolean) {
+        TimerStopwatchStateManager.setOverlayActive(active)
+    }
+
     // --- Alarm trigger event ---
     val alarmTriggered: StateFlow<Boolean> = TimerStopwatchStateManager.alarmTriggered
 
@@ -85,6 +92,10 @@ class TimerStopwatchViewModel : ViewModel() {
 
     fun addOneMinute() {
         TimerStopwatchStateManager.addOneMinute()
+    }
+
+    fun addFiveMinutes() {
+        TimerStopwatchStateManager.addFiveMinutes()
     }
 
     fun dismissAlarm() {

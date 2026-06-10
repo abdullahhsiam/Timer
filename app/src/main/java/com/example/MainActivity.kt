@@ -1,10 +1,15 @@
 package com.example
 
 import android.app.Activity
+import android.content.Intent
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import android.os.Bundle
 import android.view.WindowManager
+import android.provider.Settings
+import android.net.Uri
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.LayersClear
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -425,33 +430,80 @@ fun MainScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Color(0x06FFFFFF))
-                                .clickable { viewModel.toggleAlwaysOn() }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        val context = LocalContext.current
+                        val overlayActive by viewModel.overlayActive.collectAsState()
+                        val hasOverlayPermission = Settings.canDrawOverlays(context)
+
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Icon(
-                                imageVector = if (isAlwaysOn) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
-                                contentDescription = "AOD State",
-                                tint = if (isAlwaysOn) PurpleGlow else Color.Gray,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (isAlwaysOn) "Always-On Enforced" else "Screen Sleep Allowed",
-                                fontSize = 11.sp,
-                                color = if (isAlwaysOn) Color.White else Color.Gray,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color(0x06FFFFFF))
+                                    .clickable { viewModel.toggleAlwaysOn() }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isAlwaysOn) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
+                                    contentDescription = "AOD State",
+                                    tint = if (isAlwaysOn) PurpleGlow else Color.Gray,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (isAlwaysOn) "Always-On Enforced" else "Screen Sleep Allowed",
+                                    fontSize = 11.sp,
+                                    color = if (isAlwaysOn) Color.White else Color.Gray,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color(0x06FFFFFF))
+                                    .clickable {
+                                        if (Settings.canDrawOverlays(context)) {
+                                            if (overlayActive) {
+                                                context.stopService(Intent(context, OverlayBubbleService::class.java))
+                                            } else {
+                                                context.startService(Intent(context, OverlayBubbleService::class.java))
+                                            }
+                                        } else {
+                                            val intent = Intent(
+                                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                                Uri.parse("package:${context.packageName}")
+                                            )
+                                            context.startActivity(intent)
+                                        }
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (overlayActive) Icons.Default.Layers else Icons.Default.LayersClear,
+                                    contentDescription = "Overlay State",
+                                    tint = if (overlayActive) PurpleGlow else Color.Gray,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (!hasOverlayPermission) "Grant Overlay Permission" else if (overlayActive) "Floating Bubble Active" else "Enable Floating Bubble",
+                                    fontSize = 11.sp,
+                                    color = if (overlayActive) Color.White else Color.Gray,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
 
                         Text(
                             text = "v1.0.0 Stable",
                             fontSize = 11.sp,
-                            color = Color.DarkGray
+                            color = Color.DarkGray,
+                            modifier = Modifier.padding(start = 8.dp)
                         )
                     }
                 }

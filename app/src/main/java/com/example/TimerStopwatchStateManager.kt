@@ -18,7 +18,71 @@ object TimerStopwatchStateManager {
 
     // --- State Initialization ---
     fun initialize(context: Context) {
-        appContext = context.applicationContext
+        if (appContext == null) {
+            appContext = context.applicationContext
+            restoreState()
+        }
+    }
+
+    fun saveState() {
+        val context = appContext ?: return
+        val prefs = context.getSharedPreferences("timer_stopwatch_states", Context.MODE_PRIVATE)
+        prefs.edit().apply {
+            putString("timer_status", _timerStatus.value.name)
+            putLong("timer_remaining_ms", _timerRemainingMs.value)
+            putLong("timer_max_ms", _timerMaxMs.value)
+            putLong("timer_target_wall_time", if (_timerStatus.value == TimerStatus.RUNNING) System.currentTimeMillis() + _timerRemainingMs.value else 0L)
+            
+            putString("stopwatch_status", _stopwatchStatus.value.name)
+            putLong("stopwatch_elapsed_ms", _stopwatchElapsedMs.value)
+            putLong("stopwatch_target_wall_time", if (_stopwatchStatus.value == StopwatchStatus.RUNNING) System.currentTimeMillis() - _stopwatchElapsedMs.value else 0L)
+            apply()
+        }
+    }
+
+    fun restoreState() {
+        val context = appContext ?: return
+        val prefs = context.getSharedPreferences("timer_stopwatch_states", Context.MODE_PRIVATE)
+        
+        // RESTORE TIMER
+        val timerStatusStr = prefs.getString("timer_status", TimerStatus.IDLE.name) ?: TimerStatus.IDLE.name
+        val savedTimerRemaining = prefs.getLong("timer_remaining_ms", 0L)
+        val savedTimerMax = prefs.getLong("timer_max_ms", 0L)
+        val targetWallTime = prefs.getLong("timer_target_wall_time", 0L)
+        
+        val timerStatus = TimerStatus.valueOf(timerStatusStr)
+        _timerMaxMs.value = savedTimerMax
+
+        if (timerStatus == TimerStatus.RUNNING && targetWallTime > 0L) {
+            val calculatedRemaining = targetWallTime - System.currentTimeMillis()
+            if (calculatedRemaining > 0L) {
+                _timerRemainingMs.value = calculatedRemaining
+                _timerStatus.value = TimerStatus.RUNNING
+                launchTimerJob(calculatedRemaining)
+            } else {
+                _timerRemainingMs.value = 0L
+                _timerStatus.value = TimerStatus.FINISHED
+                _alarmTriggered.value = true
+            }
+        } else {
+            _timerRemainingMs.value = savedTimerRemaining
+            _timerStatus.value = if (timerStatus == TimerStatus.RUNNING) TimerStatus.PAUSED else timerStatus
+        }
+
+        // RESTORE STOPWATCH
+        val swStatusStr = prefs.getString("stopwatch_status", StopwatchStatus.IDLE.name) ?: StopwatchStatus.IDLE.name
+        val savedSwElapsed = prefs.getLong("stopwatch_elapsed_ms", 0L)
+        val targetSwWallTime = prefs.getLong("stopwatch_target_wall_time", 0L)
+        
+        val swStatus = StopwatchStatus.valueOf(swStatusStr)
+        if (swStatus == StopwatchStatus.RUNNING && targetSwWallTime > 0L) {
+            val elapsed = System.currentTimeMillis() - targetSwWallTime
+            _stopwatchElapsedMs.value = if (elapsed > 0) elapsed else 0L
+            startStopwatch()
+        } else {
+            _stopwatchElapsedMs.value = savedSwElapsed
+            _stopwatchStatus.value = swStatus
+        }
     }
 
     // --- Sound Selection State ---
@@ -62,6 +126,14 @@ object TimerStopwatchStateManager {
 
     fun setInPip(active: Boolean) {
         _isInPip.value = active
+    }
+
+    // --- Floating Bubble Overlay State ---
+    private val _overlayActive = MutableStateFlow(false)
+    val overlayActive: StateFlow<Boolean> = _overlayActive.asStateFlow()
+
+    fun setOverlayActive(active: Boolean) {
+        _overlayActive.value = active
     }
 
     // ==========================================
@@ -197,9 +269,9 @@ object TimerStopwatchStateManager {
         notifyServiceOfStateChange()
     }
 
-    fun addOneMinute() {
+    fun addMinutes(minutes: Int) {
         if (_timerStatus.value != TimerStatus.RUNNING && _timerStatus.value != TimerStatus.PAUSED) return
-        val increment = 60_000L
+        val increment = minutes * 60_000L
         _timerMaxMs.value += increment
         val newRemaining = _timerRemainingMs.value + increment
         _timerRemainingMs.value = newRemaining
@@ -209,7 +281,16 @@ object TimerStopwatchStateManager {
         } else {
             triggerNotificationUpdate()
             triggerWidgetUpdate()
+            notifyServiceOfStateChange()
         }
+    }
+
+    fun addOneMinute() {
+        addMinutes(1)
+    }
+
+    fun addFiveMinutes() {
+        addMinutes(5)
     }
 
     fun dismissAlarm() {
@@ -309,6 +390,9 @@ object TimerStopwatchStateManager {
     // ==========================================
     private fun notifyServiceOfStateChange() {
         val context = appContext ?: return
+        
+        saveState() // Keep states persisted in real time
+        
         val isTimerRunning = _timerStatus.value == TimerStatus.RUNNING || _timerStatus.value == TimerStatus.PAUSED || _timerStatus.value == TimerStatus.FINISHED
         val isStopwatchRunning = _stopwatchStatus.value == StopwatchStatus.RUNNING || _stopwatchStatus.value == StopwatchStatus.PAUSED
 

@@ -28,6 +28,7 @@ class TimerStopwatchService : Service() {
         const val ACTION_PAUSE_TIMER = "com.example.ACTION_PAUSE_TIMER"
         const val ACTION_RESUME_TIMER = "com.example.ACTION_RESUME_TIMER"
         const val ACTION_ADD_MINUTE = "com.example.ACTION_ADD_MINUTE"
+        const val ACTION_ADD_FIVE_MINUTES = "com.example.ACTION_ADD_FIVE_MINUTES"
         const val ACTION_RESET_TIMER = "com.example.ACTION_RESET_TIMER"
 
         const val ACTION_PAUSE_STOPWATCH = "com.example.ACTION_PAUSE_STOPWATCH"
@@ -64,6 +65,7 @@ class TimerStopwatchService : Service() {
                 ACTION_PAUSE_TIMER -> TimerStopwatchStateManager.pauseTimer()
                 ACTION_RESUME_TIMER -> TimerStopwatchStateManager.resumeTimer()
                 ACTION_ADD_MINUTE -> TimerStopwatchStateManager.addOneMinute()
+                ACTION_ADD_FIVE_MINUTES -> TimerStopwatchStateManager.addFiveMinutes()
                 ACTION_RESET_TIMER -> TimerStopwatchStateManager.resetTimer()
 
                 ACTION_PAUSE_STOPWATCH -> TimerStopwatchStateManager.pauseStopwatch()
@@ -151,11 +153,15 @@ class TimerStopwatchService : Service() {
         if (status == TimerStatus.RUNNING) {
             val pauseIntent = Intent(this, TimerStopwatchService::class.java).apply { action = ACTION_PAUSE_TIMER }
             val pPause = PendingIntent.getService(this, 11, pauseIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            builder.addAction(android.R.drawable.ic_media_pause, "Pause Timer", pPause)
+            builder.addAction(android.R.drawable.ic_media_pause, "Pause", pPause)
 
             val addMinIntent = Intent(this, TimerStopwatchService::class.java).apply { action = ACTION_ADD_MINUTE }
             val pAdd = PendingIntent.getService(this, 12, addMinIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             builder.addAction(android.R.drawable.ic_input_add, "+1 Min", pAdd)
+
+            val addFiveMinIntent = Intent(this, TimerStopwatchService::class.java).apply { action = ACTION_ADD_FIVE_MINUTES }
+            val pAddFive = PendingIntent.getService(this, 15, addFiveMinIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            builder.addAction(android.R.drawable.ic_input_add, "+5 Min", pAddFive)
         } else if (status == TimerStatus.PAUSED) {
             val resumeIntent = Intent(this, TimerStopwatchService::class.java).apply { action = ACTION_RESUME_TIMER }
             val pResume = PendingIntent.getService(this, 13, resumeIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -163,7 +169,7 @@ class TimerStopwatchService : Service() {
 
             val resetIntent = Intent(this, TimerStopwatchService::class.java).apply { action = ACTION_RESET_TIMER }
             val pReset = PendingIntent.getService(this, 14, resetIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Clear", pReset)
+            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Reset", pReset)
         }
     }
 
