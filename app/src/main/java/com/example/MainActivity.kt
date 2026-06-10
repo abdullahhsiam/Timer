@@ -277,8 +277,8 @@ fun MainScreen(
             ActiveAlarmOverlay(viewModel = viewModel)
         } else {
             // Main Standard Navigation and Layout Structure with stable coordinates
-            val isFullScreenDisplay = ((timerStatus == TimerStatus.RUNNING || timerStatus == TimerStatus.PAUSED) && activeTab == 0) || 
-                                      ((stopwatchStatus == StopwatchStatus.RUNNING || stopwatchStatus == StopwatchStatus.PAUSED) && activeTab == 1)
+            val isFullScreenDisplay = (timerStatus == TimerStatus.RUNNING && activeTab == 0) || 
+                                      (stopwatchStatus == StopwatchStatus.RUNNING && activeTab == 1)
 
             val fullScreenTransitionProgress by animateFloatAsState(
                 targetValue = if (isFullScreenDisplay) 1f else 0f,
