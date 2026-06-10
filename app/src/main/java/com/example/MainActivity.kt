@@ -183,6 +183,7 @@ fun MainScreen(
     val timerStatus by viewModel.timerStatus.collectAsState()
     val stopwatchStatus by viewModel.stopwatchStatus.collectAsState()
     val isBackgroundAnimated by viewModel.isBackgroundAnimated.collectAsState()
+    val overlayMode by viewModel.overlayMode.collectAsState()
 
     var menuExpanded by remember { mutableStateOf(false) }
     var showSoundDialog by remember { mutableStateOf(false) }
@@ -338,10 +339,88 @@ fun MainScreen(
                                     modifier = Modifier.background(Color(0xFF141419))
                                 ) {
                                     DropdownMenuItem(
-                                        text = { Text("Alarm Sound Settings", color = Color.White, fontSize = 14.sp) },
+                                        text = { Text("🔊 Alarm Sound Settings", color = Color.White, fontSize = 14.sp) },
                                         onClick = {
                                             menuExpanded = false
                                             showSoundDialog = true
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { 
+                                            Text(
+                                                text = if (isBackgroundAnimated) "✨ Animations: Enabled" else "static: Animations Disabled", 
+                                                color = Color.White, 
+                                                fontSize = 14.sp
+                                            ) 
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            viewModel.setBackgroundAnimated(!isBackgroundAnimated)
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("--- OVERLAY MODE ---", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                                        onClick = {},
+                                        enabled = false
+                                    )
+                                    DropdownMenuItem(
+                                        text = { 
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = "🏝️ Dockable Island", 
+                                                    color = if (overlayMode == 0) PurpleGlow else Color.White, 
+                                                    fontSize = 14.sp,
+                                                    fontWeight = if (overlayMode == 0) FontWeight.Bold else FontWeight.Normal
+                                                )
+                                                if (overlayMode == 0) {
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text("✓", color = PurpleGlow)
+                                                }
+                                            }
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            viewModel.setOverlayMode(0)
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { 
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = "💬 Floating Bubble", 
+                                                    color = if (overlayMode == 1) PurpleGlow else Color.White, 
+                                                    fontSize = 14.sp,
+                                                    fontWeight = if (overlayMode == 1) FontWeight.Bold else FontWeight.Normal
+                                                )
+                                                if (overlayMode == 1) {
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text("✓", color = PurpleGlow)
+                                                }
+                                            }
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            viewModel.setOverlayMode(1)
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { 
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = "❌ Disable Overlays", 
+                                                    color = if (overlayMode == 2) PurpleGlow else Color.White, 
+                                                    fontSize = 14.sp,
+                                                    fontWeight = if (overlayMode == 2) FontWeight.Bold else FontWeight.Normal
+                                                )
+                                                if (overlayMode == 2) {
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text("✓", color = PurpleGlow)
+                                                }
+                                            }
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            viewModel.setOverlayMode(2)
                                         }
                                     )
                                 }

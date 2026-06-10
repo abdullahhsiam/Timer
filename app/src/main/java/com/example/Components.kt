@@ -130,8 +130,9 @@ fun AnimatedGradientBackground(
                         )
                     } else if (isRunningActive) {
                         // Fluid shifting dynamic animated background when working
-                        val cosVal = cos(angleRad) * 0.45f
-                        val sinVal = sin(angleRad) * 0.45f
+                        val activeAngle = if (isAnimated) angleRad else 0f
+                        val cosVal = cos(activeAngle) * 0.45f
+                        val sinVal = sin(activeAngle) * 0.45f
                         
                         val activeBrush = Brush.linearGradient(
                             colors = listOf(
@@ -151,39 +152,6 @@ fun AnimatedGradientBackground(
                             )
                         )
                         drawRect(brush = activeBrush)
-
-                        // Ambient glowing circles floating behind
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(Color(0x409D4EDD), Color.Transparent), // Glowing lavender
-                                center = Offset(
-                                    x = sizeVal.width * -0.05f + driftOffset1 * 1.5f,
-                                    y = sizeVal.height * -0.1f + driftOffset2 * 1.5f
-                                ),
-                                radius = sizeVal.width * 1.0f
-                            ),
-                            radius = sizeVal.width * 1.0f,
-                            center = Offset(
-                                x = sizeVal.width * -0.05f + driftOffset1 * 1.5f,
-                                y = sizeVal.height * -0.1f + driftOffset2 * 1.5f
-                            )
-                        )
-
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(Color(0x3000E6FF), Color.Transparent), // Glowing Cyan
-                                center = Offset(
-                                    x = sizeVal.width * 0.85f + driftOffset2 * 1.2f,
-                                    y = sizeVal.height * 0.85f + driftOffset1 * 1.2f
-                                ),
-                                radius = sizeVal.width * 0.9f
-                            ),
-                            radius = sizeVal.width * 0.9f,
-                            center = Offset(
-                                x = sizeVal.width * 0.85f + driftOffset2 * 1.2f,
-                                y = sizeVal.height * 0.85f + driftOffset1 * 1.2f
-                            )
-                        )
                     } else {
                         // Corner gradient background in main interface (completely static)
                         drawRect(color = Color(0xFF070510))
@@ -305,20 +273,18 @@ fun CircleProgressTimer(
         label = "fluid_rotate"
     )
 
-    // Dynamic scale configuration:
-    // - Idle: perfectly 1.0f to 1.03f (very subtle movement)
-    // - Running: smoothly zooms outward, breathes subtly between 1.08f and 1.28f (more active)
-    // - Paused: settles and freezes at 1.05f (completely static)
-    // - Animations disabled: remains completely static 1.10f
+    // Freeze motion values if animations are disabled
+    val activeBreathProgress = if (isAnimationsEnabled) breathProgress else 0.5f
+    val activeRotationProgress = if (isAnimationsEnabled) rotationProgress else 45f
+
+    // Dynamic scale configuration
     val targetScale = when {
-        !isAnimationsEnabled -> 1.10f
-        isRunning -> 1.08f + (0.20f * breathProgress)
+        isRunning -> 1.08f + (0.20f * activeBreathProgress)
         isPaused -> 1.05f
-        else -> 1.00f + (0.03f * breathProgress) // IDLE: very subtly active
+        else -> 1.00f + (0.03f * activeBreathProgress) // IDLE: very subtly active
     }
 
     val targetAlpha = when {
-        !isAnimationsEnabled -> 0.50f
         isRunning -> 0.70f
         isPaused -> 0.45f
         else -> 0.40f // IDLE
@@ -330,30 +296,48 @@ fun CircleProgressTimer(
         else -> 45.dp
     }
 
+    // Spec changes to snap() instantly when animations are disabled
+    val scaleSpec = if (isAnimationsEnabled) {
+        spring<Float>(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioNoBouncy)
+    } else {
+        androidx.compose.animation.core.snap<Float>()
+    }
+
+    val alphaSpec = if (isAnimationsEnabled) {
+        spring<Float>(stiffness = Spring.StiffnessLow)
+    } else {
+        androidx.compose.animation.core.snap<Float>()
+    }
+
+    val rotationSpec = if (isAnimationsEnabled) {
+        if (isRunning) spring<Float>(stiffness = Spring.StiffnessVeryLow) else tween<Float>(1500, easing = FastOutSlowInEasing)
+    } else {
+        androidx.compose.animation.core.snap<Float>()
+    }
+
     // Wrap in animate*AsState for buttery smooth transitions between states (Idle -> Running -> Paused -> Reset)
     val animatedScale by animateFloatAsState(
         targetValue = targetScale,
-        animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioNoBouncy),
+        animationSpec = scaleSpec,
         label = "fluid_scale_spring"
     )
 
     val animatedAlpha by animateFloatAsState(
         targetValue = targetAlpha,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        animationSpec = alphaSpec,
         label = "fluid_alpha_spring"
     )
 
     // When paused, freeze the rotation. When idle, rotate extremely slowly. When running, rotate.
     val targetRotation = when {
-        !isAnimationsEnabled -> 0f
-        isRunning -> rotationProgress
+        isRunning -> activeRotationProgress
         isPaused -> 45f // Freezes
-        else -> rotationProgress * 0.25f // IDLE: extremely slow movement
+        else -> activeRotationProgress * 0.25f // IDLE: extremely slow movement
     }
 
     val animatedRotation by animateFloatAsState(
         targetValue = targetRotation,
-        animationSpec = if (isRunning) spring(stiffness = Spring.StiffnessVeryLow) else tween(1500, easing = FastOutSlowInEasing),
+        animationSpec = rotationSpec,
         label = "fluid_rotation_spring"
     )
 

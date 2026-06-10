@@ -60,7 +60,6 @@ class OverlayBubbleService : Service() {
         TimerStopwatchStateManager.setOverlayActive(true)
 
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        setupOverlayBubble()
         observeTimerStopwatch()
 
         // Sync and reconfigure layout based on dynamic style settings
@@ -180,60 +179,17 @@ class OverlayBubbleService : Service() {
     }
 
     private fun reconfigureLayoutParams(mode: Int) {
-        val currentParams = params ?: return
-        val currentView = overlayView ?: return
-        val density = resources.displayMetrics.density
-
         isIslandExpanded = false
         islandWidthAnimator?.cancel()
 
-        if (mode == 0) {
-            // Dynamic Island Mode: Fixed center-aligned notch bar, sitting directly below status bar (ideal size & aspect)
-            currentParams.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            currentParams.x = 0
-            currentParams.y = (10 * density).toInt()
-            currentParams.width = (130 * density).toInt()
-            currentParams.height = (46 * density).toInt()
-        } else {
-            // Free Bubble Mode: Top-Left floating anchor, user-draggable
-            currentParams.gravity = Gravity.TOP or Gravity.START
-            currentParams.x = 100
-            currentParams.y = 200
-            currentParams.width = WindowManager.LayoutParams.WRAP_CONTENT
-            currentParams.height = WindowManager.LayoutParams.WRAP_CONTENT
+        overlayView?.let {
+            try {
+                windowManager.removeView(it)
+            } catch (e: Exception) {}
+            overlayView = null
         }
 
-        val dockableContainer = currentView.findViewById<View>(R.id.dockable_island_container)
-        val collapsedContainer = currentView.findViewById<View>(R.id.collapsed_container)
-        val expandedContainer = currentView.findViewById<View>(R.id.expanded_container)
-
-        if (mode == 0) {
-            dockableContainer?.visibility = View.VISIBLE
-            collapsedContainer?.visibility = View.GONE
-            expandedContainer?.visibility = View.GONE
-            
-            // Start narrow/collapsed with hidden icons and reset alpha
-            currentView.findViewById<View>(R.id.island_btn_play_pause)?.let {
-                it.visibility = View.GONE
-                it.alpha = 0f
-            }
-            currentView.findViewById<View>(R.id.island_btn_reset)?.let {
-                it.visibility = View.GONE
-                it.alpha = 0f
-            }
-            currentView.findViewById<View>(R.id.island_btn_close)?.let {
-                it.visibility = View.GONE
-                it.alpha = 0f
-            }
-        } else {
-            dockableContainer?.visibility = View.GONE
-            collapsedContainer?.visibility = View.VISIBLE
-            expandedContainer?.visibility = View.GONE
-        }
-
-        try {
-            windowManager.updateViewLayout(currentView, currentParams)
-        } catch (e: Exception) {}
+        setupOverlayBubble(mode)
     }
 
     private fun toggleIslandExpansion() {
@@ -247,7 +203,7 @@ class OverlayBubbleService : Service() {
         isIslandExpanded = !isIslandExpanded
         islandWidthAnimator?.cancel()
 
-        // Deterministic morphing widths (completely independent of dynamic measuring race conditions)
+        // Deterministic morphing widths
         val startWidth = if (isIslandExpanded) (130 * density).toInt() else (240 * density).toInt()
         val endWidth = if (isIslandExpanded) (240 * density).toInt() else (130 * density).toInt()
         val fixedCapsuleHeight = (46 * density).toInt()
@@ -261,27 +217,64 @@ class OverlayBubbleService : Service() {
             btnClose.alpha = 0f
         }
 
+        // Custom premium path interpolator with spring overshoot (BackEaseOut feel)
+        val customInterpolator = if (isIslandExpanded) {
+            android.view.animation.PathInterpolator(0.15f, 0.9f, 0.2f, 1.08f)
+        } else {
+            android.view.animation.PathInterpolator(0.25f, 1f, 0.2f, 1f)
+        }
+
         islandWidthAnimator = ValueAnimator.ofInt(startWidth, endWidth).apply {
-            duration = 320
-            interpolator = DecelerateInterpolator(1.8f)
+            duration = 350
+            interpolator = customInterpolator
             addUpdateListener { animator ->
                 val currentWidth = animator.animatedValue as Int
                 val currentParams = params ?: return@addUpdateListener
                 currentParams.width = currentWidth
-                currentParams.height = fixedCapsuleHeight // Strictly maintain horizontal capsule height
+                currentParams.height = fixedCapsuleHeight
                 try {
                     windowManager.updateViewLayout(root, currentParams)
                 } catch (e: Exception) {}
 
                 val progress = animator.animatedFraction
+                
+                // Opacity Transitions & staggered fade for buttons to feel like a single cohesive surface transforming
                 if (isIslandExpanded) {
-                    btnPlayPause.alpha = progress
-                    btnReset.alpha = progress
-                    btnClose.alpha = progress
+                    val fadeProgress = ((progress - 0.2f) / 0.8f).coerceIn(0f, 1f)
+                    btnPlayPause.alpha = fadeProgress
+                    btnReset.alpha = fadeProgress
+                    btnClose.alpha = fadeProgress
+                    
+                    // Subtle dynamic physical scale compression for the active center time text
+                    root.findViewById<View>(R.id.island_time_text)?.let {
+                        val textScale = 1.0f - (0.08f * kotlin.math.sin(progress * Math.PI).toFloat())
+                        it.scaleX = textScale
+                        it.scaleY = textScale
+                    }
                 } else {
-                    btnPlayPause.alpha = 1f - progress
-                    btnReset.alpha = 1f - progress
-                    btnClose.alpha = 1f - progress
+                    val fadeProgress = (1f - progress * 1.5f).coerceIn(0f, 1f)
+                    btnPlayPause.alpha = fadeProgress
+                    btnReset.alpha = fadeProgress
+                    btnClose.alpha = fadeProgress
+                }
+
+                // Blur-based morphing effect (Android 12+) using a bell curve for organic liquid tension feel
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val bellCurve = kotlin.math.sin(progress * Math.PI).toFloat()
+                    val blurRadius = bellCurve * 8f * density
+                    if (blurRadius > 1.2f) {
+                        try {
+                            islandContainer.setRenderEffect(
+                                android.graphics.RenderEffect.createBlurEffect(
+                                    blurRadius, blurRadius, android.graphics.Shader.TileMode.CLAMP
+                                )
+                            )
+                        } catch (e: Exception) {}
+                    } else {
+                        try {
+                            islandContainer.setRenderEffect(null)
+                        } catch (e: Exception) {}
+                    }
                 }
             }
             addListener(object : AnimatorListenerAdapter() {
@@ -299,19 +292,29 @@ class OverlayBubbleService : Service() {
                         btnReset.visibility = View.GONE
                         btnClose.visibility = View.GONE
                     }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        try {
+                            islandContainer.setRenderEffect(null)
+                        } catch (e: Exception) {}
+                    }
+                    root.findViewById<View>(R.id.island_time_text)?.let {
+                        it.scaleX = 1f
+                        it.scaleY = 1f
+                    }
                 }
             })
             start()
         }
     }
 
-    private fun setupOverlayBubble() {
+    private fun setupOverlayBubble(mode: Int) {
         val layoutInflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         overlayView = layoutInflater.inflate(R.layout.overlay_bubble, null)
 
+        val density = resources.displayMetrics.density
         val layoutParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            if (mode == 0) (130 * density).toInt() else WindowManager.LayoutParams.WRAP_CONTENT,
+            if (mode == 0) (46 * density).toInt() else WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             } else {
@@ -321,9 +324,17 @@ class OverlayBubbleService : Service() {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = 100
-            y = 200
+            if (mode == 0) {
+                // Dynamic Island Mode: Fixed center-aligned notch bar, sitting directly below status bar
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                x = 0
+                y = (10 * density).toInt()
+            } else {
+                // Free Bubble Mode: Top-Left floating anchor, user-draggable
+                gravity = Gravity.TOP or Gravity.START
+                x = 100
+                y = 200
+            }
         }
 
         this.params = layoutParams
@@ -335,23 +346,51 @@ class OverlayBubbleService : Service() {
             return
         }
 
+        val dockableContainer = overlayView!!.findViewById<View>(R.id.dockable_island_container)
         val collapsedContainer = overlayView!!.findViewById<View>(R.id.collapsed_container)
         val expandedContainer = overlayView!!.findViewById<View>(R.id.expanded_container)
+
+        if (mode == 0) {
+            dockableContainer?.visibility = View.VISIBLE
+            collapsedContainer?.visibility = View.GONE
+            expandedContainer?.visibility = View.GONE
+            
+            // Start narrow/collapsed with hidden icons and reset alpha
+            overlayView!!.findViewById<View>(R.id.island_btn_play_pause)?.let {
+                it.visibility = View.GONE
+                it.alpha = 0f
+            }
+            overlayView!!.findViewById<View>(R.id.island_btn_reset)?.let {
+                it.visibility = View.GONE
+                it.alpha = 0f
+            }
+            overlayView!!.findViewById<View>(R.id.island_btn_close)?.let {
+                it.visibility = View.GONE
+                it.alpha = 0f
+            }
+        } else {
+            dockableContainer?.visibility = View.GONE
+            collapsedContainer?.visibility = View.VISIBLE
+            expandedContainer?.visibility = View.GONE
+        }
+
+        // Apply appearance styling (AMOLED black etc.)
+        val config = TimerStopwatchStateManager.appearanceConfig.value
+        applyAppearanceConfigToOverlays(mode, config)
 
         // Dragging & Clicking Helpers
         var initialX = 0
         var initialY = 0
         var initialTouchX = 0f
         var initialTouchY = 0f
-        var clickThreshold = 15 // Pixels
+        val clickThreshold = 15 // Pixels
         var isMoving = false
 
         overlayView!!.setOnTouchListener(object : View.OnTouchListener {
             override fun onTouch(v: View, event: MotionEvent): Boolean {
                 val currentParams = params ?: return false
-                val activeMode = TimerStopwatchStateManager.overlayMode.value
 
-                if (activeMode == 0) {
+                if (mode == 0) {
                     // Fixed center-aligned Dockable Island (Never draggable)
                     if (event.action == MotionEvent.ACTION_UP) {
                         val deltaX = abs(event.rawX - initialTouchX)
