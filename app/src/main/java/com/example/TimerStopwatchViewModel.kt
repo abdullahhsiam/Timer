@@ -29,6 +29,14 @@ class TimerStopwatchViewModel : ViewModel() {
         _activeTab.value = index
     }
 
+    // --- Visual Mode State (0 = Circular, 1 = Flip Clock) ---
+    private val _activeVisualMode = MutableStateFlow(0)
+    val activeVisualMode: StateFlow<Int> = _activeVisualMode.asStateFlow()
+
+    fun selectVisualMode(index: Int) {
+        _activeVisualMode.value = index
+    }
+
     // --- Always On Display Keep-Screen State ---
     val isAlwaysOn: StateFlow<Boolean> = TimerStopwatchStateManager.isAlwaysOn
 

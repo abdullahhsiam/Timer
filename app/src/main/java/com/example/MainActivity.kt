@@ -236,11 +236,14 @@ fun MainScreen(
         }
     }
 
+    val activeVisualMode by viewModel.activeVisualMode.collectAsState()
+
     // Wrap entire layout in standard animated background
     AnimatedGradientBackground(
         isPulsingAlarm = alarmTriggered,
         isRunningActive = timerStatus == TimerStatus.RUNNING || stopwatchStatus == StopwatchStatus.RUNNING,
-        isAnimated = isBackgroundAnimated
+        isAnimated = isBackgroundAnimated,
+        visualMode = activeVisualMode
     ) {
         val isInPip by TimerStopwatchStateManager.isInPip.collectAsState()
 
@@ -425,7 +428,10 @@ fun MainScreen(
                                     properties = PopupProperties(focusable = true)
                                 ) {
                                     val selectedSound by viewModel.selectedSound.collectAsState()
-                                    val visibleState = remember { androidx.compose.animation.core.MutableTransitionState(false) }.apply { targetState = menuExpanded }
+                                    val visibleState = remember { androidx.compose.animation.core.MutableTransitionState(false) }
+                                    LaunchedEffect(menuExpanded) {
+                                        visibleState.targetState = menuExpanded
+                                    }
                                     androidx.compose.animation.AnimatedVisibility(
                                         visibleState = visibleState,
                                         enter = fadeIn(tween(180)) + scaleIn(spring(0.70f, Spring.StiffnessMediumLow), initialScale = 0.8f, transformOrigin = TransformOrigin(1f, 0f)),
@@ -546,10 +552,19 @@ fun MainScreen(
                     Spacer(modifier = Modifier.height(14.dp))
 
                     // Sliding Premium Glassmorphic Tab Switcher (Fluid, Stretch & Morph)
-                    SlidingTabSwitcher(
-                        activeTab = activeTab,
-                        onTabSelected = { viewModel.selectTab(it) }
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        SlidingTabSwitcher(
+                            activeTab = activeTab,
+                            onTabSelected = { viewModel.selectTab(it) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        val activeVisualMode by viewModel.activeVisualMode.collectAsState()
+                        VisualModeSwitcher(
+                            activeMode = activeVisualMode,
+                            onModeSelected = { viewModel.selectVisualMode(it) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
 
                 // 3. BOTTOM CONTAINER (ALWAYS-ON & BUBBLE CONFIG FOOTER ACTIONS)
@@ -734,6 +749,71 @@ fun SlidingTabSwitcher(
 }
 
 @Composable
+fun VisualModeSwitcher(
+    activeMode: Int,
+    onModeSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isAnimationsEnabled by TimerStopwatchStateManager.isBackgroundAnimated.collectAsState()
+    
+    val tabProgress by animateFloatAsState(
+        targetValue = activeMode.toFloat(),
+        animationSpec = if (isAnimationsEnabled) {
+            spring(dampingRatio = 0.5f, stiffness = 300f)
+        } else snap(),
+        label = "sliding_mode_progress"
+    )
+
+    val stretchWidth = 100.dp + if (isAnimationsEnabled) {
+        val bell = Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat()
+        (48.dp * bell)
+    } else 0.dp
+
+    Box(
+        modifier = modifier
+            .width(200.dp)
+            .height(48.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+            .border(width = 1.dp, color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(24.dp))
+            .padding(3.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Box(
+            modifier = Modifier
+                .offset(x = (tabProgress * 97).dp)
+                .width(stretchWidth)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(20.dp))
+                .blur(radius = if (isAnimationsEnabled) {
+                    (8.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat())
+                } else 0.dp)
+                .background(Color.White.copy(alpha = 0.12f))
+        )
+
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TabItem(
+                label = "Circle",
+                selected = activeMode == 0,
+                icon = androidx.compose.material.icons.Icons.Default.Timer,
+                onClick = { onModeSelected(0) },
+                modifier = Modifier.weight(1f).fillMaxHeight()
+            )
+            TabItem(
+                label = "Flip",
+                selected = activeMode == 1,
+                icon = androidx.compose.material.icons.Icons.Default.Layers,
+                onClick = { onModeSelected(1) },
+                modifier = Modifier.weight(1f).fillMaxHeight()
+            )
+        }
+    }
+}
+
+@Composable
 fun TabItem(
     label: String,
     selected: Boolean,
@@ -814,6 +894,8 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
     val isTimerActive = timerStatus == TimerStatus.RUNNING || timerStatus == TimerStatus.PAUSED
+    val activeVisualMode by viewModel.activeVisualMode.collectAsState()
+    val accentColor = if (activeVisualMode == 1) Color(0xFF4C8DFF) else PurpleGlow
 
     val transition = updateTransition(targetState = isTimerActive, label = "dialer_to_timer")
     val transitionProgress by transition.animateFloat(
@@ -899,7 +981,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                                     .clip(RoundedCornerShape(20.dp))
                                     .background(
                                         if (timerInput.isNotEmpty()) {
-                                            PurpleGlow
+                                            accentColor
                                         } else {
                                             Color.White.copy(alpha = 0.03f)
                                         }
@@ -1003,7 +1085,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                                 .clip(RoundedCornerShape(24.dp))
                                 .background(
                                     if (timerInput.isNotEmpty()) {
-                                        PurpleGlow
+                                        accentColor
                                     } else {
                                         Color.White.copy(alpha = 0.03f)
                                     }
@@ -1058,14 +1140,25 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                     // Simple small digital clock displaying at the upper middle side
                     LiveDigitalClock()
 
-                    CircleProgressTimer(
-                        remainingMs = timerRemainingMs,
-                        totalMs = timerMaxMs,
-                        displayString = readableTime,
-                        statusText = if (timerStatus == TimerStatus.RUNNING) "RUNNING" else "PAUSED",
-                        onProgressColor = if (timerStatus == TimerStatus.RUNNING) PurpleGlow else Color.White.copy(alpha = 0.15f),
-                        glowEnabled = timerStatus == TimerStatus.RUNNING
-                    )
+                    if (activeVisualMode == 1) {
+                        Spacer(modifier = Modifier.height(30.dp))
+                        FlipClockDisplay(
+                            timeString = readableTime,
+                            height = if (isLandscape) 80.dp else 110.dp,
+                            width = if (isLandscape) 55.dp else 75.dp,
+                            textSize = if (isLandscape) 60f else 80f
+                        )
+                        Spacer(modifier = Modifier.height(30.dp))
+                    } else {
+                        CircleProgressTimer(
+                            remainingMs = timerRemainingMs,
+                            totalMs = timerMaxMs,
+                            displayString = readableTime,
+                            statusText = if (timerStatus == TimerStatus.RUNNING) "RUNNING" else "PAUSED",
+                            onProgressColor = if (timerStatus == TimerStatus.RUNNING) PurpleGlow else Color.White.copy(alpha = 0.15f),
+                            glowEnabled = timerStatus == TimerStatus.RUNNING
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 40.dp))
 
@@ -1088,7 +1181,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         ActionButton(
                             text = if (timerStatus == TimerStatus.RUNNING) "Pause" else "Resume",
                             isPrimary = true,
-                            accentColor = PurpleGlow,
+                            accentColor = accentColor,
                             onClick = {
                                 if (transitionProgress > 0.9f) {
                                     if (timerStatus == TimerStatus.RUNNING) viewModel.pauseTimer() else viewModel.resumeTimer()
@@ -1234,6 +1327,9 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
     val elapsedMs by viewModel.stopwatchElapsedMs.collectAsState()
     val stopwatchStatus by viewModel.stopwatchStatus.collectAsState()
     val laps by viewModel.laps.collectAsState()
+    val activeVisualMode by viewModel.activeVisualMode.collectAsState()
+    val accentColorPrimary = if (activeVisualMode == 1) Color(0xFF4C8DFF) else PurpleGlow
+    val accentColorSecondary = if (activeVisualMode == 1) Color(0xFF00E6FF) else NeonPink
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -1244,6 +1340,8 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
     val s = totalSeconds % 60
     val cc = (elapsedMs / 10) % 100
     val readableTime = String.format("%02d:%02d.%02d", m, s, cc)
+    val flipTime = String.format("%02d:%02d", m, s)
+    val fractionTime = String.format(".%02d", cc)
 
     if (isLandscape) {
         Row(
@@ -1259,18 +1357,35 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                 modifier = Modifier.weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                CircleProgressTimer(
-                    remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
-                    totalMs = 1L,
-                    displayString = readableTime,
-                    statusText = when (stopwatchStatus) {
-                        StopwatchStatus.IDLE -> "STOPWATCH"
-                        StopwatchStatus.RUNNING -> "RUNNING"
-                        StopwatchStatus.PAUSED -> "PAUSED"
-                    },
-                    onProgressColor = PurpleGlow,
-                    glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
-                )
+                if (activeVisualMode == 1) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        LiveDigitalClock()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            FlipClockDisplay(
+                                timeString = flipTime,
+                                height = 70.dp,
+                                width = 48.dp,
+                                textSize = 50f
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = fractionTime, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                } else {
+                    CircleProgressTimer(
+                        remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
+                        totalMs = 1L,
+                        displayString = readableTime,
+                        statusText = when (stopwatchStatus) {
+                            StopwatchStatus.IDLE -> "STOPWATCH"
+                            StopwatchStatus.RUNNING -> "RUNNING"
+                            StopwatchStatus.PAUSED -> "PAUSED"
+                        },
+                        onProgressColor = PurpleGlow,
+                        glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
+                    )
+                }
             }
 
             // Right Column: Laps list and Controls below
@@ -1332,7 +1447,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                             ActionButton(
                                 text = "Start",
                                 isPrimary = true,
-                                accentColor = PurpleGlow,
+                                accentColor = accentColorPrimary,
                                 onClick = { viewModel.startStopwatch() },
                                 modifier = Modifier
                                     .width(130.dp)
@@ -1352,7 +1467,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                             ActionButton(
                                 text = "Pause",
                                 isPrimary = true,
-                                accentColor = NeonPink,
+                                accentColor = accentColorSecondary,
                                 onClick = { viewModel.pauseStopwatch() },
                                 modifier = Modifier
                                     .width(120.dp)
@@ -1372,7 +1487,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                             ActionButton(
                                 text = "Resume",
                                 isPrimary = true,
-                                accentColor = PurpleGlow,
+                                accentColor = accentColorPrimary,
                                 onClick = { viewModel.startStopwatch() },
                                 modifier = Modifier
                                     .width(120.dp)
@@ -1394,18 +1509,36 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
             Spacer(modifier = Modifier.height(18.dp))
 
             // Display massive counting stopwatch layout
-            CircleProgressTimer(
-                remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
-                totalMs = 1L,
-                displayString = readableTime,
-                statusText = when (stopwatchStatus) {
-                    StopwatchStatus.IDLE -> "STOPWATCH"
-                    StopwatchStatus.RUNNING -> "RUNNING"
-                    StopwatchStatus.PAUSED -> "PAUSED"
-                },
-                onProgressColor = PurpleGlow,
-                glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
-            )
+            if (activeVisualMode == 1) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    LiveDigitalClock()
+                    Spacer(modifier = Modifier.height(30.dp))
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        FlipClockDisplay(
+                            timeString = flipTime,
+                            height = 100.dp,
+                            width = 68.dp,
+                            textSize = 70f
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = fractionTime, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+            } else {
+                CircleProgressTimer(
+                    remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
+                    totalMs = 1L,
+                    displayString = readableTime,
+                    statusText = when (stopwatchStatus) {
+                        StopwatchStatus.IDLE -> "STOPWATCH"
+                        StopwatchStatus.RUNNING -> "RUNNING"
+                        StopwatchStatus.PAUSED -> "PAUSED"
+                    },
+                    onProgressColor = PurpleGlow,
+                    glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
