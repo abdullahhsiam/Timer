@@ -281,33 +281,6 @@ class OverlayBubbleService : Service() {
                     btnClose.scaleX = buttonScale
                     btnClose.scaleY = buttonScale
                 }
-
-                // Blur-based morphing effect (Android 12+) using an engineered peak-hold bell curve.
-                // This holds the peak blur while widths & layouts morph, masking any transient text/spacing jumps,
-                // and resolves beautifully back to sharpness at the final moment.
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val bellCurve = if (progress < 0.2f) {
-                        progress / 0.2f
-                    } else if (progress < 0.88f) {
-                        1.0f  // Hold peak blur to completely mask layout conversions
-                    } else {
-                        ((1.0f - progress) / 0.12f).coerceIn(0f, 1f)
-                    }
-                    val blurRadius = bellCurve * 18f * density
-                    if (blurRadius > 1.2f) {
-                        try {
-                            islandContainer.setRenderEffect(
-                                android.graphics.RenderEffect.createBlurEffect(
-                                    blurRadius, blurRadius, android.graphics.Shader.TileMode.CLAMP
-                                )
-                            )
-                        } catch (e: Exception) {}
-                    } else {
-                        try {
-                            islandContainer.setRenderEffect(null)
-                        } catch (e: Exception) {}
-                    }
-                }
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
@@ -323,11 +296,6 @@ class OverlayBubbleService : Service() {
                         btnPlayPause.visibility = View.GONE
                         btnReset.visibility = View.GONE
                         btnClose.visibility = View.GONE
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        try {
-                            islandContainer.setRenderEffect(null)
-                        } catch (e: Exception) {}
                     }
                     root.findViewById<View>(R.id.island_time_text)?.let {
                         it.scaleX = 1f

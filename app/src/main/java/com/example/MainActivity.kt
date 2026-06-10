@@ -764,10 +764,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
         if (active) 1f else 0f
     }
 
-    // Dynamic fluid blur bell curve and layout transform parameters
-    val bellCurve = kotlin.math.sin(transitionProgress * Math.PI).toFloat()
-    val transitionBlur = (bellCurve * 22f).dp
-
+    // Layout transform parameters
     val dialerAlpha = 1f - transitionProgress
     val dialerScale = 1f - (0.06f * transitionProgress)
 
@@ -787,8 +784,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         alpha = dialerAlpha
                         scaleX = dialerScale
                         scaleY = dialerScale
-                    }
-                    .blur(transitionBlur),
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 if (isLandscape) {
@@ -985,8 +981,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         alpha = timerAlpha
                         scaleX = timerScale
                         scaleY = timerScale
-                    }
-                    .blur(transitionBlur),
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 // Countdown radial displaying Always On look
