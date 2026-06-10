@@ -405,9 +405,11 @@ fun MainScreen(
                                     onDismissRequest = { menuExpanded = false },
                                     properties = PopupProperties(focusable = true)
                                 ) {
+                                    val visibleState = remember { androidx.compose.animation.core.MutableTransitionState(false) }
+                                    visibleState.targetState = menuExpanded
                                     val selectedSound by viewModel.selectedSound.collectAsState()
                                     androidx.compose.animation.AnimatedVisibility(
-                                        visible = menuExpanded,
+                                        visibleState = visibleState,
                                         enter = fadeIn(tween(180)) + scaleIn(spring(0.70f, Spring.StiffnessMediumLow), initialScale = 0.8f, transformOrigin = TransformOrigin(1f, 0f)),
                                         exit = fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.8f, transformOrigin = TransformOrigin(1f, 0f))
                                     ) {

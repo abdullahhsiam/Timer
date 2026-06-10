@@ -233,9 +233,12 @@ class OverlayBubbleService : Service() {
             interpolator = customInterpolator
             addUpdateListener { animator ->
                 val currentWidth = animator.animatedValue as Int
-                val layoutParams = islandContainer.layoutParams
-                layoutParams.width = currentWidth
-                islandContainer.layoutParams = layoutParams
+                val currentParams = params ?: return@addUpdateListener
+                currentParams.width = currentWidth
+                currentParams.height = fixedCapsuleHeight
+                try {
+                    windowManager.updateViewLayout(root, currentParams)
+                } catch (e: Exception) {}
 
                 val progress = animator.animatedFraction
                 
@@ -281,9 +284,14 @@ class OverlayBubbleService : Service() {
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    val layoutParams = islandContainer.layoutParams
-                    layoutParams.width = endWidth
-                    islandContainer.layoutParams = layoutParams
+                    val currentParams = params
+                    if (currentParams != null) {
+                        currentParams.width = endWidth
+                        currentParams.height = fixedCapsuleHeight
+                        try {
+                            windowManager.updateViewLayout(root, currentParams)
+                        } catch (e: Exception) {}
+                    }
 
                     if (!isIslandExpanded) {
                         btnPlayPause.visibility = View.GONE
@@ -306,8 +314,8 @@ class OverlayBubbleService : Service() {
 
         val density = resources.displayMetrics.density
         val layoutParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            if (mode == 0) (130 * density).toInt() else WindowManager.LayoutParams.WRAP_CONTENT,
+            if (mode == 0) (46 * density).toInt() else WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             } else {
@@ -345,7 +353,6 @@ class OverlayBubbleService : Service() {
 
         if (mode == 0) {
             dockableContainer?.visibility = View.VISIBLE
-            dockableContainer?.layoutParams?.width = (130 * density).toInt()
             collapsedContainer?.visibility = View.GONE
             expandedContainer?.visibility = View.GONE
             

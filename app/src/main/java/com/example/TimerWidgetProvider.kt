@@ -28,7 +28,12 @@ class TimerWidgetProvider : AppWidgetProvider() {
         val widgetStyle = appearanceConfig.timerWidget
 
         for (appWidgetId in appWidgetIds) {
-            val views = RemoteViews(context.packageName, R.layout.timer_widget)
+            val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+            val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110)
+            val isSmall = minHeight < 80
+
+            val layoutId = if (isSmall) R.layout.timer_widget_small else R.layout.timer_widget
+            val views = RemoteViews(context.packageName, layoutId)
 
             // Dynamic Styling Injection
             try {
@@ -42,30 +47,38 @@ class TimerWidgetProvider : AppWidgetProvider() {
                 val displayTextColor = if (isPaused) android.graphics.Color.RED else android.graphics.Color.WHITE
                 val staticWhite = android.graphics.Color.WHITE
 
-                views.setTextColor(R.id.widget_timer_title, staticWhite)
                 views.setTextColor(R.id.widget_timer_text, displayTextColor)
 
-                val btnBgVal = (35 shl 24) or (staticWhite and 0x00FFFFFF)
-                views.setTextColor(R.id.btn_widget_timer_toggle, staticWhite)
-                views.setInt(R.id.btn_widget_timer_toggle, "setBackgroundColor", btnBgVal)
+                if (!isSmall) {
+                    views.setTextColor(R.id.widget_timer_title, staticWhite)
 
-                views.setTextColor(R.id.btn_widget_timer_reset, staticWhite)
-                views.setInt(R.id.btn_widget_timer_reset, "setBackgroundColor", btnBgVal)
+                    val btnBgVal = (35 shl 24) or (staticWhite and 0x00FFFFFF)
+                    views.setTextColor(R.id.btn_widget_timer_toggle, staticWhite)
+                    views.setInt(R.id.btn_widget_timer_toggle, "setBackgroundColor", btnBgVal)
 
-                views.setTextColor(R.id.btn_widget_timer_add_1, staticWhite)
-                views.setInt(R.id.btn_widget_timer_add_1, "setBackgroundColor", btnBgVal)
+                    views.setTextColor(R.id.btn_widget_timer_reset, staticWhite)
+                    views.setInt(R.id.btn_widget_timer_reset, "setBackgroundColor", btnBgVal)
 
-                views.setTextColor(R.id.btn_widget_timer_add_5, staticWhite)
-                views.setInt(R.id.btn_widget_timer_add_5, "setBackgroundColor", btnBgVal)
+                    views.setTextColor(R.id.btn_widget_timer_add_1, staticWhite)
+                    views.setInt(R.id.btn_widget_timer_add_1, "setBackgroundColor", btnBgVal)
+
+                    views.setTextColor(R.id.btn_widget_timer_add_5, staticWhite)
+                    views.setInt(R.id.btn_widget_timer_add_5, "setBackgroundColor", btnBgVal)
+                }
             } catch (e: Exception) {}
 
             // Format Timer display text
             val displayStr = formatTime(timerRemainingMs)
             views.setTextViewText(R.id.widget_timer_text, displayStr)
 
-            // Play/Pause button state representation
-            val toggleLabel = if (timerStatus == TimerStatus.RUNNING) "Pause" else "Play"
-            views.setTextViewText(R.id.btn_widget_timer_toggle, toggleLabel)
+            if (!isSmall) {
+                // Play/Pause button state representation
+                val toggleLabel = if (timerStatus == TimerStatus.RUNNING) "Pause" else "Play"
+                views.setTextViewText(R.id.btn_widget_timer_toggle, toggleLabel)
+            } else {
+                val toggleIcon = if (timerStatus == TimerStatus.RUNNING) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
+                views.setImageViewResource(R.id.btn_widget_timer_toggle, toggleIcon)
+            }
 
             // Setup PendingIntents
             // 1. Click text or title to open MainActivity
@@ -77,7 +90,7 @@ class TimerWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.widget_timer_text, pOpenApp)
-            views.setOnClickPendingIntent(R.id.widget_timer_title, pOpenApp)
+            if (!isSmall) views.setOnClickPendingIntent(R.id.widget_timer_title, pOpenApp)
 
             // Helper for pending intents
             fun getActionPendingIntent(actionCode: Int, actionText: String): PendingIntent {
@@ -109,10 +122,12 @@ class TimerWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.btn_widget_timer_reset, getActionPendingIntent(3, TimerStopwatchService.ACTION_RESET_TIMER))
 
             // 4. Add 1 Minute Button
-            views.setOnClickPendingIntent(R.id.btn_widget_timer_add_1, getActionPendingIntent(4, TimerStopwatchService.ACTION_ADD_MINUTE))
-
-            // 5. Add 5 Minutes Button
-            views.setOnClickPendingIntent(R.id.btn_widget_timer_add_5, getActionPendingIntent(5, TimerStopwatchService.ACTION_ADD_FIVE_MINUTES))
+            if (isSmall) {
+                views.setOnClickPendingIntent(R.id.btn_widget_timer_add, getActionPendingIntent(4, TimerStopwatchService.ACTION_ADD_MINUTE))
+            } else {
+                views.setOnClickPendingIntent(R.id.btn_widget_timer_add_1, getActionPendingIntent(4, TimerStopwatchService.ACTION_ADD_MINUTE))
+                views.setOnClickPendingIntent(R.id.btn_widget_timer_add_5, getActionPendingIntent(5, TimerStopwatchService.ACTION_ADD_FIVE_MINUTES))
+            }
 
             // Instruct manager to update unit
             appWidgetManager.updateAppWidget(appWidgetId, views)
@@ -127,6 +142,16 @@ class TimerWidgetProvider : AppWidgetProvider() {
             val appWidgetIds = appWidgetManager.getAppWidgetIds(thisAppWidget)
             onUpdate(context, appWidgetManager, appWidgetIds)
         }
+    }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: android.os.Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        onUpdate(context, appWidgetManager, intArrayOf(appWidgetId))
     }
 
     private fun formatTime(ms: Long): String {

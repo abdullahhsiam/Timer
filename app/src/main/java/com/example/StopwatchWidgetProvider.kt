@@ -28,7 +28,12 @@ class StopwatchWidgetProvider : AppWidgetProvider() {
         val widgetStyle = appearanceConfig.stopwatchWidget
 
         for (appWidgetId in appWidgetIds) {
-            val views = RemoteViews(context.packageName, R.layout.stopwatch_widget)
+            val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+            val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110)
+            val isSmall = minHeight < 80
+
+            val layoutId = if (isSmall) R.layout.stopwatch_widget_small else R.layout.stopwatch_widget
+            val views = RemoteViews(context.packageName, layoutId)
 
             // Dynamic Styling Injection
             try {
@@ -42,28 +47,38 @@ class StopwatchWidgetProvider : AppWidgetProvider() {
                 val displayTextColor = if (isPaused) android.graphics.Color.RED else android.graphics.Color.WHITE
                 val staticWhite = android.graphics.Color.WHITE
 
-                views.setTextColor(R.id.widget_stopwatch_title, staticWhite)
                 views.setTextColor(R.id.widget_stopwatch_text, displayTextColor)
 
-                val btnBgVal = (35 shl 24) or (staticWhite and 0x00FFFFFF)
-                views.setTextColor(R.id.btn_widget_stopwatch_toggle, staticWhite)
-                views.setInt(R.id.btn_widget_stopwatch_toggle, "setBackgroundColor", btnBgVal)
+                if (!isSmall) {
+                    views.setTextColor(R.id.widget_stopwatch_title, staticWhite)
+                    val btnBgVal = (35 shl 24) or (staticWhite and 0x00FFFFFF)
+                    views.setTextColor(R.id.btn_widget_stopwatch_toggle, staticWhite)
+                    views.setInt(R.id.btn_widget_stopwatch_toggle, "setBackgroundColor", btnBgVal)
 
-                views.setTextColor(R.id.btn_widget_stopwatch_reset, staticWhite)
-                views.setInt(R.id.btn_widget_stopwatch_reset, "setBackgroundColor", btnBgVal)
+                    views.setTextColor(R.id.btn_widget_stopwatch_reset, staticWhite)
+                    views.setInt(R.id.btn_widget_stopwatch_reset, "setBackgroundColor", btnBgVal)
+                }
             } catch (e: Exception) {}
 
             // Format Stopwatch display text (m:s.cc)
             val displayStr = formatStopwatch(stopwatchElapsedMs)
             views.setTextViewText(R.id.widget_stopwatch_text, displayStr)
 
-            // Play/Pause button labels
-            val toggleLabel = if (stopwatchStatus == StopwatchStatus.RUNNING) "Pause" else "Play"
-            views.setTextViewText(R.id.btn_widget_stopwatch_toggle, toggleLabel)
+            if (!isSmall) {
+                // Play/Pause/Reset text labels
+                val toggleLabel = if (stopwatchStatus == StopwatchStatus.RUNNING) "Pause" else "Play"
+                views.setTextViewText(R.id.btn_widget_stopwatch_toggle, toggleLabel)
+                
+                val resetLabel = if (stopwatchStatus == StopwatchStatus.RUNNING) "Lap" else "Reset"
+                views.setTextViewText(R.id.btn_widget_stopwatch_reset, resetLabel)
+            } else {
+                val toggleIcon = if (stopwatchStatus == StopwatchStatus.RUNNING) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
+                views.setImageViewResource(R.id.btn_widget_stopwatch_toggle, toggleIcon)
 
-            // Contextual Lap vs Reset Button labels
-            val resetLabel = if (stopwatchStatus == StopwatchStatus.RUNNING) "Lap" else "Reset"
-            views.setTextViewText(R.id.btn_widget_stopwatch_reset, resetLabel)
+                // For small format, lap isn't available, just standard reset icon vs lap icon
+                val resetIcon = if (stopwatchStatus == StopwatchStatus.RUNNING) android.R.drawable.ic_menu_report_image else android.R.drawable.ic_menu_close_clear_cancel
+                views.setImageViewResource(R.id.btn_widget_stopwatch_reset, resetIcon)
+            }
 
             // Setup PendingIntents
             // 1. Title/Click to open main activity
@@ -75,7 +90,7 @@ class StopwatchWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.widget_stopwatch_text, pOpenApp)
-            views.setOnClickPendingIntent(R.id.widget_stopwatch_title, pOpenApp)
+            if (!isSmall) views.setOnClickPendingIntent(R.id.widget_stopwatch_title, pOpenApp)
 
             // Helper for pending intents
             fun getActionPendingIntent(actionCode: Int, actionText: String): PendingIntent {
@@ -124,6 +139,16 @@ class StopwatchWidgetProvider : AppWidgetProvider() {
             val appWidgetIds = appWidgetManager.getAppWidgetIds(thisAppWidget)
             onUpdate(context, appWidgetManager, appWidgetIds)
         }
+    }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: android.os.Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        onUpdate(context, appWidgetManager, intArrayOf(appWidgetId))
     }
 
     private fun formatStopwatch(ms: Long): String {
