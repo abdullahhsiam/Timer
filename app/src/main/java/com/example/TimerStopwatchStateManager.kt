@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 object TimerStopwatchStateManager {
 
     private val job = SupervisorJob()
-    private val stateScope = CoroutineScope(Dispatchers.Main + job)
+    private val stateScope = CoroutineScope(Dispatchers.Default + job)
 
     private var appContext: Context? = null
 

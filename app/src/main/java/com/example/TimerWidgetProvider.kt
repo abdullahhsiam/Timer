@@ -70,7 +70,7 @@ class TimerWidgetProvider : AppWidgetProvider() {
             // Setup PendingIntents
             // 1. Click text or title to open MainActivity
             val openAppIntent = Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             val pOpenApp = PendingIntent.getActivity(
                 context, appWidgetId * 10 + 1, openAppIntent,
@@ -79,49 +79,40 @@ class TimerWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_timer_text, pOpenApp)
             views.setOnClickPendingIntent(R.id.widget_timer_title, pOpenApp)
 
-            // 2. Play/Pause toggle (Service Action)
-            val toggleIntent = Intent(context, TimerStopwatchService::class.java).apply {
-                action = if (timerStatus == TimerStatus.RUNNING) {
-                    TimerStopwatchService.ACTION_PAUSE_TIMER
+            // Helper for pending intents
+            fun getActionPendingIntent(actionCode: Int, actionText: String): PendingIntent {
+                val intent = Intent(context, TimerStopwatchService::class.java).apply {
+                    action = actionText
+                }
+                return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    PendingIntent.getForegroundService(
+                        context, appWidgetId * 10 + actionCode, intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
                 } else {
-                    TimerStopwatchService.ACTION_RESUME_TIMER
+                    PendingIntent.getService(
+                        context, appWidgetId * 10 + actionCode, intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
                 }
             }
-            val pToggle = PendingIntent.getService(
-                context, appWidgetId * 10 + 2, toggleIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.btn_widget_timer_toggle, pToggle)
+
+            // 2. Play/Pause toggle (Service Action)
+            val toggleAction = if (timerStatus == TimerStatus.RUNNING) {
+                TimerStopwatchService.ACTION_PAUSE_TIMER
+            } else {
+                TimerStopwatchService.ACTION_RESUME_TIMER
+            }
+            views.setOnClickPendingIntent(R.id.btn_widget_timer_toggle, getActionPendingIntent(2, toggleAction))
 
             // 3. Reset Button
-            val resetIntent = Intent(context, TimerStopwatchService::class.java).apply {
-                action = TimerStopwatchService.ACTION_RESET_TIMER
-            }
-            val pReset = PendingIntent.getService(
-                context, appWidgetId * 10 + 3, resetIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.btn_widget_timer_reset, pReset)
+            views.setOnClickPendingIntent(R.id.btn_widget_timer_reset, getActionPendingIntent(3, TimerStopwatchService.ACTION_RESET_TIMER))
 
             // 4. Add 1 Minute Button
-            val addOneIntent = Intent(context, TimerStopwatchService::class.java).apply {
-                action = TimerStopwatchService.ACTION_ADD_MINUTE
-            }
-            val pAddOne = PendingIntent.getService(
-                context, appWidgetId * 10 + 4, addOneIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.btn_widget_timer_add_1, pAddOne)
+            views.setOnClickPendingIntent(R.id.btn_widget_timer_add_1, getActionPendingIntent(4, TimerStopwatchService.ACTION_ADD_MINUTE))
 
             // 5. Add 5 Minutes Button
-            val addFiveIntent = Intent(context, TimerStopwatchService::class.java).apply {
-                action = TimerStopwatchService.ACTION_ADD_FIVE_MINUTES
-            }
-            val pAddFive = PendingIntent.getService(
-                context, appWidgetId * 10 + 5, addFiveIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.btn_widget_timer_add_5, pAddFive)
+            views.setOnClickPendingIntent(R.id.btn_widget_timer_add_5, getActionPendingIntent(5, TimerStopwatchService.ACTION_ADD_FIVE_MINUTES))
 
             // Instruct manager to update unit
             appWidgetManager.updateAppWidget(appWidgetId, views)

@@ -68,7 +68,7 @@ class StopwatchWidgetProvider : AppWidgetProvider() {
             // Setup PendingIntents
             // 1. Title/Click to open main activity
             val openAppIntent = Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             val pOpenApp = PendingIntent.getActivity(
                 context, appWidgetId * 10 + 1, openAppIntent,
@@ -77,19 +77,31 @@ class StopwatchWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_stopwatch_text, pOpenApp)
             views.setOnClickPendingIntent(R.id.widget_stopwatch_title, pOpenApp)
 
-            // 2. Play/Pause toggle
-            val toggleIntent = Intent(context, TimerStopwatchService::class.java).apply {
-                action = if (stopwatchStatus == StopwatchStatus.RUNNING) {
-                    TimerStopwatchService.ACTION_PAUSE_STOPWATCH
+            // Helper for pending intents
+            fun getActionPendingIntent(actionCode: Int, actionText: String): PendingIntent {
+                val intent = Intent(context, TimerStopwatchService::class.java).apply {
+                    action = actionText
+                }
+                return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    PendingIntent.getForegroundService(
+                        context, appWidgetId * 10 + actionCode, intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
                 } else {
-                    TimerStopwatchService.ACTION_RESUME_STOPWATCH
+                    PendingIntent.getService(
+                        context, appWidgetId * 10 + actionCode, intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
                 }
             }
-            val pToggle = PendingIntent.getService(
-                context, appWidgetId * 10 + 2, toggleIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.btn_widget_stopwatch_toggle, pToggle)
+
+            // 2. Play/Pause toggle
+            val toggleAction = if (stopwatchStatus == StopwatchStatus.RUNNING) {
+                TimerStopwatchService.ACTION_PAUSE_STOPWATCH
+            } else {
+                TimerStopwatchService.ACTION_RESUME_STOPWATCH
+            }
+            views.setOnClickPendingIntent(R.id.btn_widget_stopwatch_toggle, getActionPendingIntent(2, toggleAction))
 
             // 3. Reset/Lap button
             val resetAction = if (stopwatchStatus == StopwatchStatus.RUNNING) {
@@ -97,14 +109,7 @@ class StopwatchWidgetProvider : AppWidgetProvider() {
             } else {
                 TimerStopwatchService.ACTION_RESET_STOPWATCH
             }
-            val resetIntent = Intent(context, TimerStopwatchService::class.java).apply {
-                action = resetAction
-            }
-            val pReset = PendingIntent.getService(
-                context, appWidgetId * 10 + 3, resetIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.btn_widget_stopwatch_reset, pReset)
+            views.setOnClickPendingIntent(R.id.btn_widget_stopwatch_reset, getActionPendingIntent(3, resetAction))
 
             // Update app widget
             appWidgetManager.updateAppWidget(appWidgetId, views)
