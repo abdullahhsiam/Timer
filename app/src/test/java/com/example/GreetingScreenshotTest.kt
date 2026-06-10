@@ -23,7 +23,12 @@ class GreetingScreenshotTest {
   fun greeting_screenshot() {
     composeTestRule.setContent {
       MyApplicationTheme {
-        MainScreen(viewModel = TimerStopwatchViewModel(), alarmTriggered = false)
+        MainScreen(
+          viewModel = TimerStopwatchViewModel(),
+          alarmTriggered = false,
+          onPlayPreview = {},
+          onStopPreview = {}
+        )
       }
     }
 

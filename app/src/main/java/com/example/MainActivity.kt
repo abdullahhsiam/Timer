@@ -1107,6 +1107,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
+                .scale(0.88f)
                 .padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
@@ -1242,7 +1243,9 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
         }
     } else {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(0.88f),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
