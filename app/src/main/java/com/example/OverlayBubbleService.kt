@@ -129,7 +129,10 @@ class OverlayBubbleService : Service() {
                 cornerRadius = 23f * density // pill
                 setStroke((1f * density).toInt(), android.graphics.Color.parseColor("#1CFFFFFF")) // Subtle glowing bezel
             }
-            root.findViewById<View>(R.id.dockable_island_container)?.background = islandBgDrawable
+            root.findViewById<View>(R.id.dockable_island_container)?.apply {
+                background = islandBgDrawable
+                clipToOutline = true // Ensure rectangular RenderEffect blur doesn't bleed outside of the pill bounds
+            }
             return
         }
 
@@ -220,7 +223,7 @@ class OverlayBubbleService : Service() {
 
         // Custom premium path interpolator with spring overshoot (BackEaseOut feel)
         val customInterpolator = if (isIslandExpanded) {
-            android.view.animation.PathInterpolator(0.12f, 0.95f, 0.15f, 1.06f)
+            android.view.animation.OvershootInterpolator(2.2f)
         } else {
             android.view.animation.PathInterpolator(0.20f, 1f, 0.15f, 1f)
         }

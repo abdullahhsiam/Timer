@@ -5,14 +5,11 @@
     android:layout_height="wrap_content">
 
     <!-- 1. DOCKABLE ISLAND LAYOUT: Horizontal center-aligned narrow pill -->
-    <LinearLayout
+    <RelativeLayout
         android:id="@+id/dockable_island_container"
         android:layout_width="match_parent"
         android:layout_height="46dp"
         android:layout_gravity="center"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:paddingHorizontal="14dp"
         android:visibility="gone">
 
         <!-- Play/Pause Icon -->
@@ -20,7 +17,9 @@
             android:id="@+id/island_btn_play_pause"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_marginEnd="14dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="20dp"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:clickable="true"
             android:focusable="true"
@@ -34,7 +33,9 @@
             android:id="@+id/island_btn_reset"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_marginEnd="16dp"
+            android:layout_toEndOf="@id/island_btn_play_pause"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="16dp"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:clickable="true"
             android:focusable="true"
@@ -48,20 +49,22 @@
             android:id="@+id/island_time_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
             android:fontFamily="sans-serif-medium"
             android:text="00:00"
             android:textColor="#FFFFFF"
             android:textSize="17sp"
             android:textStyle="bold"
-            android:letterSpacing="0.04"
-            android:gravity="center" />
+            android:letterSpacing="0.04" />
 
         <!-- Close Icon -->
         <ImageView
             android:id="@+id/island_btn_close"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_marginStart="16dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="20dp"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:clickable="true"
             android:focusable="true"
@@ -69,7 +72,7 @@
             android:visibility="gone"
             android:alpha="0"
             android:contentDescription="Close" />
-    </LinearLayout>
+    </RelativeLayout>
 
     <!-- 2. FLOATING BUBBLE COLLAPSED VIEW -->
     <LinearLayout

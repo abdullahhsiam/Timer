@@ -309,10 +309,10 @@ fun MainScreen(
                         targetState = activeTab,
                         transitionSpec = {
                             val duration = 550
-                            fadeIn(animationSpec = tween(duration, easing = FastOutSlowInEasing)) +
-                                    scaleIn(initialScale = 0.94f, animationSpec = tween(duration, easing = FastOutSlowInEasing)) togetherWith
-                                    fadeOut(animationSpec = tween(duration, easing = FastOutSlowInEasing)) +
-                                    scaleOut(targetScale = 0.94f, animationSpec = tween(duration, easing = FastOutSlowInEasing))
+                            (fadeIn(animationSpec = tween(duration, easing = FastOutSlowInEasing)) +
+                                    scaleIn(initialScale = 0.94f, animationSpec = tween(duration, easing = FastOutSlowInEasing))) togetherWith
+                                    (fadeOut(animationSpec = tween(duration, easing = FastOutSlowInEasing)) +
+                                    scaleOut(targetScale = 0.94f, animationSpec = tween(duration, easing = FastOutSlowInEasing))) using SizeTransform(clip = false)
                         },
                         modifier = Modifier.fillMaxSize(),
                         label = "tab_switch_transition"
@@ -600,8 +600,8 @@ fun SlidingTabSwitcher(
         targetValue = activeTab.toFloat(),
         animationSpec = if (isAnimationsEnabled) {
             spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium
+                dampingRatio = 0.5f,
+                stiffness = 300f
             )
         } else {
             snap()
@@ -611,8 +611,8 @@ fun SlidingTabSwitcher(
 
     // Liquid organic stretch: pill temporarily elongates as it slides across the divide
     val stretchWidth = 102.dp + if (isAnimationsEnabled) {
-        val bell = kotlin.math.sin(tabProgress * Math.PI).toFloat()
-        (16.dp * bell)
+        val bell = Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat()
+        (48.dp * bell)
     } else {
         0.dp
     }
@@ -634,13 +634,16 @@ fun SlidingTabSwitcher(
                 .width(stretchWidth)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(20.dp))
+                .blur(
+                    radius = if (isAnimationsEnabled) {
+                        val bell = Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat()
+                        (8.dp * bell)
+                    } else {
+                        0.dp
+                    }
+                    // removed unbounded so it clips naturally
+                )
                 .background(Color.White.copy(alpha = 0.12f))
-                .blur(if (isAnimationsEnabled) {
-                    val bell = kotlin.math.sin(tabProgress * Math.PI).toFloat()
-                    (4.dp * bell)
-                } else {
-                    0.dp
-                })
         )
 
         Row(
@@ -784,7 +787,8 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         alpha = dialerAlpha
                         scaleX = dialerScale
                         scaleY = dialerScale
-                    },
+                    }
+                    .blur(transitionBlur),
                 contentAlignment = Alignment.Center
             ) {
                 if (isLandscape) {
@@ -981,7 +985,8 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         alpha = timerAlpha
                         scaleX = timerScale
                         scaleY = timerScale
-                    },
+                    }
+                    .blur(transitionBlur),
                 contentAlignment = Alignment.Center
             ) {
                 // Countdown radial displaying Always On look
