@@ -645,16 +645,8 @@ object TimerStopwatchStateManager {
     }
 
     private fun triggerNotificationUpdate() {
-        val context = appContext ?: return
-        val isTimerRunningOrActive = _timerStatus.value != TimerStatus.IDLE
-        val isStopwatchRunningOrActive = _stopwatchStatus.value != StopwatchStatus.IDLE
-
-        if (isTimerRunningOrActive || isStopwatchRunningOrActive) {
-            val serviceIntent = Intent(context, TimerStopwatchService::class.java).apply {
-                action = TimerStopwatchService.ACTION_TRIGGER_NOTIFICATION_REFRESH
-            }
-            context.startService(serviceIntent)
-        }
+        // No-op. The TimerStopwatchService now drives its own periodic notification updates
+        // directly from its active foreground instance, completely securing background limits.
     }
 
     fun triggerWidgetUpdate() {

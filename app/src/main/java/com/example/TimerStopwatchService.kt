@@ -57,6 +57,24 @@ class TimerStopwatchService : Service() {
                 }
             }
         }
+
+        // Ticking loop to update notification periodically (every ~1s) without startService IPC
+        serviceScope.launch {
+            while (isActive) {
+                delay(1000)
+                updateNotificationImmediately()
+            }
+        }
+    }
+
+    private fun updateNotificationImmediately() {
+        try {
+            val notification = buildStatusNotification()
+            val mNotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            mNotificationManager.notify(NOTIFICATION_ID, notification)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -72,16 +90,10 @@ class TimerStopwatchService : Service() {
                 ACTION_RESUME_STOPWATCH -> TimerStopwatchStateManager.startStopwatch()
                 ACTION_LAP_STOPWATCH -> TimerStopwatchStateManager.addLap()
                 ACTION_RESET_STOPWATCH -> TimerStopwatchStateManager.resetStopwatch()
-                
-                ACTION_UPDATE_SERVICE, ACTION_TRIGGER_NOTIFICATION_REFRESH -> {
-                    // Handled inside flow/triggers, just rebuild status notification below
-                }
             }
         }
 
-        val notification = buildStatusNotification()
-        val mNotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        mNotificationManager.notify(NOTIFICATION_ID, notification)
+        updateNotificationImmediately()
 
         return START_NOT_STICKY
     }

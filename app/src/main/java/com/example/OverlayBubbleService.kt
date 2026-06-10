@@ -40,6 +40,14 @@ class OverlayBubbleService : Service() {
     private var isIslandExpanded = false
     private var islandWidthAnimator: ValueAnimator? = null
 
+    // Fine-grained state cache for performance optimization (eliminates redundant UI redraw and findViewById lookups)
+    private var lastFormattedTime = ""
+    private var lastTimerStatus: TimerStatus? = null
+    private var lastSwStatus: StopwatchStatus? = null
+    private var lastIsTimerActive = false
+    private var lastIsSwActive = false
+    private var lastIsPaused = false
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -484,6 +492,25 @@ class OverlayBubbleService : Service() {
             val cc = (state.swElapsed / 10) % 100
             formattedTime = String.format("%02d:%02d.%02d", m, s, cc)
         }
+
+        // Cache hit check: skip layout traversal if visual representation hasn't changed
+        if (formattedTime == lastFormattedTime &&
+            state.timerStatus == lastTimerStatus &&
+            state.swStatus == lastSwStatus &&
+            isTimerActive == lastIsTimerActive &&
+            isSwActive == lastIsSwActive &&
+            isPaused == lastIsPaused
+        ) {
+            return
+        }
+
+        // Update cached values
+        lastFormattedTime = formattedTime
+        lastTimerStatus = state.timerStatus
+        lastSwStatus = state.swStatus
+        lastIsTimerActive = isTimerActive
+        lastIsSwActive = isSwActive
+        lastIsPaused = isPaused
 
         // 1. UPDATE DOCKABLE ISLAND UI
         val islandTimeText = view.findViewById<TextView>(R.id.island_time_text)

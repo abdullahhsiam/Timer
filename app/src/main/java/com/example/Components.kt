@@ -269,8 +269,8 @@ fun CircleProgressTimer(
     }
 
     // Determine state for our premium blurred fluid shape backdrop
-    val isRunning = statusText.uppercase().contains("RUNNING") || glowEnabled
-    val isPaused = statusText.uppercase().contains("PAUSED")
+    val isRunning = statusText.uppercase().contains("RUNNING")
+    val isPaused = statusText.uppercase().contains("PAUSED") || statusText.uppercase().contains("PAUSE")
     
     val infiniteTransition = rememberInfiniteTransition(label = "fluid_backdrop_anims")
     
@@ -296,26 +296,28 @@ fun CircleProgressTimer(
         label = "fluid_rotate"
     )
 
-    // Dynamic scale configuration
-    // - Idle: perfectly 1.0f (no motion)
-    // - Running: breathes subtly between 1.05f and 1.25f (very calm and elegant)
-    // - Paused: smoothly settles at a halfway static state 1.08f (no breath fluctuation)
+    // Dynamic scale configuration:
+    // - Idle: perfectly 1.0f to 1.03f (very subtle movement)
+    // - Running: smoothly zooms outward, breathes subtly between 1.08f and 1.28f (more active)
+    // - Paused: settles and freezes at 1.05f (completely static)
+    // - Animations disabled: remains completely static 1.10f
     val targetScale = when {
-        !isAnimationsEnabled -> 1.05f
-        isRunning -> 1.04f + (0.16f * breathProgress)
-        isPaused -> 1.08f
-        else -> 1.0f // IDLE
+        !isAnimationsEnabled -> 1.10f
+        isRunning -> 1.08f + (0.20f * breathProgress)
+        isPaused -> 1.05f
+        else -> 1.00f + (0.03f * breathProgress) // IDLE: very subtly active
     }
 
     val targetAlpha = when {
+        !isAnimationsEnabled -> 0.50f
         isRunning -> 0.70f
-        isPaused -> 0.50f
+        isPaused -> 0.45f
         else -> 0.40f // IDLE
     }
 
     val targetBlur = when {
         isRunning -> 40.dp
-        isPaused -> 42.dp
+        isPaused -> 45.dp
         else -> 45.dp
     }
 
@@ -332,8 +334,16 @@ fun CircleProgressTimer(
         label = "fluid_alpha_spring"
     )
 
+    // When paused, freeze the rotation. When idle, rotate extremely slowly. When running, rotate.
+    val targetRotation = when {
+        !isAnimationsEnabled -> 0f
+        isRunning -> rotationProgress
+        isPaused -> 45f // Freezes
+        else -> rotationProgress * 0.25f // IDLE: extremely slow movement
+    }
+
     val animatedRotation by animateFloatAsState(
-        targetValue = if (isRunning && isAnimationsEnabled) rotationProgress else 0f,
+        targetValue = targetRotation,
         animationSpec = if (isRunning) spring(stiffness = Spring.StiffnessVeryLow) else tween(1500, easing = FastOutSlowInEasing),
         label = "fluid_rotation_spring"
     )

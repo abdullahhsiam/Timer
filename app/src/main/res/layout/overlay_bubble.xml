@@ -7,7 +7,7 @@
     <!-- 1. DOCKABLE ISLAND LAYOUT: Horizontal center-aligned narrow pill -->
     <LinearLayout
         android:id="@+id/dockable_island_container"
-        android:layout_width="130dp"
+        android:layout_width="match_parent"
         android:layout_height="46dp"
         android:layout_gravity="center"
         android:gravity="center"
