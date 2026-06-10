@@ -45,6 +45,8 @@ import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.DoNotDisturbAlt
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.window.Dialog
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -312,10 +314,27 @@ fun MainScreen(
                     .windowInsetsPadding(WindowInsets.navigationBars)
                     .padding(horizontal = 20.dp, vertical = 12.dp)
             ) {
+                var swipeOffset by remember { mutableFloatStateOf(0f) }
                 // 1. CENTER CONTAINER (DIALER & TIMERS): Perfect geometric anchoring
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .pointerInput(activeTab) {
+                            detectHorizontalDragGestures(
+                                onDragStart = { swipeOffset = 0f },
+                                onDragEnd = {
+                                    if (swipeOffset > 100f && activeTab == 1) {
+                                        viewModel.selectTab(0)
+                                    } else if (swipeOffset < -100f && activeTab == 0) {
+                                        viewModel.selectTab(1)
+                                    }
+                                    swipeOffset = 0f
+                                },
+                                onDragCancel = { swipeOffset = 0f }
+                            ) { change: androidx.compose.ui.input.pointer.PointerInputChange, dragAmount: Float ->
+                                swipeOffset += dragAmount
+                            }
+                        }
                         .graphicsLayer {
                             // Symmetrical dynamic scale kept at 1.0f to prevent controls from scaling out of screen bounds
                             val scale = 1.0f
@@ -405,9 +424,8 @@ fun MainScreen(
                                     onDismissRequest = { menuExpanded = false },
                                     properties = PopupProperties(focusable = true)
                                 ) {
-                                    val visibleState = remember { androidx.compose.animation.core.MutableTransitionState(false) }
-                                    visibleState.targetState = menuExpanded
                                     val selectedSound by viewModel.selectedSound.collectAsState()
+                                    val visibleState = remember { androidx.compose.animation.core.MutableTransitionState(false) }.apply { targetState = menuExpanded }
                                     androidx.compose.animation.AnimatedVisibility(
                                         visibleState = visibleState,
                                         enter = fadeIn(tween(180)) + scaleIn(spring(0.70f, Spring.StiffnessMediumLow), initialScale = 0.8f, transformOrigin = TransformOrigin(1f, 0f)),
