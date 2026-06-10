@@ -219,13 +219,13 @@ class OverlayBubbleService : Service() {
 
         // Custom premium path interpolator with spring overshoot (BackEaseOut feel)
         val customInterpolator = if (isIslandExpanded) {
-            android.view.animation.PathInterpolator(0.15f, 0.9f, 0.2f, 1.08f)
+            android.view.animation.PathInterpolator(0.12f, 0.95f, 0.15f, 1.06f)
         } else {
-            android.view.animation.PathInterpolator(0.25f, 1f, 0.2f, 1f)
+            android.view.animation.PathInterpolator(0.20f, 1f, 0.15f, 1f)
         }
 
         islandWidthAnimator = ValueAnimator.ofInt(startWidth, endWidth).apply {
-            duration = 550
+            duration = 850
             interpolator = customInterpolator
             addUpdateListener { animator ->
                 val currentWidth = animator.animatedValue as Int
@@ -238,12 +238,22 @@ class OverlayBubbleService : Service() {
 
                 val progress = animator.animatedFraction
                 
-                // Opacity Transitions & staggered fade for buttons to feel like a single cohesive surface transforming
+                // Opacity Transitions & staggered ease-out scaling for buttons to feel pulled out of the core
                 if (isIslandExpanded) {
-                    val fadeProgress = ((progress - 0.2f) / 0.8f).coerceIn(0f, 1f)
+                    val fadeProgress = ((progress - 0.15f) / 0.85f).coerceIn(0f, 1f)
+                    val buttonScale = 0.7f + 0.3f * fadeProgress
+
                     btnPlayPause.alpha = fadeProgress
+                    btnPlayPause.scaleX = buttonScale
+                    btnPlayPause.scaleY = buttonScale
+
                     btnReset.alpha = fadeProgress
+                    btnReset.scaleX = buttonScale
+                    btnReset.scaleY = buttonScale
+
                     btnClose.alpha = fadeProgress
+                    btnClose.scaleX = buttonScale
+                    btnClose.scaleY = buttonScale
                     
                     // Subtle dynamic physical scale compression for the active center time text
                     root.findViewById<View>(R.id.island_time_text)?.let {
@@ -253,15 +263,33 @@ class OverlayBubbleService : Service() {
                     }
                 } else {
                     val fadeProgress = (1f - progress * 1.5f).coerceIn(0f, 1f)
+                    val buttonScale = 0.7f + 0.3f * fadeProgress
+
                     btnPlayPause.alpha = fadeProgress
+                    btnPlayPause.scaleX = buttonScale
+                    btnPlayPause.scaleY = buttonScale
+
                     btnReset.alpha = fadeProgress
+                    btnReset.scaleX = buttonScale
+                    btnReset.scaleY = buttonScale
+
                     btnClose.alpha = fadeProgress
+                    btnClose.scaleX = buttonScale
+                    btnClose.scaleY = buttonScale
                 }
 
-                // Blur-based morphing effect (Android 12+) using a bell curve for organic liquid tension feel
+                // Blur-based morphing effect (Android 12+) using an engineered peak-hold bell curve.
+                // This holds the peak blur while widths & layouts morph, masking any transient text/spacing jumps,
+                // and resolves beautifully back to sharpness at the final moment.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val bellCurve = kotlin.math.sin(progress * Math.PI).toFloat()
-                    val blurRadius = bellCurve * 14f * density
+                    val bellCurve = if (progress < 0.2f) {
+                        progress / 0.2f
+                    } else if (progress < 0.88f) {
+                        1.0f  // Hold peak blur to completely mask layout conversions
+                    } else {
+                        ((1.0f - progress) / 0.12f).coerceIn(0f, 1f)
+                    }
+                    val blurRadius = bellCurve * 18f * density
                     if (blurRadius > 1.2f) {
                         try {
                             islandContainer.setRenderEffect(
@@ -428,13 +456,33 @@ class OverlayBubbleService : Service() {
                     }
                     MotionEvent.ACTION_UP -> {
                         if (!isMoving) {
+                            val rootGroup = overlayView as? android.view.ViewGroup
+                            if (rootGroup != null) {
+                                // Add a beautiful, smooth Material layout transition
+                                val scaleAndFadeTransition = android.transition.TransitionSet().apply {
+                                    ordering = android.transition.TransitionSet.ORDERING_TOGETHER
+                                    duration = 550
+                                    interpolator = android.view.animation.PathInterpolator(0.12f, 0.95f, 0.15f, 1.04f)
+                                    addTransition(android.transition.ChangeBounds())
+                                    addTransition(android.transition.Fade())
+                                }
+                                android.transition.TransitionManager.beginDelayedTransition(rootGroup, scaleAndFadeTransition)
+                            }
+
                             if (collapsedContainer.visibility == View.VISIBLE) {
                                 collapsedContainer.visibility = View.GONE
                                 expandedContainer.visibility = View.VISIBLE
+                                currentParams.width = (230 * density).toInt()
+                                currentParams.height = WindowManager.LayoutParams.WRAP_CONTENT
                             } else {
                                 collapsedContainer.visibility = View.VISIBLE
                                 expandedContainer.visibility = View.GONE
+                                currentParams.width = WindowManager.LayoutParams.WRAP_CONTENT
+                                currentParams.height = WindowManager.LayoutParams.WRAP_CONTENT
                             }
+                            try {
+                                windowManager.updateViewLayout(overlayView, currentParams)
+                            } catch (e: Exception) {}
                         }
                         return true
                     }

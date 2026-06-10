@@ -59,6 +59,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.draw.scale
@@ -280,8 +284,8 @@ fun MainScreen(
             ActiveAlarmOverlay(viewModel = viewModel)
         } else {
             // Main Standard Navigation and Layout Structure
-            val isFullScreenDisplay = (timerStatus == TimerStatus.RUNNING && activeTab == 0) || 
-                                      (stopwatchStatus == StopwatchStatus.RUNNING && activeTab == 1)
+            val isFullScreenDisplay = ((timerStatus == TimerStatus.RUNNING || timerStatus == TimerStatus.PAUSED) && activeTab == 0) || 
+                                      ((stopwatchStatus == StopwatchStatus.RUNNING || stopwatchStatus == StopwatchStatus.PAUSED) && activeTab == 1)
 
             Column(
                 modifier = Modifier
@@ -479,17 +483,50 @@ fun MainScreen(
                     }
                 }
 
-                // Main Display Center content
-                Box(
+                // Main Display Center content with premium "blurry morph" transition
+                AnimatedContent(
+                    targetState = activeTab,
+                    transitionSpec = {
+                        val duration = 550
+                        fadeIn(animationSpec = tween(duration, easing = FastOutSlowInEasing)) +
+                                scaleIn(initialScale = 0.94f, animationSpec = tween(duration, easing = FastOutSlowInEasing)) togetherWith
+                                fadeOut(animationSpec = tween(duration, easing = FastOutSlowInEasing)) +
+                                scaleOut(targetScale = 0.94f, animationSpec = tween(duration, easing = FastOutSlowInEasing))
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (activeTab == 0) {
-                        TimerTabContent(viewModel = viewModel)
+                    label = "tab_switch_transition"
+                ) { targetTab ->
+                    // Dynamic blur transition that flares beautifully during tab switches
+                    val isAnimationsEnabled by viewModel.isBackgroundAnimated.collectAsState()
+                    val transition = updateTransition(targetState = targetTab == activeTab, label = "tab_morph_blur")
+                    val progress by transition.animateFloat(
+                        transitionSpec = { tween(550, easing = FastOutSlowInEasing) },
+                        label = "morph_progress"
+                    ) { active ->
+                        if (active) 1f else 0f
+                    }
+                    
+                    val morphBlur = if (isAnimationsEnabled) {
+                        // Bell curve for liquid flare feel in the middle of transition
+                        val bell = kotlin.math.sin(progress * Math.PI).toFloat()
+                        (bell * 18f).dp
                     } else {
-                        StopwatchTabContent(viewModel = viewModel)
+                        0.dp
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .blur(morphBlur),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (targetTab == 0) {
+                            TimerTabContent(viewModel = viewModel)
+                        } else {
+                            StopwatchTabContent(viewModel = viewModel)
+                        }
                     }
                 }
 
@@ -596,10 +633,40 @@ fun TabItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isAnimationsEnabled by TimerStopwatchStateManager.isBackgroundAnimated.collectAsState()
+    
+    // Smooth selection background transparency transition
+    val animAlpha by animateFloatAsState(
+        targetValue = if (selected) 0.12f else 0.0f,
+        animationSpec = if (isAnimationsEnabled) spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium) else snap(),
+        label = "tab_item_bg"
+    )
+    
+    // Soft color crossfade for text & icons
+    val animTextColor by animateColorAsState(
+        targetValue = if (selected) Color.White else Color.White.copy(alpha = 0.40f),
+        animationSpec = if (isAnimationsEnabled) tween(320) else snap(),
+        label = "tab_item_text"
+    )
+
+    // Dynamic elastic micro-scaling for the pill element
+    val scale by animateFloatAsState(
+        targetValue = if (selected) 1.05f else 0.98f,
+        animationSpec = if (isAnimationsEnabled) spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+        ) else snap(),
+        label = "tab_item_scale"
+    )
+
     Box(
         modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) Color.White.copy(alpha = 0.10f) else Color.Transparent)
+            .background(Color.White.copy(alpha = animAlpha))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -611,13 +678,13 @@ fun TabItem(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (selected) Color.White else Color.White.copy(alpha = 0.40f),
+                tint = animTextColor,
                 modifier = Modifier.size(15.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = label,
-                color = if (selected) Color.White else Color.White.copy(alpha = 0.40f),
+                color = animTextColor,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 0.2.sp
