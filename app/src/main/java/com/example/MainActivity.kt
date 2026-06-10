@@ -1192,7 +1192,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                                 accentColor = PurpleGlow,
                                 onClick = { viewModel.startStopwatch() },
                                 modifier = Modifier
-                                    .width(140.dp)
+                                    .width(130.dp)
                                     .testTag("stopwatch_start_btn")
                             )
                         }
@@ -1212,7 +1212,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                                 accentColor = NeonPink,
                                 onClick = { viewModel.pauseStopwatch() },
                                 modifier = Modifier
-                                    .width(110.dp)
+                                    .width(120.dp)
                                     .testTag("stopwatch_pause_btn")
                             )
                         }
@@ -1232,7 +1232,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                                 accentColor = PurpleGlow,
                                 onClick = { viewModel.startStopwatch() },
                                 modifier = Modifier
-                                    .width(110.dp)
+                                    .width(120.dp)
                                     .testTag("stopwatch_resume_btn")
                             )
                         }
@@ -1242,7 +1242,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
         }
     } else {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
@@ -1326,7 +1326,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                             accentColor = PurpleGlow,
                             onClick = { viewModel.startStopwatch() },
                             modifier = Modifier
-                                .width(180.dp)
+                                .width(130.dp)
                                 .testTag("stopwatch_start_btn")
                         )
                     }
@@ -1337,7 +1337,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                             isPrimary = false,
                             onClick = { viewModel.addLap() },
                             modifier = Modifier
-                                .width(120.dp)
+                                .width(110.dp)
                                 .testTag("stopwatch_lap_btn")
                         )
 
@@ -1347,7 +1347,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                             accentColor = NeonPink,
                             onClick = { viewModel.pauseStopwatch() },
                             modifier = Modifier
-                                .width(150.dp)
+                                .width(130.dp)
                                 .testTag("stopwatch_pause_btn")
                         )
                     }
@@ -1358,7 +1358,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                             isPrimary = false,
                             onClick = { viewModel.resetStopwatch() },
                             modifier = Modifier
-                                .width(120.dp)
+                                .width(110.dp)
                                 .testTag("stopwatch_reset_btn")
                         )
 
@@ -1368,7 +1368,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                             accentColor = PurpleGlow,
                             onClick = { viewModel.startStopwatch() },
                             modifier = Modifier
-                                .width(150.dp)
+                                .width(130.dp)
                                 .testTag("stopwatch_resume_btn")
                         )
                     }
