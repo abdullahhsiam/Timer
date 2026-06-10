@@ -669,29 +669,18 @@ fun SlidingTabSwitcher(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isAnimationsEnabled by TimerStopwatchStateManager.isBackgroundAnimated.collectAsState()
-    
     // Smooth tab selection index progress (0f to 1f)
     val tabProgress by animateFloatAsState(
         targetValue = activeTab.toFloat(),
-        animationSpec = if (isAnimationsEnabled) {
-            spring(
-                dampingRatio = 0.5f,
-                stiffness = 300f
-            )
-        } else {
-            snap()
-        },
+        animationSpec = spring(
+            dampingRatio = 0.5f,
+            stiffness = 300f
+        ),
         label = "sliding_tab_progress"
     )
 
     // Liquid organic stretch: pill temporarily elongates as it slides across the divide
-    val stretchWidth = 80.dp + if (isAnimationsEnabled) {
-        val bell = Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat()
-        (32.dp * bell)
-    } else {
-        0.dp
-    }
+    val stretchWidth = 80.dp + (32.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat())
 
     Box(
         modifier = modifier
@@ -711,13 +700,7 @@ fun SlidingTabSwitcher(
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(16.dp))
                 .blur(
-                    radius = if (isAnimationsEnabled) {
-                        val bell = Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat()
-                        (8.dp * bell)
-                    } else {
-                        0.dp
-                    }
-                    // removed unbounded so it clips naturally
+                    radius = (8.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat())
                 )
                 .background(Color.White.copy(alpha = 0.12f))
         )
@@ -756,20 +739,13 @@ fun VisualModeSwitcher(
     onModeSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isAnimationsEnabled by TimerStopwatchStateManager.isBackgroundAnimated.collectAsState()
-    
     val tabProgress by animateFloatAsState(
         targetValue = activeMode.toFloat(),
-        animationSpec = if (isAnimationsEnabled) {
-            spring(dampingRatio = 0.5f, stiffness = 300f)
-        } else snap(),
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 300f),
         label = "sliding_mode_progress"
     )
 
-    val stretchWidth = 75.dp + if (isAnimationsEnabled) {
-        val bell = Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat()
-        (32.dp * bell)
-    } else 0.dp
+    val stretchWidth = 75.dp + (32.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat())
 
     Box(
         modifier = modifier
@@ -787,9 +763,7 @@ fun VisualModeSwitcher(
                 .width(stretchWidth)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(16.dp))
-                .blur(radius = if (isAnimationsEnabled) {
-                    (8.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat())
-                } else 0.dp)
+                .blur(radius = (8.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat()))
                 .background(Color.White.copy(alpha = 0.12f))
         )
 
@@ -823,29 +797,27 @@ fun TabItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isAnimationsEnabled by TimerStopwatchStateManager.isBackgroundAnimated.collectAsState()
-    
     // Smooth selection background transparency transition (reserved for potential press feedback)
     val animAlpha by animateFloatAsState(
         targetValue = if (selected) 0.12f else 0.0f,
-        animationSpec = if (isAnimationsEnabled) spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium) else snap(),
+        animationSpec = spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium),
         label = "tab_item_bg"
     )
     
     // Soft color crossfade for text & icons
     val animTextColor by animateColorAsState(
         targetValue = if (selected) Color.White else Color.White.copy(alpha = 0.40f),
-        animationSpec = if (isAnimationsEnabled) tween(320) else snap(),
+        animationSpec = tween(320),
         label = "tab_item_text"
     )
 
     // Dynamic elastic micro-scaling for the pill element
     val scale by animateFloatAsState(
         targetValue = if (selected) 1.05f else 0.98f,
-        animationSpec = if (isAnimationsEnabled) spring(
+        animationSpec = spring(
             dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
             stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
-        ) else snap(),
+        ),
         label = "tab_item_scale"
     )
 

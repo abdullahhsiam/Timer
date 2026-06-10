@@ -16,6 +16,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -164,15 +167,14 @@ fun DigitHalfStatic(
                 if (isTop) RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
                 else RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
             )
-            .background(Color(0xFF0F1522))
+            .background(Color(0xFF0F1522)),
+        contentAlignment = if (isTop) Alignment.TopCenter else Alignment.BottomCenter
     ) {
-        // Draw the full text centered in a double-height box, and just clip half of it.
+        // Draw the full text centered in a double-height box so the text spans exactly the whole card.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(height * 2)
-                // Offset perfectly to show top or bottom half
-                .offset(y = if (isTop) 0.dp else -height),
+                .requiredHeight(height * 2),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -188,11 +190,7 @@ fun DigitHalfStatic(
                     ),
                     lineHeight = textSize.sp
                 ),
-                modifier = Modifier
-                    // Add subtle horizontal padding to prevent clip on wide font strokes
-                    .padding(horizontal = 4.dp)
-                    // Avoid font metrics pushing the text down
-                    .wrapContentHeight(align = Alignment.CenterVertically, unbounded = true)
+                modifier = Modifier.padding(horizontal = 4.dp)
             )
         }
         
