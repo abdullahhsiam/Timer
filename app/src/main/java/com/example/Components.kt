@@ -261,11 +261,33 @@ fun CircleProgressTimer(
         label = "elapsed_radial"
     )
 
+    val isInPip by TimerStopwatchStateManager.isInPip.collectAsState()
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val sizeD = if (isLandscape) 200.dp else 310.dp
-    val textFontSize = if (isLandscape) 36.sp else 52.sp
-    val subtitleTopPadding = if (isLandscape) 2.dp else 10.dp
+    
+    val sizeD = if (isInPip) {
+        140.dp
+    } else if (isLandscape) {
+        200.dp
+    } else {
+        310.dp
+    }
+    
+    val textFontSize = if (isInPip) {
+        22.sp
+    } else if (isLandscape) {
+        36.sp
+    } else {
+        52.sp
+    }
+    
+    val subtitleTopPadding = if (isInPip) {
+        1.dp
+    } else if (isLandscape) {
+        2.dp
+    } else {
+        10.dp
+    }
 
     Box(
         modifier = modifier

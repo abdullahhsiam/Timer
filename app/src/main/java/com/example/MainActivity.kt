@@ -74,6 +74,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        TimerStopwatchStateManager.initialize(applicationContext)
         enableEdgeToEdge()
         alarmController = AlarmController(applicationContext)
         viewModel.selectSound(alarmController.getSelectedSound())
@@ -133,6 +134,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        val isTimerRunning = TimerStopwatchStateManager.timerStatus.value == TimerStatus.RUNNING
+        val isStopwatchRunning = TimerStopwatchStateManager.stopwatchStatus.value == StopwatchStatus.RUNNING
+        if (isTimerRunning || isStopwatchRunning) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                val pipParams = android.app.PictureInPictureParams.Builder().build()
+                enterPictureInPictureMode(pipParams)
+            }
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        TimerStopwatchStateManager.setInPip(isInPictureInPictureMode)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         // Ensure no stray alarm/vibration resource leakage on teardown
@@ -190,7 +208,58 @@ fun MainScreen(
         isRunningActive = timerStatus == TimerStatus.RUNNING || stopwatchStatus == StopwatchStatus.RUNNING,
         isAnimated = isBackgroundAnimated
     ) {
-        if (alarmTriggered) {
+        val isInPip by TimerStopwatchStateManager.isInPip.collectAsState()
+
+        if (isInPip) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF0F0F12)),
+                contentAlignment = Alignment.Center
+            ) {
+                val isSwActive = stopwatchStatus != StopwatchStatus.IDLE
+                if (isSwActive) {
+                    val elapsedMs by viewModel.stopwatchElapsedMs.collectAsState()
+                    val totalSeconds = elapsedMs / 1000
+                    val m = (totalSeconds / 60) % 60
+                    val s = totalSeconds % 60
+                    val cc = (elapsedMs / 10) % 100
+                    val readableTime = String.format("%02d:%02d.%02d", m, s, cc)
+
+                    CircleProgressTimer(
+                        remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
+                        totalMs = 1L,
+                        displayString = readableTime,
+                        statusText = "SW",
+                        onProgressColor = NeonPink,
+                        glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                } else {
+                    val timerRemainingMs by viewModel.timerRemainingMs.collectAsState()
+                    val timerMaxMs by viewModel.timerMaxMs.collectAsState()
+                    val totalSecs = timerRemainingMs / 1000
+                    val h = totalSecs / 3600
+                    val m = (totalSecs % 3600) / 60
+                    val s = totalSecs % 60
+                    val displayString = if (h > 0) {
+                        String.format("%02d:%02d:%02d", h, m, s)
+                    } else {
+                        String.format("%02d:%02d", m, s)
+                    }
+
+                    CircleProgressTimer(
+                        remainingMs = timerRemainingMs,
+                        totalMs = timerMaxMs,
+                        displayString = displayString,
+                        statusText = "TIMER",
+                        onProgressColor = PurpleGlow,
+                        glowEnabled = timerStatus == TimerStatus.RUNNING,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
+            }
+        } else if (alarmTriggered) {
             // Full screen active Alert dialog overlay
             ActiveAlarmOverlay(viewModel = viewModel)
         } else {
