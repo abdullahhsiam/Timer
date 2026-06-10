@@ -58,6 +58,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
+import androidx.compose.animation.core.updateTransition
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -636,9 +639,43 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
-    Crossfade(targetState = timerStatus, label = "timer_status_transition") { status ->
-        when (status) {
-            TimerStatus.IDLE -> {
+    val isTimerActive = timerStatus == TimerStatus.RUNNING || timerStatus == TimerStatus.PAUSED
+
+    val transition = updateTransition(targetState = isTimerActive, label = "dialer_to_timer")
+    val transitionProgress by transition.animateFloat(
+        transitionSpec = { tween(600, easing = FastOutSlowInEasing) },
+        label = "transition_progress"
+    ) { active ->
+        if (active) 1f else 0f
+    }
+
+    // Dynamic fluid blur bell curve and layout transform parameters
+    val bellCurve = kotlin.math.sin(transitionProgress * Math.PI).toFloat()
+    val transitionBlur = (bellCurve * 22f).dp
+
+    val dialerAlpha = 1f - transitionProgress
+    val dialerScale = 1f - (0.06f * transitionProgress)
+
+    val timerAlpha = transitionProgress
+    val timerScale = 0.94f + (0.06f * transitionProgress)
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        // --- DIALER LAYER (IDLE INPUT KEYPAD VIEW) ---
+        if (transitionProgress < 0.99f || !isTimerActive) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        alpha = dialerAlpha
+                        scaleX = dialerScale
+                        scaleY = dialerScale
+                    }
+                    .blur(transitionBlur),
+                contentAlignment = Alignment.Center
+            ) {
                 if (isLandscape) {
                     Row(
                         modifier = Modifier
@@ -705,7 +742,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                                         }
                                     )
                                     .testTag("timer_start_button")
-                                    .clickable(enabled = timerInput.isNotEmpty()) { viewModel.startTimer() },
+                                    .clickable(enabled = timerInput.isNotEmpty() && transitionProgress < 0.1f) { viewModel.startTimer() },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -729,9 +766,9 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                                 horizontalSpacing = 14.dp,
                                 fontSize = 24.sp,
                                 actionFontSize = 18.sp,
-                                onDigitClicked = { viewModel.appendDigit(it) },
-                                onDeleteClicked = { viewModel.deleteDigit() },
-                                onClearAllClicked = { viewModel.clearTimerInput() }
+                                onDigitClicked = { if (transitionProgress < 0.1f) viewModel.appendDigit(it) },
+                                onDeleteClicked = { if (transitionProgress < 0.1f) viewModel.deleteDigit() },
+                                onClearAllClicked = { if (transitionProgress < 0.1f) viewModel.clearTimerInput() }
                             )
                         }
                     }
@@ -782,9 +819,9 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         // Tactical numeric layout keys overlay
                         ModernKeypad(
                             modifier = Modifier.padding(horizontal = 16.dp),
-                            onDigitClicked = { viewModel.appendDigit(it) },
-                            onDeleteClicked = { viewModel.deleteDigit() },
-                            onClearAllClicked = { viewModel.clearTimerInput() }
+                            onDigitClicked = { if (transitionProgress < 0.1f) viewModel.appendDigit(it) },
+                            onDeleteClicked = { if (transitionProgress < 0.1f) viewModel.deleteDigit() },
+                            onClearAllClicked = { if (transitionProgress < 0.1f) viewModel.clearTimerInput() }
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -809,7 +846,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                                     }
                                 )
                                 .testTag("timer_start_button")
-                                .clickable(enabled = timerInput.isNotEmpty()) { viewModel.startTimer() },
+                                .clickable(enabled = timerInput.isNotEmpty() && transitionProgress < 0.1f) { viewModel.startTimer() },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -822,7 +859,21 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                     }
                 }
             }
-            TimerStatus.RUNNING, TimerStatus.PAUSED -> {
+        }
+
+        // --- TIMER LAYER (ACTIVE TIMER COUNTDOWN VIEW) ---
+        if (transitionProgress > 0.01f || isTimerActive) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        alpha = timerAlpha
+                        scaleX = timerScale
+                        scaleY = timerScale
+                    }
+                    .blur(transitionBlur),
+                contentAlignment = Alignment.Center
+            ) {
                 // Countdown radial displaying Always On look
                 val remainingSeconds = (timerRemainingMs + 999) / 1000
                 val h = remainingSeconds / 3600
@@ -842,9 +893,9 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         remainingMs = timerRemainingMs,
                         totalMs = timerMaxMs,
                         displayString = readableTime,
-                        statusText = if (status == TimerStatus.RUNNING) "RUNNING" else "PAUSED",
-                        onProgressColor = if (status == TimerStatus.RUNNING) PurpleGlow else Color.White.copy(alpha = 0.15f),
-                        glowEnabled = status == TimerStatus.RUNNING
+                        statusText = if (timerStatus == TimerStatus.RUNNING) "RUNNING" else "PAUSED",
+                        onProgressColor = if (timerStatus == TimerStatus.RUNNING) PurpleGlow else Color.White.copy(alpha = 0.15f),
+                        glowEnabled = timerStatus == TimerStatus.RUNNING
                     )
 
                     Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 40.dp))
@@ -858,7 +909,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         ActionButton(
                             text = "Reset",
                             isPrimary = false,
-                            onClick = { viewModel.resetTimer() },
+                            onClick = { if (transitionProgress > 0.9f) viewModel.resetTimer() },
                             modifier = Modifier
                                 .width(if (isLandscape) 100.dp else 110.dp)
                                 .testTag("timer_reset_btn")
@@ -866,11 +917,13 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
 
                         // Pause / Resume Toggle
                         ActionButton(
-                            text = if (status == TimerStatus.RUNNING) "Pause" else "Resume",
+                            text = if (timerStatus == TimerStatus.RUNNING) "Pause" else "Resume",
                             isPrimary = true,
-                            accentColor = if (status == TimerStatus.RUNNING) PurpleGlow else PurpleGlow,
+                            accentColor = PurpleGlow,
                             onClick = {
-                                if (status == TimerStatus.RUNNING) viewModel.pauseTimer() else viewModel.resumeTimer()
+                                if (transitionProgress > 0.9f) {
+                                    if (timerStatus == TimerStatus.RUNNING) viewModel.pauseTimer() else viewModel.resumeTimer()
+                                }
                             },
                             modifier = Modifier
                                 .width(if (isLandscape) 120.dp else 130.dp)
@@ -881,7 +934,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         ActionButton(
                             text = "+1m",
                             isPrimary = false,
-                            onClick = { viewModel.addOneMinute() },
+                            onClick = { if (transitionProgress > 0.9f) viewModel.addOneMinute() },
                             modifier = Modifier
                                 .width(if (isLandscape) 90.dp else 100.dp)
                                 .testTag("timer_add_1m_btn")
@@ -889,7 +942,6 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                     }
                 }
             }
-            else -> {}
         }
     }
 }

@@ -225,7 +225,7 @@ class OverlayBubbleService : Service() {
         }
 
         islandWidthAnimator = ValueAnimator.ofInt(startWidth, endWidth).apply {
-            duration = 350
+            duration = 550
             interpolator = customInterpolator
             addUpdateListener { animator ->
                 val currentWidth = animator.animatedValue as Int
@@ -261,7 +261,7 @@ class OverlayBubbleService : Service() {
                 // Blur-based morphing effect (Android 12+) using a bell curve for organic liquid tension feel
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     val bellCurve = kotlin.math.sin(progress * Math.PI).toFloat()
-                    val blurRadius = bellCurve * 8f * density
+                    val blurRadius = bellCurve * 14f * density
                     if (blurRadius > 1.2f) {
                         try {
                             islandContainer.setRenderEffect(
