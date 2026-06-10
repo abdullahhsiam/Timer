@@ -1,5 +1,5 @@
 {
-  "name": "Timer & Stopwatch",
+  "name": "Timer",
   "description": "An elegant, full-screen timer and stopwatch app featuring immersive dark gradient animations, fullscreen Always-on-Display mode, and custom alarm alerts when times end.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

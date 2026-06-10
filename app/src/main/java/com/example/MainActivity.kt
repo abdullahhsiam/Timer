@@ -498,6 +498,9 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
+                    // Simple small digital clock displaying at the upper middle side
+                    LiveDigitalClock()
+
                     CircleProgressTimer(
                         remainingMs = timerRemainingMs,
                         totalMs = timerMaxMs,
@@ -1036,6 +1039,72 @@ fun SoundSelectionDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
+        }
+    }
+}
+
+// ==========================================
+// LIVE DIGITAL CLOCK COMPOSABLE
+// ==========================================
+@Composable
+fun LiveDigitalClock() {
+    var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            currentTime = System.currentTimeMillis()
+            kotlinx.coroutines.delay(500)
+        }
+    }
+
+    val calendar = java.util.Calendar.getInstance().apply {
+        timeInMillis = currentTime
+    }
+
+    val hour = calendar.get(java.util.Calendar.HOUR)
+    val displayHour = if (hour == 0) 12 else hour
+    val minute = calendar.get(java.util.Calendar.MINUTE)
+    val second = calendar.get(java.util.Calendar.SECOND)
+    val amPm = if (calendar.get(java.util.Calendar.AM_PM) == java.util.Calendar.AM) "AM" else "PM"
+
+    val timeString = String.format("%d:%02d", displayHour, minute)
+    val secondsString = String.format("%02d", second)
+
+    Row(
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .padding(bottom = 12.dp)
+            .testTag("live_digital_clock")
+    ) {
+        Text(
+            text = timeString,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.White.copy(alpha = 0.9f),
+            fontFamily = FontFamily.Monospace,
+            letterSpacing = 0.5.sp
+        )
+        Spacer(modifier = Modifier.width(3.dp))
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            modifier = Modifier.padding(bottom = 2.dp)
+        ) {
+            Text(
+                text = secondsString,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Light,
+                color = PurpleGlow,
+                fontFamily = FontFamily.Monospace
+            )
+            Spacer(modifier = Modifier.width(3.dp))
+            Text(
+                text = amPm,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Light,
+                color = Color.White.copy(alpha = 0.5f),
+                fontFamily = FontFamily.SansSerif
+            )
         }
     }
 }
