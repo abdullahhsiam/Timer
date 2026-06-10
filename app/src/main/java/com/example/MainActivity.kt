@@ -551,18 +551,20 @@ fun MainScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Sliding Premium Glassmorphic Tab Switcher (Fluid, Stretch & Morph)
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Sliding Premium Glassmorphic Tab Switchers
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         SlidingTabSwitcher(
                             activeTab = activeTab,
-                            onTabSelected = { viewModel.selectTab(it) },
-                            modifier = Modifier.weight(1f)
+                            onTabSelected = { viewModel.selectTab(it) }
                         )
                         val activeVisualMode by viewModel.activeVisualMode.collectAsState()
                         VisualModeSwitcher(
                             activeMode = activeVisualMode,
-                            onModeSelected = { viewModel.selectVisualMode(it) },
-                            modifier = Modifier.weight(1f)
+                            onModeSelected = { viewModel.selectVisualMode(it) }
                         )
                     }
                 }
@@ -684,30 +686,30 @@ fun SlidingTabSwitcher(
     )
 
     // Liquid organic stretch: pill temporarily elongates as it slides across the divide
-    val stretchWidth = 102.dp + if (isAnimationsEnabled) {
+    val stretchWidth = 80.dp + if (isAnimationsEnabled) {
         val bell = Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat()
-        (48.dp * bell)
+        (32.dp * bell)
     } else {
         0.dp
     }
 
     Box(
         modifier = modifier
-            .width(210.dp)
-            .height(48.dp)
-            .clip(RoundedCornerShape(24.dp))
+            .width(160.dp)
+            .height(40.dp)
+            .clip(RoundedCornerShape(20.dp))
             .background(Color.White.copy(alpha = 0.05f))
-            .border(width = 1.dp, color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(24.dp))
+            .border(width = 1.dp, color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(20.dp))
             .padding(3.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         // Sliding glassmorphic indicator capsule
         Box(
             modifier = Modifier
-                .offset(x = (tabProgress * 102).dp)
+                .offset(x = (tabProgress * 77).dp)
                 .width(stretchWidth)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .blur(
                     radius = if (isAnimationsEnabled) {
                         val bell = Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat()
@@ -764,27 +766,27 @@ fun VisualModeSwitcher(
         label = "sliding_mode_progress"
     )
 
-    val stretchWidth = 100.dp + if (isAnimationsEnabled) {
+    val stretchWidth = 75.dp + if (isAnimationsEnabled) {
         val bell = Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat()
-        (48.dp * bell)
+        (32.dp * bell)
     } else 0.dp
 
     Box(
         modifier = modifier
-            .width(200.dp)
-            .height(48.dp)
-            .clip(RoundedCornerShape(24.dp))
+            .width(150.dp)
+            .height(40.dp)
+            .clip(RoundedCornerShape(20.dp))
             .background(Color.White.copy(alpha = 0.05f))
-            .border(width = 1.dp, color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(24.dp))
+            .border(width = 1.dp, color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(20.dp))
             .padding(3.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Box(
             modifier = Modifier
-                .offset(x = (tabProgress * 97).dp)
+                .offset(x = (tabProgress * 72).dp)
                 .width(stretchWidth)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .blur(radius = if (isAnimationsEnabled) {
                     (8.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat())
                 } else 0.dp)

@@ -182,6 +182,12 @@ fun DigitHalfStatic(
                 fontFamily = FontFamily.Monospace,
                 color = Color.White,
                 textAlign = TextAlign.Center,
+                style = androidx.compose.ui.text.TextStyle(
+                    platformStyle = androidx.compose.ui.text.PlatformTextStyle(
+                        includeFontPadding = false
+                    ),
+                    lineHeight = textSize.sp
+                ),
                 modifier = Modifier
                     // Add subtle horizontal padding to prevent clip on wide font strokes
                     .padding(horizontal = 4.dp)
