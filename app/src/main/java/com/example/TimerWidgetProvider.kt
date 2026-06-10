@@ -19,6 +19,9 @@ class TimerWidgetProvider : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
+        // Initialize State Manager to ensure states are restored and active
+        TimerStopwatchStateManager.initialize(context.applicationContext)
+
         val timerStatus = TimerStopwatchStateManager.timerStatus.value
         val timerRemainingMs = TimerStopwatchStateManager.timerRemainingMs.value
 
@@ -45,35 +48,19 @@ class TimerWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_timer_text, pOpenApp)
             views.setOnClickPendingIntent(R.id.widget_timer_title, pOpenApp)
 
-            // 2. Play/Pause toggle
+            // 2. Play/Pause toggle (Service Action)
             val toggleIntent = Intent(context, TimerStopwatchService::class.java).apply {
                 action = if (timerStatus == TimerStatus.RUNNING) {
                     TimerStopwatchService.ACTION_PAUSE_TIMER
-                } else if (timerStatus == TimerStatus.PAUSED) {
-                    TimerStopwatchService.ACTION_RESUME_TIMER
                 } else {
-                    // Start standard default 5m countdown if clicked while idle
                     TimerStopwatchService.ACTION_RESUME_TIMER
                 }
             }
-            
-            // If idle, clicking play sends a special default preset start inside the Service/StateManager
-            val pToggle = if (timerStatus == TimerStatus.IDLE) {
-                // If IDLE, clicking Play will launch the app or we can start a default timer
-                val startPresetIntent = Intent(context, TimerStopwatchService::class.java).apply {
-                    action = TimerStopwatchService.ACTION_UPDATE_SERVICE
-                }
-                // Custom trigger to start a standard 5 min timer
-                views.setOnClickPendingIntent(R.id.btn_widget_timer_toggle, pOpenApp) // Open app to let them enter time
-                pOpenApp
-            } else {
-                val pendingToggle = PendingIntent.getService(
-                    context, appWidgetId * 10 + 2, toggleIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                views.setOnClickPendingIntent(R.id.btn_widget_timer_toggle, pendingToggle)
-                pendingToggle
-            }
+            val pToggle = PendingIntent.getService(
+                context, appWidgetId * 10 + 2, toggleIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.btn_widget_timer_toggle, pToggle)
 
             // 3. Reset Button
             val resetIntent = Intent(context, TimerStopwatchService::class.java).apply {
@@ -84,6 +71,26 @@ class TimerWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.btn_widget_timer_reset, pReset)
+
+            // 4. Add 1 Minute Button
+            val addOneIntent = Intent(context, TimerStopwatchService::class.java).apply {
+                action = TimerStopwatchService.ACTION_ADD_MINUTE
+            }
+            val pAddOne = PendingIntent.getService(
+                context, appWidgetId * 10 + 4, addOneIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.btn_widget_timer_add_1, pAddOne)
+
+            // 5. Add 5 Minutes Button
+            val addFiveIntent = Intent(context, TimerStopwatchService::class.java).apply {
+                action = TimerStopwatchService.ACTION_ADD_FIVE_MINUTES
+            }
+            val pAddFive = PendingIntent.getService(
+                context, appWidgetId * 10 + 5, addFiveIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.btn_widget_timer_add_5, pAddFive)
 
             // Instruct manager to update unit
             appWidgetManager.updateAppWidget(appWidgetId, views)

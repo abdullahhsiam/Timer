@@ -5,28 +5,28 @@
     android:background="@drawable/stopwatch_widget_bg"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="12dp">
 
     <TextView
         android:id="@+id/widget_stopwatch_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="sans-serif-medium"
-        android:letterSpacing="0.1"
+        android:letterSpacing="0.15"
         android:text="STOPWATCH"
         android:textColor="@color/neon_pink"
-        android:textSize="12sp" />
+        android:textSize="11sp" />
 
     <TextView
         android:id="@+id/widget_stopwatch_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="12dp"
-        android:fontFamily="sans-serif-thin"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        android:fontFamily="sans-serif-light"
         android:text="00:00.00"
         android:textColor="@color/off_white"
-        android:textSize="32sp" />
+        android:textSize="28sp" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -36,34 +36,37 @@
 
         <TextView
             android:id="@+id/btn_widget_stopwatch_toggle"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:background="@drawable/stopwatch_widget_bg"
+            android:layout_weight="1"
+            android:background="@drawable/widget_btn_stopwatch"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
-            android:paddingHorizontal="14dp"
+            android:paddingHorizontal="8dp"
             android:paddingVertical="6dp"
             android:text="Play"
             android:textColor="@color/neon_pink"
-            android:textSize="13sp" />
-
-        <Space
-            android:layout_width="16dp"
-            android:layout_height="wrap_content" />
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="4dp" />
 
         <TextView
             android:id="@+id/btn_widget_stopwatch_reset"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:background="@drawable/stopwatch_widget_bg"
+            android:layout_weight="1"
+            android:background="@drawable/widget_btn_stopwatch"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
-            android:paddingHorizontal="14dp"
+            android:paddingHorizontal="8dp"
             android:paddingVertical="6dp"
             android:text="Reset"
             android:textColor="@color/off_white"
-            android:textSize="13sp" />
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:layout_marginStart="4dp" />
     </LinearLayout>
 </LinearLayout>
+

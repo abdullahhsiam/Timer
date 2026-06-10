@@ -251,6 +251,10 @@ object TimerStopwatchStateManager {
     }
 
     fun resumeTimer() {
+        if (_timerStatus.value == TimerStatus.IDLE || _timerStatus.value == TimerStatus.FINISHED) {
+            startPresetTimer(300L) // Start standard default 5m timer
+            return
+        }
         if (_timerStatus.value != TimerStatus.PAUSED) return
         _timerStatus.value = TimerStatus.RUNNING
         launchTimerJob(_timerRemainingMs.value)
@@ -270,18 +274,32 @@ object TimerStopwatchStateManager {
     }
 
     fun addMinutes(minutes: Int) {
-        if (_timerStatus.value != TimerStatus.RUNNING && _timerStatus.value != TimerStatus.PAUSED) return
         val increment = minutes * 60_000L
-        _timerMaxMs.value += increment
-        val newRemaining = _timerRemainingMs.value + increment
-        _timerRemainingMs.value = newRemaining
-
-        if (_timerStatus.value == TimerStatus.RUNNING) {
-            launchTimerJob(newRemaining)
-        } else {
-            triggerNotificationUpdate()
-            triggerWidgetUpdate()
+        if (_timerStatus.value == TimerStatus.IDLE || _timerStatus.value == TimerStatus.FINISHED) {
+            if (_alarmTriggered.value) {
+                _alarmTriggered.value = false
+            }
+            _timerMaxMs.value = increment
+            _timerRemainingMs.value = increment
+            _timerStatus.value = TimerStatus.RUNNING
+            launchTimerJob(increment)
             notifyServiceOfStateChange()
+        } else {
+            _timerMaxMs.value += increment
+            val newRemaining = _timerRemainingMs.value + increment
+            _timerRemainingMs.value = newRemaining
+            if (_timerStatus.value == TimerStatus.FINISHED) {
+                _timerStatus.value = TimerStatus.RUNNING
+                _alarmTriggered.value = false
+                launchTimerJob(newRemaining)
+                notifyServiceOfStateChange()
+            } else if (_timerStatus.value == TimerStatus.RUNNING) {
+                launchTimerJob(newRemaining)
+            } else {
+                triggerNotificationUpdate()
+                triggerWidgetUpdate()
+                notifyServiceOfStateChange()
+            }
         }
     }
 

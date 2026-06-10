@@ -19,6 +19,9 @@ class StopwatchWidgetProvider : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
+        // Initialize State Manager to ensure states are restored and active
+        TimerStopwatchStateManager.initialize(context.applicationContext)
+
         val stopwatchStatus = TimerStopwatchStateManager.stopwatchStatus.value
         val stopwatchElapsedMs = TimerStopwatchStateManager.stopwatchElapsedMs.value
 
