@@ -1137,27 +1137,38 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Simple small digital clock displaying at the upper middle side
                     LiveDigitalClock()
-
-                    if (activeVisualMode == 1) {
-                        Spacer(modifier = Modifier.height(30.dp))
-                        FlipClockDisplay(
-                            timeString = readableTime,
-                            height = if (isLandscape) 80.dp else 110.dp,
-                            width = if (isLandscape) 55.dp else 75.dp,
-                            textSize = if (isLandscape) 60f else 80f
-                        )
-                        Spacer(modifier = Modifier.height(30.dp))
-                    } else {
-                        CircleProgressTimer(
-                            remainingMs = timerRemainingMs,
-                            totalMs = timerMaxMs,
-                            displayString = readableTime,
-                            statusText = if (timerStatus == TimerStatus.RUNNING) "RUNNING" else "PAUSED",
-                            onProgressColor = if (timerStatus == TimerStatus.RUNNING) PurpleGlow else Color.White.copy(alpha = 0.15f),
-                            glowEnabled = timerStatus == TimerStatus.RUNNING
-                        )
+                    Spacer(modifier = Modifier.height(if (isLandscape) 12.dp else 24.dp))
+                    
+                    AnimatedContent(
+                        targetState = activeVisualMode,
+                        transitionSpec = {
+                            (fadeIn(animationSpec = tween(450)) + scaleIn(initialScale = 0.9f)) togetherWith (fadeOut(animationSpec = tween(450)) + scaleOut(targetScale = 1.1f))
+                        },
+                        label = "visual_mode_transition"
+                    ) { mode ->
+                        if (mode == 1) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                FlipClockDisplay(
+                                    timeString = readableTime,
+                                    height = if (isLandscape) 75.dp else 110.dp,
+                                    width = if (isLandscape) 52.dp else 75.dp,
+                                    textSize = if (isLandscape) 55f else 80f
+                                )
+                                Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 30.dp))
+                            }
+                        } else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircleProgressTimer(
+                                    remainingMs = timerRemainingMs,
+                                    totalMs = timerMaxMs,
+                                    displayString = readableTime,
+                                    statusText = if (timerStatus == TimerStatus.RUNNING) "RUNNING" else "PAUSED",
+                                    onProgressColor = if (timerStatus == TimerStatus.RUNNING) accentColor else Color.White.copy(alpha = 0.15f),
+                                    glowEnabled = timerStatus == TimerStatus.RUNNING
+                                )
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 40.dp))
@@ -1357,34 +1368,43 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                 modifier = Modifier.weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                if (activeVisualMode == 1) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        LiveDigitalClock()
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            FlipClockDisplay(
-                                timeString = flipTime,
-                                height = 70.dp,
-                                width = 48.dp,
-                                textSize = 50f
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    LiveDigitalClock()
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    AnimatedContent(
+                        targetState = activeVisualMode,
+                        transitionSpec = {
+                            (fadeIn(animationSpec = tween(450)) + scaleIn(initialScale = 0.9f)) togetherWith (fadeOut(animationSpec = tween(450)) + scaleOut(targetScale = 1.1f))
+                        },
+                        label = "sw_visual_mode_transition"
+                    ) { mode ->
+                        if (mode == 1) {
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                FlipClockDisplay(
+                                    timeString = flipTime,
+                                    height = 70.dp,
+                                    width = 48.dp,
+                                    textSize = 50f
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = fractionTime, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            CircleProgressTimer(
+                                remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
+                                totalMs = 1L,
+                                displayString = readableTime,
+                                statusText = when (stopwatchStatus) {
+                                    StopwatchStatus.IDLE -> "STOPWATCH"
+                                    StopwatchStatus.RUNNING -> "RUNNING"
+                                    StopwatchStatus.PAUSED -> "PAUSED"
+                                },
+                                onProgressColor = accentColorPrimary,
+                                glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = fractionTime, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                         }
                     }
-                } else {
-                    CircleProgressTimer(
-                        remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
-                        totalMs = 1L,
-                        displayString = readableTime,
-                        statusText = when (stopwatchStatus) {
-                            StopwatchStatus.IDLE -> "STOPWATCH"
-                            StopwatchStatus.RUNNING -> "RUNNING"
-                            StopwatchStatus.PAUSED -> "PAUSED"
-                        },
-                        onProgressColor = PurpleGlow,
-                        glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
-                    )
                 }
             }
 
@@ -1509,35 +1529,45 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
             Spacer(modifier = Modifier.height(18.dp))
 
             // Display massive counting stopwatch layout
-            if (activeVisualMode == 1) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    LiveDigitalClock()
-                    Spacer(modifier = Modifier.height(30.dp))
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        FlipClockDisplay(
-                            timeString = flipTime,
-                            height = 100.dp,
-                            width = 68.dp,
-                            textSize = 70f
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = fractionTime, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
-                    }
-                    Spacer(modifier = Modifier.height(20.dp))
-                }
-            } else {
-                CircleProgressTimer(
-                    remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
-                    totalMs = 1L,
-                    displayString = readableTime,
-                    statusText = when (stopwatchStatus) {
-                        StopwatchStatus.IDLE -> "STOPWATCH"
-                        StopwatchStatus.RUNNING -> "RUNNING"
-                        StopwatchStatus.PAUSED -> "PAUSED"
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                LiveDigitalClock()
+                Spacer(modifier = Modifier.height(20.dp))
+                AnimatedContent(
+                    targetState = activeVisualMode,
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(450)) + scaleIn(initialScale = 0.9f)) togetherWith (fadeOut(animationSpec = tween(450)) + scaleOut(targetScale = 1.1f))
                     },
-                    onProgressColor = PurpleGlow,
-                    glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
-                )
+                    label = "sw_visual_mode_transition"
+                ) { mode ->
+                    if (mode == 1) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                FlipClockDisplay(
+                                    timeString = flipTime,
+                                    height = 100.dp,
+                                    width = 68.dp,
+                                    textSize = 70f
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = fractionTime, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
+                            }
+                            Spacer(modifier = Modifier.height(20.dp))
+                        }
+                    } else {
+                        CircleProgressTimer(
+                            remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
+                            totalMs = 1L,
+                            displayString = readableTime,
+                            statusText = when (stopwatchStatus) {
+                                StopwatchStatus.IDLE -> "STOPWATCH"
+                                StopwatchStatus.RUNNING -> "RUNNING"
+                                StopwatchStatus.PAUSED -> "PAUSED"
+                            },
+                            onProgressColor = accentColorPrimary,
+                            glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -1971,23 +2001,34 @@ fun LiveDigitalClock() {
 
     LaunchedEffect(Unit) {
         while (true) {
-            currentTime = System.currentTimeMillis()
-            kotlinx.coroutines.delay(500)
+            val now = System.currentTimeMillis()
+            if (now / 1000 != currentTime / 1000) {
+                currentTime = now
+            }
+            kotlinx.coroutines.delay(200)
         }
     }
 
-    val calendar = java.util.Calendar.getInstance().apply {
-        timeInMillis = currentTime
+    // derivedStateOf prevents recomposition of the whole component if the exact text hasn't changed.
+    val timeState by remember(currentTime) {
+        derivedStateOf {
+            val calendar = java.util.Calendar.getInstance().apply {
+                timeInMillis = currentTime
+            }
+
+            val hour = calendar.get(java.util.Calendar.HOUR)
+            val displayHour = if (hour == 0) 12 else hour
+            val minute = calendar.get(java.util.Calendar.MINUTE)
+            val second = calendar.get(java.util.Calendar.SECOND)
+            val amPm = if (calendar.get(java.util.Calendar.AM_PM) == java.util.Calendar.AM) "AM" else "PM"
+
+            val timeString = String.format("%d:%02d", displayHour, minute)
+            val secondsString = String.format("%02d", second)
+            Triple(timeString, secondsString, amPm)
+        }
     }
 
-    val hour = calendar.get(java.util.Calendar.HOUR)
-    val displayHour = if (hour == 0) 12 else hour
-    val minute = calendar.get(java.util.Calendar.MINUTE)
-    val second = calendar.get(java.util.Calendar.SECOND)
-    val amPm = if (calendar.get(java.util.Calendar.AM_PM) == java.util.Calendar.AM) "AM" else "PM"
-
-    val timeString = String.format("%d:%02d", displayHour, minute)
-    val secondsString = String.format("%02d", second)
+    val (timeString, secondsString, amPm) = timeState
 
     Row(
         verticalAlignment = Alignment.Bottom,

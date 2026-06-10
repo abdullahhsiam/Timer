@@ -1,6 +1,7 @@
 package com.example
 
 import androidx.compose.animation.animateColor
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -116,6 +117,23 @@ fun AnimatedGradientBackground(
         label = "background_active_transition"
     )
 
+    val targetColor1 = if (visualMode == 1) Color(0xFF030D1A) else Color(0xFF070510)
+    val targetColor2 = if (visualMode == 1) Color(0x350A2E5C) else Color(0x356C3082)
+    val targetColor3 = if (visualMode == 1) Color(0x2514305E) else Color(0x2500E6FF)
+
+    val bgColor1 by animateColorAsState(targetValue = targetColor1, animationSpec = tween(600), label = "bg_color_1")
+    val bgColor2 by animateColorAsState(targetValue = targetColor2, animationSpec = tween(600), label = "bg_color_2")
+    val bgColor3 by animateColorAsState(targetValue = targetColor3, animationSpec = tween(600), label = "bg_color_3")
+
+    val activeColors = if (visualMode == 1) {
+        listOf(Color(0xFF051020), Color(0xFF0D2545), Color(0xFF051730), Color(0xFF14305E), Color(0xFF051020))
+    } else {
+        listOf(Color(0xFF090812), Color(0xFF160E2E), Color(0xFF0F1E28), Color(0xFF2E124D), Color(0xFF090812))
+    }
+    
+    // We can't easily animate list of colors natively without a loop, so we just crossfade the entire brush if we wanted, 
+    // but the `isPulsing` and layout is already doing so much. We'll simply let Compose handle State reads for colors where possible.
+
     Box(
         modifier = modifier.fillMaxSize()
     ) {
@@ -138,51 +156,29 @@ fun AnimatedGradientBackground(
                         )
                     } else {
                         // 1. Always draw static idle background layers first as base
-                        if (visualMode == 1) {
-                            drawRect(color = Color(0xFF030D1A))
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(Color(0x350A2E5C), Color.Transparent),
-                                    center = Offset(0f, 0f),
-                                    radius = sizeVal.width * 0.85f
-                                ),
-                                radius = sizeVal.width * 0.85f,
-                                center = Offset(0f, 0f)
-                            )
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(Color(0x2514305E), Color.Transparent),
-                                    center = Offset(sizeVal.width, sizeVal.height),
-                                    radius = sizeVal.width * 0.85f
-                                ),
-                                radius = sizeVal.width * 0.85f,
-                                center = Offset(sizeVal.width, sizeVal.height)
-                            )
-                        } else {
-                            drawRect(color = Color(0xFF070510))
-    
-                            // Left-top purple/lavender corner glow
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(Color(0x356C3082), Color.Transparent),
-                                    center = Offset(0f, 0f),
-                                    radius = sizeVal.width * 0.85f
-                                ),
-                                radius = sizeVal.width * 0.85f,
-                                center = Offset(0f, 0f)
-                            )
-    
-                            // Right-bottom cyan corner glow
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(Color(0x2500E6FF), Color.Transparent),
-                                    center = Offset(sizeVal.width, sizeVal.height),
-                                    radius = sizeVal.width * 0.85f
-                                ),
-                                radius = sizeVal.width * 0.85f,
-                                center = Offset(sizeVal.width, sizeVal.height)
-                            )
-                        }
+                        drawRect(color = bgColor1)
+
+                        // Left-top corner glow
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(bgColor2, Color.Transparent),
+                                center = Offset(0f, 0f),
+                                radius = sizeVal.width * 0.85f
+                            ),
+                            radius = sizeVal.width * 0.85f,
+                            center = Offset(0f, 0f)
+                        )
+
+                        // Right-bottom corner glow
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(bgColor3, Color.Transparent),
+                                center = Offset(sizeVal.width, sizeVal.height),
+                                radius = sizeVal.width * 0.85f
+                            ),
+                            radius = sizeVal.width * 0.85f,
+                            center = Offset(sizeVal.width, sizeVal.height)
+                        )
 
                         // 2. Overlay the moving dynamic background on top, fading it in according to transition progress
                         if (activeProgress > 0f) {
@@ -190,43 +186,17 @@ fun AnimatedGradientBackground(
                             val cosVal = cos(activeAngle) * 0.45f
                             val sinVal = sin(activeAngle) * 0.45f
                             
-                            val activeBrush = if (visualMode == 1) {
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(0xFF051020),
-                                        Color(0xFF0D2545),
-                                        Color(0xFF051730),
-                                        Color(0xFF14305E),
-                                        Color(0xFF051020)
-                                    ),
-                                    start = Offset(
-                                        x = sizeVal.width * (0.5f + cosVal),
-                                        y = sizeVal.height * (0.5f - sinVal)
-                                    ),
-                                    end = Offset(
-                                        x = sizeVal.width * (0.5f - cosVal),
-                                        y = sizeVal.height * (0.5f + sinVal)
-                                    )
+                            val activeBrush = Brush.linearGradient(
+                                colors = activeColors,
+                                start = Offset(
+                                    x = sizeVal.width * (0.5f + cosVal),
+                                    y = sizeVal.height * (0.5f - sinVal)
+                                ),
+                                end = Offset(
+                                    x = sizeVal.width * (0.5f - cosVal),
+                                    y = sizeVal.height * (0.5f + sinVal)
                                 )
-                            } else {
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(0xFF090812),
-                                        Color(0xFF160E2E),
-                                        Color(0xFF0F1E28),
-                                        Color(0xFF2E124D),
-                                        Color(0xFF090812)
-                                    ),
-                                    start = Offset(
-                                        x = sizeVal.width * (0.5f + cosVal),
-                                        y = sizeVal.height * (0.5f - sinVal)
-                                    ),
-                                    end = Offset(
-                                        x = sizeVal.width * (0.5f - cosVal),
-                                        y = sizeVal.height * (0.5f + sinVal)
-                                    )
-                                )
-                            }
+                            )
                             drawRect(
                                 brush = activeBrush,
                                 alpha = activeProgress
