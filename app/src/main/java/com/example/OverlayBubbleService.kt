@@ -223,13 +223,13 @@ class OverlayBubbleService : Service() {
 
         // Custom premium path interpolator with spring overshoot (BackEaseOut feel)
         val customInterpolator = if (isIslandExpanded) {
-            android.view.animation.OvershootInterpolator(2.2f)
+            android.view.animation.OvershootInterpolator(1.2f)
         } else {
             android.view.animation.PathInterpolator(0.20f, 1f, 0.15f, 1f)
         }
 
         islandWidthAnimator = ValueAnimator.ofInt(startWidth, endWidth).apply {
-            duration = 850
+            duration = 350
             interpolator = customInterpolator
             addUpdateListener { animator ->
                 val currentWidth = animator.animatedValue as Int
@@ -452,7 +452,7 @@ class OverlayBubbleService : Service() {
                             val customInterpolator = android.view.animation.PathInterpolator(0.12f, 0.95f, 0.15f, 1.04f)
                             
                             bubbleAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
-                                duration = 850
+                                duration = 350
                                 interpolator = customInterpolator
                                 addUpdateListener { animator ->
                                     val progress = animator.animatedValue as Float

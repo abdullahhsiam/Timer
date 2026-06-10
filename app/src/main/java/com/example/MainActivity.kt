@@ -205,25 +205,6 @@ fun MainScreen(
         }
     }
 
-    val menuScale by animateFloatAsState(
-        targetValue = if (menuExpanded) 1f else 0.85f,
-        animationSpec = if (menuExpanded) {
-            spring(
-                dampingRatio = 0.75f,
-                stiffness = Spring.StiffnessMediumLow
-            )
-        } else {
-            tween(durationMillis = 150, easing = FastOutLinearInEasing)
-        },
-        label = "menu_scale"
-    )
-
-    val menuAlpha by animateFloatAsState(
-        targetValue = if (menuExpanded) 1f else 0f,
-        animationSpec = tween(durationMillis = if (menuExpanded) 200 else 150, easing = LinearOutSlowInEasing),
-        label = "menu_alpha"
-    )
-
     var showSoundDialog by remember { mutableStateOf(false) }
     var showAppearanceDialog by remember { mutableStateOf(false) }
 
@@ -425,21 +406,20 @@ fun MainScreen(
                                     properties = PopupProperties(focusable = true)
                                 ) {
                                     val selectedSound by viewModel.selectedSound.collectAsState()
-                                    Box(
-                                        modifier = Modifier
-                                            .graphicsLayer {
-                                                scaleX = menuScale
-                                                scaleY = menuScale
-                                                alpha = menuAlpha
-                                                transformOrigin = TransformOrigin(1f, 0f)
-                                            }
-                                            .width(280.dp)
-                                            .clip(RoundedCornerShape(16.dp))
-                                            .background(Color(0xFF141419))
-                                            .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(16.dp))
-                                            .padding(vertical = 8.dp)
+                                    androidx.compose.animation.AnimatedVisibility(
+                                        visible = menuExpanded,
+                                        enter = fadeIn(tween(180)) + scaleIn(spring(0.70f, Spring.StiffnessMediumLow), initialScale = 0.8f, transformOrigin = TransformOrigin(1f, 0f)),
+                                        exit = fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.8f, transformOrigin = TransformOrigin(1f, 0f))
                                     ) {
-                                        Column {
+                                        Box(
+                                            modifier = Modifier
+                                                .width(280.dp)
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(Color(0xFF141419))
+                                                .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(16.dp))
+                                                .padding(vertical = 8.dp)
+                                        ) {
+                                            Column {
                                             Text(
                                                 text = "CONTROL CENTRE",
                                                 fontSize = 11.sp,
@@ -524,6 +504,7 @@ fun MainScreen(
                                                     menuExpanded = false
                                                 }
                                             )
+                                        }
                                         }
                                     }
                                 }

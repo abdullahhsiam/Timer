@@ -39,6 +39,7 @@ class TimerStopwatchService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        TimerStopwatchStateManager.initialize(this.applicationContext)
         alarmController = AlarmController(this)
 
         createNotificationChannel()
