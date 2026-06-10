@@ -108,6 +108,13 @@ fun AnimatedGradientBackground(
         label = "alarm_color"
     )
 
+    // Smooth transition progress between Idle and Active backgrounds (1 second crossfade)
+    val activeProgress by animateFloatAsState(
+        targetValue = if (isRunningActive) 1f else 0f,
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        label = "background_active_transition"
+    )
+
     Box(
         modifier = modifier.fillMaxSize()
     ) {
@@ -128,32 +135,8 @@ fun AnimatedGradientBackground(
                             radius = sizeVal.minDimension * 0.9f,
                             center = center
                         )
-                    } else if (isRunningActive) {
-                        // Fluid shifting dynamic animated background when working
-                        val activeAngle = if (isAnimated) angleRad else 0f
-                        val cosVal = cos(activeAngle) * 0.45f
-                        val sinVal = sin(activeAngle) * 0.45f
-                        
-                        val activeBrush = Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFF090812),
-                                Color(0xFF160E2E),
-                                Color(0xFF0F1E28),
-                                Color(0xFF2E124D),
-                                Color(0xFF090812)
-                            ),
-                            start = Offset(
-                                x = sizeVal.width * (0.5f + cosVal),
-                                y = sizeVal.height * (0.5f - sinVal)
-                            ),
-                            end = Offset(
-                                x = sizeVal.width * (0.5f - cosVal),
-                                y = sizeVal.height * (0.5f + sinVal)
-                            )
-                        )
-                        drawRect(brush = activeBrush)
                     } else {
-                        // Corner gradient background in main interface (completely static)
+                        // 1. Always draw static idle background layers first as base
                         drawRect(color = Color(0xFF070510))
 
                         // Left-top purple/lavender corner glow
@@ -177,6 +160,35 @@ fun AnimatedGradientBackground(
                             radius = sizeVal.width * 0.85f,
                             center = Offset(sizeVal.width, sizeVal.height)
                         )
+
+                        // 2. Overlay the moving dynamic background on top, fading it in according to transition progress
+                        if (activeProgress > 0f) {
+                            val activeAngle = if (isAnimated) angleRad else 0f
+                            val cosVal = cos(activeAngle) * 0.45f
+                            val sinVal = sin(activeAngle) * 0.45f
+                            
+                            val activeBrush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF090812),
+                                    Color(0xFF160E2E),
+                                    Color(0xFF0F1E28),
+                                    Color(0xFF2E124D),
+                                    Color(0xFF090812)
+                                ),
+                                start = Offset(
+                                    x = sizeVal.width * (0.5f + cosVal),
+                                    y = sizeVal.height * (0.5f - sinVal)
+                                ),
+                                end = Offset(
+                                    x = sizeVal.width * (0.5f - cosVal),
+                                    y = sizeVal.height * (0.5f + sinVal)
+                                )
+                            )
+                            drawRect(
+                                brush = activeBrush,
+                                alpha = activeProgress
+                            )
+                        }
                     }
                 }
         ) {
