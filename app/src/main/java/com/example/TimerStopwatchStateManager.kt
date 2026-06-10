@@ -47,6 +47,9 @@ object TimerStopwatchStateManager {
             putFloat("glass_animation_speed", _glassAnimationSpeed.value)
             putString("wallpaper_uri", _wallpaperUri.value)
             putInt("overlay_mode", _overlayMode.value)
+
+            // New multi-surface config saving
+            putString("appearance_config_json", _appearanceConfig.value.toSerializedString())
             apply()
         }
     }
@@ -64,6 +67,23 @@ object TimerStopwatchStateManager {
         _glassAnimationSpeed.value = prefs.getFloat("glass_animation_speed", 1.0f)
         _wallpaperUri.value = prefs.getString("wallpaper_uri", "") ?: ""
         _overlayMode.value = prefs.getInt("overlay_mode", 0)
+
+        // Restore appearance configs
+        val appearanceJson = prefs.getString("appearance_config_json", "") ?: ""
+        if (appearanceJson.isNotEmpty()) {
+            _appearanceConfig.value = AppAppearanceConfig.fromSerializedString(appearanceJson)
+        } else {
+            _appearanceConfig.value = AppAppearanceConfig()
+        }
+
+        // Restore custom preset names list
+        val presetPrefs = context.getSharedPreferences("appearance_presets", Context.MODE_PRIVATE)
+        val namesStr = presetPrefs.getString("preset_names_list", "") ?: ""
+        if (namesStr.isNotEmpty()) {
+            _customPresetNames.value = namesStr.split(",").filter { it.isNotEmpty() }
+        } else {
+            _customPresetNames.value = emptyList()
+        }
 
         // RESTORE TIMER
         val timerStatusStr = prefs.getString("timer_status", TimerStatus.IDLE.name) ?: TimerStatus.IDLE.name
@@ -106,7 +126,13 @@ object TimerStopwatchStateManager {
         }
     }
 
-    // --- Glassmorphic Styling State Flows ---
+    // --- Glassmorphic Styling State Flows & Unified Engine ---
+    private val _appearanceConfig = MutableStateFlow(AppAppearanceConfig())
+    val appearanceConfig: StateFlow<AppAppearanceConfig> = _appearanceConfig.asStateFlow()
+
+    private val _customPresetNames = MutableStateFlow<List<String>>(emptyList())
+    val customPresetNames: StateFlow<List<String>> = _customPresetNames.asStateFlow()
+
     private val _glassBlur = MutableStateFlow(25f)
     val glassBlur: StateFlow<Float> = _glassBlur.asStateFlow()
 
@@ -133,6 +159,120 @@ object TimerStopwatchStateManager {
 
     private val _overlayMode = MutableStateFlow(0) // 0: Auto/Dockable, 1: Floating Bubble, 2: Dynamic Island
     val overlayMode: StateFlow<Int> = _overlayMode.asStateFlow()
+
+    fun updateAppearanceConfig(newConfig: AppAppearanceConfig) {
+        _appearanceConfig.value = newConfig
+        
+        // Backward-compatible sync
+        _glassBlur.value = newConfig.expandedBubblePanel.blur
+        _glassOpacity.value = newConfig.expandedBubblePanel.opacity
+        _glassGlow.value = newConfig.expandedBubblePanel.glowStrength
+        _glassCornerRadius.value = newConfig.expandedBubblePanel.cornerRadius
+        _glassTint.value = if (newConfig.expandedBubblePanel.borderColor == "#FF2A6D") "pink" else if (newConfig.expandedBubblePanel.borderColor == "#00E6FF") "cyan" else "lavender"
+        _glassShadow.value = newConfig.expandedBubblePanel.shadowIntensity
+
+        saveState()
+        triggerWidgetUpdate()
+        triggerNotificationUpdate()
+    }
+
+    fun updateComponentStyle(componentName: String, style: ComponentStyle) {
+        val current = _appearanceConfig.value
+        val updated = when (componentName) {
+            "dockableIsland" -> current.copy(dockableIsland = style)
+            "floatingBubble" -> current.copy(floatingBubble = style)
+            "expandedBubblePanel" -> current.copy(expandedBubblePanel = style)
+            "timerWidget" -> current.copy(timerWidget = style)
+            "stopwatchWidget" -> current.copy(stopwatchWidget = style)
+            "notificationControls" -> current.copy(notificationControls = style)
+            else -> current
+        }
+        updateAppearanceConfig(updated)
+    }
+
+    fun applyPreset(presetName: String) {
+        val defaultConfig = AppAppearanceConfig()
+        val config = when (presetName.lowercase()) {
+            "default glass" -> defaultConfig
+            "amoled slate" -> AppAppearanceConfig(
+                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.98f, blur = 0f, borderColor = "#1C1C1D", borderThickness = 1.2f, glowColor = "#FFFFFF", glowStrength = 0.12f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#FFFFFF", shadowIntensity = 8f),
+                floatingBubble = ComponentStyle(bgColor = "#000000", opacity = 0.95f, blur = 0f, borderColor = "#2C2C2E", borderThickness = 1.0f, glowColor = "#CCCCCC", glowStrength = 0.1f, cornerRadius = 28, textColor = "#E5E5EA", accentColor = "#FFFFFF", shadowIntensity = 6f),
+                expandedBubblePanel = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 0f, borderColor = "#2C2C2E", borderThickness = 1.2f, glowColor = "#CCCCCC", glowStrength = 0.1f, cornerRadius = 24, textColor = "#E5E5EA", accentColor = "#FFFFFF", shadowIntensity = 8f),
+                timerWidget = ComponentStyle(bgColor = "#000000", opacity = 1.0f, blur = 0f, borderColor = "#222222", borderThickness = 1f, cornerRadius = 20, textColor = "#FFFFFF", accentColor = "#CCCCCC", glowStrength = 0f),
+                stopwatchWidget = ComponentStyle(bgColor = "#000000", opacity = 1.0f, blur = 0f, borderColor = "#222222", borderThickness = 1f, cornerRadius = 20, textColor = "#FFFFFF", accentColor = "#CCCCCC", glowStrength = 0f),
+                notificationControls = ComponentStyle(bgColor = "#000000", opacity = 1.0f, textColor = "#FFFFFF", accentColor = "#FFFFFF")
+            )
+            "neon cyberpunk" -> AppAppearanceConfig(
+                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 4f, borderColor = "#1A1A1A", borderThickness = 1.2f, glowColor = "#FFFFFF", glowStrength = 0.15f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#00E6FF", shadowIntensity = 8f), // Keep Dockable Island as modern black per mandatory requirements
+                floatingBubble = ComponentStyle(bgColor = "#0B0214", opacity = 0.70f, blur = 20f, borderColor = "#FF2A6D", borderThickness = 1.5f, glowColor = "#FF2A6D", glowStrength = 0.55f, cornerRadius = 28, textColor = "#FFFFFF", accentColor = "#00E6FF", shadowIntensity = 10f, gradientEnabled = true, gradientStartColor = "#1B0230", gradientEndColor = "#010714"),
+                expandedBubblePanel = ComponentStyle(bgColor = "#0B0214", opacity = 0.75f, blur = 25f, borderColor = "#FF2A6D", borderThickness = 1.5f, glowColor = "#FF2A6D", glowStrength = 0.60f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#00E6FF", shadowIntensity = 12f, gradientEnabled = true, gradientStartColor = "#1B0230", gradientEndColor = "#010714"),
+                timerWidget = ComponentStyle(bgColor = "#04001A", opacity = 0.9f, blur = 10f, borderColor = "#00E6FF", borderThickness = 1.2f, glowColor = "#00E6FF", glowStrength = 0.45f, cornerRadius = 18, textColor = "#00FF87", accentColor = "#FF2A6D", shadowIntensity = 6f),
+                stopwatchWidget = ComponentStyle(bgColor = "#04001A", opacity = 0.9f, blur = 10f, borderColor = "#FF2A6D", borderThickness = 1.2f, glowColor = "#FF2A6D", glowStrength = 0.45f, cornerRadius = 18, textColor = "#00FF87", accentColor = "#00E6FF", shadowIntensity = 6f),
+                notificationControls = ComponentStyle(bgColor = "#0B0214", opacity = 1.0f, textColor = "#00FF87", accentColor = "#FF2A6D")
+            )
+            "material pink" -> AppAppearanceConfig(
+                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 4f, borderColor = "#1A1A1A", borderThickness = 1.2f, glowColor = "#FFFFFF", glowStrength = 0.15f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#E91E63", shadowIntensity = 8f), // Always AMOLED black per requirements
+                floatingBubble = ComponentStyle(bgColor = "#FCE4EC", opacity = 0.80f, blur = 15f, borderColor = "#F48FB1", borderThickness = 1f, glowColor = "#ECE0DB", glowStrength = 0.1f, cornerRadius = 28, textColor = "#880E4F", accentColor = "#C2185B", shadowIntensity = 5f),
+                expandedBubblePanel = ComponentStyle(bgColor = "#FCE4EC", opacity = 0.85f, blur = 20f, borderColor = "#F48FB1", borderThickness = 1.2f, glowColor = "#ECE0DB", glowStrength = 0.15f, cornerRadius = 24, textColor = "#880E4F", accentColor = "#C2185B", shadowIntensity = 6f),
+                timerWidget = ComponentStyle(bgColor = "#FCE4EC", opacity = 0.9f, blur = 12f, borderColor = "#C2185B", borderThickness = 1f, cornerRadius = 20, textColor = "#880E4F", accentColor = "#C2185B", shadowIntensity = 3f),
+                stopwatchWidget = ComponentStyle(bgColor = "#FCE4EC", opacity = 0.9f, blur = 12f, borderColor = "#C2185B", borderThickness = 1f, cornerRadius = 20, textColor = "#880E4F", accentColor = "#C2185B", shadowIntensity = 3f),
+                notificationControls = ComponentStyle(bgColor = "#FCE4EC", opacity = 1.0f, textColor = "#880E4F", accentColor = "#C2185B")
+            )
+            "emerald dream" -> AppAppearanceConfig(
+                dockableIsland = ComponentStyle(bgColor = "#000000", opacity = 0.96f, blur = 4f, borderColor = "#1A1A1A", borderThickness = 1.2f, glowColor = "#FFFFFF", glowStrength = 0.15f, cornerRadius = 24, textColor = "#FFFFFF", accentColor = "#10B981", shadowIntensity = 8f), // Always AMOLED black
+                floatingBubble = ComponentStyle(bgColor = "#042F1A", opacity = 0.72f, blur = 20f, borderColor = "#34D399", borderThickness = 1f, glowColor = "#10B981", glowStrength = 0.4f, cornerRadius = 28, textColor = "#ECFDF5", accentColor = "#34D399", shadowIntensity = 6f, gradientEnabled = true, gradientStartColor = "#022C1A", gradientEndColor = "#020B14"),
+                expandedBubblePanel = ComponentStyle(bgColor = "#042F1A", opacity = 0.75f, blur = 25f, borderColor = "#34D399", borderThickness = 1.2f, glowColor = "#10B981", glowStrength = 0.45f, cornerRadius = 24, textColor = "#ECFDF5", accentColor = "#34D399", shadowIntensity = 8f, gradientEnabled = true, gradientStartColor = "#022C1A", gradientEndColor = "#020B14"),
+                timerWidget = ComponentStyle(bgColor = "#022C1A", opacity = 0.85f, blur = 12f, borderColor = "#059669", borderThickness = 1f, cornerRadius = 20, textColor = "#ECFDF5", accentColor = "#34D399", shadowIntensity = 3f),
+                stopwatchWidget = ComponentStyle(bgColor = "#022C1A", opacity = 0.85f, blur = 12f, borderColor = "#059669", borderThickness = 1f, cornerRadius = 20, textColor = "#ECFDF5", accentColor = "#34D399", shadowIntensity = 3f),
+                notificationControls = ComponentStyle(bgColor = "#022C1A", opacity = 1.0f, textColor = "#ECFDF5", accentColor = "#34D399")
+            )
+            else -> defaultConfig
+        }
+
+        // Fulfill AMOLED-black priority requirement:
+        // "The Dockable Island must always default to an AMOLED-black design with minimal transparency, subtle glow, high contrast, and a premium Android 15/Dynamic Island aesthetic."
+        // We override dockableIsland settings if it gets configured inappropriately to retain its essential status-bar notch premium aura
+        val finalConfig = config.copy(
+            dockableIsland = config.dockableIsland.copy(
+                bgColor = "#000000",
+                opacity = config.dockableIsland.opacity.coerceAtLeast(0.92f), // Must be high contrast AMOLED black
+                gradientEnabled = false
+            )
+        )
+        updateAppearanceConfig(finalConfig)
+    }
+
+    fun saveAsCustomPreset(name: String) {
+        val context = appContext ?: return
+        val currentJson = _appearanceConfig.value.toSerializedString()
+        val prefs = context.getSharedPreferences("appearance_presets", Context.MODE_PRIVATE)
+        prefs.edit().apply {
+            putString("preset_config_$name", currentJson)
+            
+            // Update indices
+            val currentNames = _customPresetNames.value.toMutableList()
+            if (!currentNames.contains(name)) {
+                currentNames.add(name)
+                putString("preset_names_list", currentNames.joinToString(","))
+                _customPresetNames.value = currentNames
+            }
+            apply()
+        }
+    }
+
+    fun deleteCustomPreset(name: String) {
+        val context = appContext ?: return
+        val prefs = context.getSharedPreferences("appearance_presets", Context.MODE_PRIVATE)
+        prefs.edit().apply {
+            remove("preset_config_$name")
+            val currentNames = _customPresetNames.value.toMutableList()
+            if (currentNames.remove(name)) {
+                putString("preset_names_list", currentNames.joinToString(","))
+                _customPresetNames.value = currentNames
+            }
+            apply()
+        }
+    }
 
     fun updateStyleOptions(
         blur: Float,

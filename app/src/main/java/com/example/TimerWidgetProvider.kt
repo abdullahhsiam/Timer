@@ -24,9 +24,38 @@ class TimerWidgetProvider : AppWidgetProvider() {
 
         val timerStatus = TimerStopwatchStateManager.timerStatus.value
         val timerRemainingMs = TimerStopwatchStateManager.timerRemainingMs.value
+        val appearanceConfig = TimerStopwatchStateManager.appearanceConfig.value
+        val widgetStyle = appearanceConfig.timerWidget
 
         for (appWidgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.timer_widget)
+
+            // Dynamic Styling Injection
+            try {
+                val baseBgColor = android.graphics.Color.parseColor(widgetStyle.bgColor)
+                val bgAlpha = (widgetStyle.opacity * 255).toInt().coerceIn(0, 255)
+                val colorWithAlpha = (bgAlpha shl 24) or (baseBgColor and 0x00FFFFFF)
+                views.setInt(android.R.id.background, "setBackgroundColor", colorWithAlpha)
+
+                val textColorVal = android.graphics.Color.parseColor(widgetStyle.textColor)
+                val accentColorVal = android.graphics.Color.parseColor(widgetStyle.accentColor)
+
+                views.setTextColor(R.id.widget_timer_title, accentColorVal)
+                views.setTextColor(R.id.widget_timer_text, textColorVal)
+
+                val btnBgVal = (35 shl 24) or (accentColorVal and 0x00FFFFFF)
+                views.setTextColor(R.id.btn_widget_timer_toggle, accentColorVal)
+                views.setInt(R.id.btn_widget_timer_toggle, "setBackgroundColor", btnBgVal)
+
+                views.setTextColor(R.id.btn_widget_timer_reset, textColorVal)
+                views.setInt(R.id.btn_widget_timer_reset, "setBackgroundColor", btnBgVal)
+
+                views.setTextColor(R.id.btn_widget_timer_add_1, accentColorVal)
+                views.setInt(R.id.btn_widget_timer_add_1, "setBackgroundColor", btnBgVal)
+
+                views.setTextColor(R.id.btn_widget_timer_add_5, accentColorVal)
+                views.setInt(R.id.btn_widget_timer_add_5, "setBackgroundColor", btnBgVal)
+            } catch (e: Exception) {}
 
             // Format Timer display text
             val displayStr = formatTime(timerRemainingMs)

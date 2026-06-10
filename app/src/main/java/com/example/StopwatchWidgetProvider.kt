@@ -24,9 +24,32 @@ class StopwatchWidgetProvider : AppWidgetProvider() {
 
         val stopwatchStatus = TimerStopwatchStateManager.stopwatchStatus.value
         val stopwatchElapsedMs = TimerStopwatchStateManager.stopwatchElapsedMs.value
+        val appearanceConfig = TimerStopwatchStateManager.appearanceConfig.value
+        val widgetStyle = appearanceConfig.stopwatchWidget
 
         for (appWidgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.stopwatch_widget)
+
+            // Dynamic Styling Injection
+            try {
+                val baseBgColor = android.graphics.Color.parseColor(widgetStyle.bgColor)
+                val bgAlpha = (widgetStyle.opacity * 255).toInt().coerceIn(0, 255)
+                val colorWithAlpha = (bgAlpha shl 24) or (baseBgColor and 0x00FFFFFF)
+                views.setInt(android.R.id.background, "setBackgroundColor", colorWithAlpha)
+
+                val textColorVal = android.graphics.Color.parseColor(widgetStyle.textColor)
+                val accentColorVal = android.graphics.Color.parseColor(widgetStyle.accentColor)
+
+                views.setTextColor(R.id.widget_stopwatch_title, accentColorVal)
+                views.setTextColor(R.id.widget_stopwatch_text, textColorVal)
+
+                val btnBgVal = (35 shl 24) or (accentColorVal and 0x00FFFFFF)
+                views.setTextColor(R.id.btn_widget_stopwatch_toggle, accentColorVal)
+                views.setInt(R.id.btn_widget_stopwatch_toggle, "setBackgroundColor", btnBgVal)
+
+                views.setTextColor(R.id.btn_widget_stopwatch_reset, textColorVal)
+                views.setInt(R.id.btn_widget_stopwatch_reset, "setBackgroundColor", btnBgVal)
+            } catch (e: Exception) {}
 
             // Format Stopwatch display text (m:s.cc)
             val displayStr = formatStopwatch(stopwatchElapsedMs)

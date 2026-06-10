@@ -142,6 +142,29 @@ class TimerStopwatchViewModel : ViewModel() {
     val wallpaperUri: StateFlow<String> = TimerStopwatchStateManager.wallpaperUri
     val overlayMode: StateFlow<Int> = TimerStopwatchStateManager.overlayMode
 
+    val appearanceConfigState: StateFlow<AppAppearanceConfig> = TimerStopwatchStateManager.appearanceConfig
+    val customPresetNames: StateFlow<List<String>> = TimerStopwatchStateManager.customPresetNames
+
+    fun updateAppearanceConfig(config: AppAppearanceConfig) {
+        TimerStopwatchStateManager.updateAppearanceConfig(config)
+    }
+
+    fun updateComponentStyle(componentName: String, style: ComponentStyle) {
+        TimerStopwatchStateManager.updateComponentStyle(componentName, style)
+    }
+
+    fun applyPreset(presetName: String) {
+        TimerStopwatchStateManager.applyPreset(presetName)
+    }
+
+    fun saveAsCustomPreset(name: String) {
+        TimerStopwatchStateManager.saveAsCustomPreset(name)
+    }
+
+    fun deleteCustomPreset(name: String) {
+        TimerStopwatchStateManager.deleteCustomPreset(name)
+    }
+
     fun updateStyleOptions(
         blur: Float,
         opacity: Float,

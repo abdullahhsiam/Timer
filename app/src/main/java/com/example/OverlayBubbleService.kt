@@ -58,6 +58,104 @@ class OverlayBubbleService : Service() {
                 }
             }
         }
+
+        // Live Dynamic Appearance synchronization for both Collapsed & Expanded states
+        serviceScope.launch {
+            combine(
+                TimerStopwatchStateManager.overlayMode,
+                TimerStopwatchStateManager.appearanceConfig
+            ) { mode, config ->
+                Pair(mode, config)
+            }.collectLatest { (mode, config) ->
+                applyAppearanceConfigToOverlays(mode, config)
+            }
+        }
+    }
+
+    private fun applyComponentStyleToView(view: View, style: ComponentStyle) {
+        val drawable = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            
+            if (style.gradientEnabled) {
+                val startColor = android.graphics.Color.parseColor(style.gradientStartColor)
+                val endColor = android.graphics.Color.parseColor(style.gradientEndColor)
+                colors = intArrayOf(startColor, endColor)
+                orientation = android.graphics.drawable.GradientDrawable.Orientation.TL_BR
+            } else {
+                val baseColor = android.graphics.Color.parseColor(style.bgColor)
+                val alpha = (style.opacity * 255).toInt().coerceIn(0, 255)
+                val colorWithAlpha = (alpha shl 24) or (baseColor and 0x00FFFFFF)
+                setColor(colorWithAlpha)
+            }
+            
+            val radiusPx = (style.cornerRadius * view.context.resources.displayMetrics.density)
+            cornerRadius = radiusPx
+            
+            if (style.borderThickness > 0) {
+                val strokeWidthPx = (style.borderThickness * view.context.resources.displayMetrics.density).toInt()
+                val strokeColor = android.graphics.Color.parseColor(style.borderColor)
+                setStroke(strokeWidthPx, strokeColor)
+            }
+        }
+        
+        view.background = drawable
+        view.elevation = style.shadowIntensity * view.context.resources.displayMetrics.density
+    }
+
+    private fun applyAppearanceConfigToOverlays(mode: Int, config: AppAppearanceConfig) {
+        val root = overlayView ?: return
+        val collapsedContainer = root.findViewById<View>(R.id.collapsed_container) ?: return
+        val expandedContainer = root.findViewById<View>(R.id.expanded_container) ?: return
+
+        val isIsland = mode == 0
+        val collapsedStyle = if (isIsland) config.dockableIsland else config.floatingBubble
+        val expandedStyle = if (isIsland) config.dockableIsland else config.expandedBubblePanel
+
+        // Format and size for notch overlay vs bubble positioning
+        if (isIsland) {
+            collapsedContainer.setPadding(35, 12, 35, 12)
+        } else {
+            collapsedContainer.setPadding(24, 15, 24, 15)
+        }
+
+        // Apply backdrops
+        applyComponentStyleToView(collapsedContainer, collapsedStyle)
+        applyComponentStyleToView(expandedContainer, expandedStyle)
+
+        // Text Colors
+        val collapsedTimeText = root.findViewById<TextView>(R.id.collapsed_time_text)
+        if (collapsedTimeText != null) {
+            collapsedTimeText.setTextColor(android.graphics.Color.parseColor(collapsedStyle.accentColor))
+        }
+
+        val expandedTimeText = root.findViewById<TextView>(R.id.expanded_time_text)
+        if (expandedTimeText != null) {
+            expandedTimeText.setTextColor(android.graphics.Color.parseColor(expandedStyle.textColor))
+        }
+
+        val expandedTitle = root.findViewById<TextView>(R.id.expanded_title)
+        if (expandedTitle != null) {
+            expandedTitle.setTextColor(android.graphics.Color.parseColor(expandedStyle.accentColor))
+        }
+
+        // Apply styling to individual buttons inside expanded overlay
+        val btnPausePlay = root.findViewById<TextView>(R.id.btn_overlay_pause_play)
+        val btnAddTime = root.findViewById<TextView>(R.id.btn_overlay_add_time)
+        val btnReset = root.findViewById<TextView>(R.id.btn_overlay_reset)
+
+        listOf(btnPausePlay, btnAddTime, btnReset).forEach { btn ->
+            if (btn != null) {
+                btn.setTextColor(android.graphics.Color.parseColor(expandedStyle.textColor))
+                val btnStyle = ComponentStyle(
+                    bgColor = expandedStyle.bgColor,
+                    opacity = 0.15f,
+                    borderColor = expandedStyle.accentColor,
+                    borderThickness = 1.0f,
+                    cornerRadius = 10
+                )
+                applyComponentStyleToView(btn, btnStyle)
+            }
+        }
     }
 
     private fun reconfigureLayoutParams(mode: Int) {

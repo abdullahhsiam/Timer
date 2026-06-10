@@ -1612,25 +1612,273 @@ fun IntroSplashAnimation(onFinished: () -> Unit) {
 }
 
 @Composable
+fun LivePreviewCard(componentName: String, style: ComponentStyle) {
+    val bgColorVal = try {
+        Color(android.graphics.Color.parseColor(style.bgColor))
+    } catch (e: Exception) {
+        Color.DarkGray
+    }
+    
+    val borderColorVal = try {
+        Color(android.graphics.Color.parseColor(style.borderColor))
+    } catch (e: Exception) {
+        Color.White
+    }
+
+    val textColorVal = try {
+        Color(android.graphics.Color.parseColor(style.textColor))
+    } catch (e: Exception) {
+        Color.White
+    }
+
+    val accentColorVal = try {
+        Color(android.graphics.Color.parseColor(style.accentColor))
+    } catch (e: Exception) {
+        Color.Yellow
+    }
+
+    val bgBrush = if (style.gradientEnabled) {
+        val startColor = try {
+            Color(android.graphics.Color.parseColor(style.gradientStartColor))
+        } catch (e: Exception) {
+            Color.Black
+        }
+        val endColor = try {
+            Color(android.graphics.Color.parseColor(style.gradientEndColor))
+        } catch (e: Exception) {
+            Color.DarkGray
+        }
+        Brush.linearGradient(colors = listOf(startColor, endColor))
+    } else {
+        Brush.linearGradient(colors = listOf(bgColorVal.copy(alpha = style.opacity), bgColorVal.copy(alpha = style.opacity)))
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White.copy(alpha = 0.03f))
+            .border(0.5.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(16.dp))
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "LIVE ECOSYSTEM STYLE PREVIEW",
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White.copy(alpha = 0.4f),
+            letterSpacing = 1.2.sp
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        
+        Box(
+            modifier = Modifier
+                .widthIn(max = 290.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(style.cornerRadius.dp))
+                .background(bgBrush)
+                .border(
+                    width = style.borderThickness.dp,
+                    color = borderColorVal,
+                    shape = RoundedCornerShape(style.cornerRadius.dp)
+                )
+                .padding(vertical = 12.dp, horizontal = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                when (componentName) {
+                    "dockableIsland" -> {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF00FF87))
+                            )
+                            Text(
+                                text = "DOCKABLE NOTCH • 24:18",
+                                color = accentColorVal,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.6.sp
+                            )
+                        }
+                    }
+                    "floatingBubble" -> {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(accentColorVal.copy(alpha = 0.15f))
+                                .border(1.dp, accentColorVal, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "12:05",
+                                color = textColorVal,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    "expandedBubblePanel" -> {
+                        Column(horizontalAlignment = Alignment.Start) {
+                            Text(
+                                "ACTIVE COOP TIMER",
+                                color = accentColorVal,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                "15:20",
+                                color = textColorVal,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(textColorVal.copy(alpha = 0.08f))
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                ) {
+                                    Text("Pause", color = accentColorVal, fontSize = 9.sp)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(textColorVal.copy(alpha = 0.08f))
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                ) {
+                                    Text("Reset", color = textColorVal, fontSize = 9.sp)
+                                }
+                            }
+                        }
+                    }
+                    "timerWidget" -> {
+                        Column(horizontalAlignment = Alignment.Start) {
+                            Text(
+                                "Live Timer Widget (2x2)",
+                                color = accentColorVal,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                "00:45:12",
+                                color = textColorVal,
+                                fontSize = 21.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(textColorVal.copy(alpha = 0.08f))
+                                        .padding(4.dp)
+                                ) {
+                                    Text("Add +1m", color = textColorVal, fontSize = 8.sp)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(textColorVal.copy(alpha = 0.08f))
+                                        .padding(4.dp)
+                                ) {
+                                    Text("Pause", color = accentColorVal, fontSize = 8.sp)
+                                }
+                            }
+                        }
+                    }
+                    "stopwatchWidget" -> {
+                        Column(horizontalAlignment = Alignment.Start) {
+                            Text(
+                                "Stopwatch Widget (2x1)",
+                                color = accentColorVal,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                "04:18.25",
+                                color = textColorVal,
+                                fontSize = 21.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    "notificationControls" -> {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Timer,
+                                contentDescription = null,
+                                tint = accentColorVal,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Column {
+                                Text(
+                                    "Ecosystem Running",
+                                    color = textColorVal,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "Tap to toggle notification active status",
+                                    color = textColorVal.copy(alpha = 0.6f),
+                                    fontSize = 9.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun DesignTabContent(viewModel: TimerStopwatchViewModel) {
-    val glassBlur by viewModel.glassBlur.collectAsState()
-    val glassOpacity by viewModel.glassOpacity.collectAsState()
-    val glassGlow by viewModel.glassGlow.collectAsState()
-    val glassCornerRadius by viewModel.glassCornerRadius.collectAsState()
-    val glassTint by viewModel.glassTint.collectAsState()
-    val glassShadow by viewModel.glassShadow.collectAsState()
-    val glassAnimationSpeed by viewModel.glassAnimationSpeed.collectAsState()
+    val config by viewModel.appearanceConfigState.collectAsState()
+    val customPresets by viewModel.customPresetNames.collectAsState()
     val wallpaperUri by viewModel.wallpaperUri.collectAsState()
     val overlayMode by viewModel.overlayMode.collectAsState()
 
     val context = LocalContext.current
+    var selectedComponent by remember { mutableStateOf("dockableIsland") } // "dockableIsland", "floatingBubble", "expandedBubblePanel", "timerWidget", "stopwatchWidget", "notificationControls"
 
-    // Wallpaper Photo Picker launcher
+    val activeStyle = when (selectedComponent) {
+        "dockableIsland" -> config.dockableIsland
+        "floatingBubble" -> config.floatingBubble
+        "expandedBubblePanel" -> config.expandedBubblePanel
+        "timerWidget" -> config.timerWidget
+        "stopwatchWidget" -> config.stopwatchWidget
+        "notificationControls" -> config.notificationControls
+        else -> config.dockableIsland
+    }
+
+    val updateStyle = { updated: ComponentStyle ->
+        viewModel.updateComponentStyle(selectedComponent, updated)
+    }
+
+    var showSavePresetDialog by remember { mutableStateOf(false) }
+    var savePresetName by remember { mutableStateOf("") }
+    var showImportDialog by remember { mutableStateOf(false) }
+    var importJsonText by remember { mutableStateOf("") }
+
+    // Wallpaper / Background Photo Picker launcher
     val pickMedia = rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
-            // Persist URI access permission so it loads after restarts
             try {
                 context.contentResolver.takePersistableUriPermission(
                     uri,
@@ -1644,11 +1892,11 @@ fun DesignTabContent(viewModel: TimerStopwatchViewModel) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(bottom = 24.dp)
+            .padding(top = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        contentPadding = PaddingValues(bottom = 32.dp)
     ) {
-        // Core Visual Backdrop Choice
+        // 1. Wallpaper and Overlay System Mode Selection
         item {
             Column(
                 modifier = Modifier
@@ -1656,16 +1904,16 @@ fun DesignTabContent(viewModel: TimerStopwatchViewModel) {
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White.copy(alpha = 0.04f))
                     .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
-                    .padding(16.dp)
+                    .padding(14.dp)
             ) {
                 Text(
-                    text = "BACKDROP SELECTION",
+                    text = "BACKDROP & DOCK SYSTEM",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = PurpleGlow,
                     letterSpacing = 1.5.sp
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1681,123 +1929,32 @@ fun DesignTabContent(viewModel: TimerStopwatchViewModel) {
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.10f))
                     ) {
-                        Text("Pick Photo", color = Color.White, fontSize = 13.sp)
+                        Text("Set Wallpaper Behind UI", color = Color.White, fontSize = 12.sp)
                     }
                     if (wallpaperUri.isNotEmpty()) {
                         Button(
                             onClick = { viewModel.setWallpaperUri("") },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0x3E610115))
                         ) {
-                            Text("Reset Backdrop", color = Color.White, fontSize = 13.sp)
+                            Text("Reset", color = Color.White, fontSize = 12.sp)
                         }
                     }
                 }
-                if (wallpaperUri.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Active wallpaper: Selected Gallery Photo",
-                        fontSize = 11.sp,
-                        color = Color.White.copy(alpha = 0.5f)
-                    )
-                } else {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Default ambient cosmic gradient backdrop is active",
-                        fontSize = 11.sp,
-                        color = Color.White.copy(alpha = 0.4f)
-                    )
-                }
-            }
-        }
-
-        // Color Accent / Design Tint selection
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White.copy(alpha = 0.04f))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "VISUAL ACCENT TINT",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PurpleGlow,
-                    letterSpacing = 1.5.sp
-                )
                 Spacer(modifier = Modifier.height(12.dp))
-                
-                val tints = listOf("lavender", "cyan", "pink", "yellow", "green")
-                val colorsMap = mapOf(
-                    "lavender" to Color(0xFFD0BCFF),
-                    "cyan" to Color(0xFF00E6FF),
-                    "pink" to Color(0xFFFF2A6D),
-                    "yellow" to Color(0xFFFFD600),
-                    "green" to Color(0xFF00FF87)
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    tints.forEach { t ->
-                        val isSelected = glassTint.lowercase() == t.lowercase()
-                        val color = colorsMap[t] ?: Color.White
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(color)
-                                .border(
-                                    width = if (isSelected) 3.dp else 0.dp,
-                                    color = Color.White,
-                                    shape = CircleShape
-                                )
-                                .clickable {
-                                    viewModel.updateStyleOptions(
-                                        blur = glassBlur,
-                                        opacity = glassOpacity,
-                                        glow = glassGlow,
-                                        cornerRadius = glassCornerRadius,
-                                        tint = t,
-                                        shadow = glassShadow,
-                                        animSpeed = glassAnimationSpeed
-                                    )
-                                }
-                        )
-                    }
-                }
-            }
-        }
-
-        // Overlay Mode selection (Dynamic Island vs Draggable Bubble)
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White.copy(alpha = 0.04f))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
-                    .padding(16.dp)
-            ) {
                 Text(
-                    text = "SYSTEM OVERLAY MODE",
-                    fontSize = 11.sp,
+                    text = "SYSTEM OVERLAY CONTROLLER",
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PurpleGlow,
-                    letterSpacing = 1.5.sp
+                    color = Color.White.copy(alpha = 0.4f),
+                    letterSpacing = 1.sp
                 )
-                Spacer(modifier = Modifier.height(12.dp))
-
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(42.dp)
-                        .clip(RoundedCornerShape(21.dp))
-                        .background(Color.White.copy(alpha = 0.04f))
+                        .height(38.dp)
+                        .clip(RoundedCornerShape(19.dp))
+                        .background(Color.White.copy(alpha = 0.03f))
                         .padding(2.dp)
                 ) {
                     val overlayLabels = listOf("Dockable Island", "Free Bubble", "Disabled")
@@ -1807,14 +1964,14 @@ fun DesignTabContent(viewModel: TimerStopwatchViewModel) {
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
-                                .clip(RoundedCornerShape(19.dp))
+                                .clip(RoundedCornerShape(17.dp))
                                 .background(if (isSel) PurpleGlow else Color.Transparent)
                                 .clickable { viewModel.setOverlayMode(idx) },
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = label,
-                                fontSize = 11.sp,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (isSel) Color.Black else Color.White.copy(alpha = 0.7f)
                             )
@@ -1824,7 +1981,7 @@ fun DesignTabContent(viewModel: TimerStopwatchViewModel) {
             }
         }
 
-        // Slider Slates
+        // 2. Active Master Styling Theme presets
         item {
             Column(
                 modifier = Modifier
@@ -1832,122 +1989,527 @@ fun DesignTabContent(viewModel: TimerStopwatchViewModel) {
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White.copy(alpha = 0.04f))
                     .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(14.dp)
             ) {
-                // Blur Option
+                Text(
+                    text = "VISUAL CLASS PRESETS",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PurpleGlow,
+                    letterSpacing = 1.5.sp
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                
+                // Horizontal scrollable flow of master theme designs
+                val masterPresets = listOf(
+                    "Default Glass", "Amoled Slate", "Neon Cyberpunk", "Emerald Dream", "Material Pink"
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    masterPresets.take(3).forEach { p ->
+                        Button(
+                            onClick = { viewModel.applyPreset(p) },
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(vertical = 4.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.06f))
+                        ) {
+                            Text(p, color = Color.White, fontSize = 11.sp, maxLines = 1)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    masterPresets.drop(3).forEach { p ->
+                        Button(
+                            onClick = { viewModel.applyPreset(p) },
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(vertical = 4.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.06f))
+                        ) {
+                            Text(p, color = Color.White, fontSize = 11.sp, maxLines = 1)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. User Custom Preset Studio management
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.04f))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
+                    .padding(14.dp)
+            ) {
+                Text(
+                    text = "THEME STUDIO STORAGE & PRESETS",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PurpleGlow,
+                    letterSpacing = 1.5.sp
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { showSavePresetDialog = true },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = PurpleGlow)
+                    ) {
+                        Text("Save Current Style", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Button(
+                        onClick = { showImportDialog = true },
+                        modifier = Modifier.weight(1.5f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E1E24))
+                    ) {
+                        Text("Import/Paste Design JSON", color = Color.White, fontSize = 11.sp)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+                Button(
+                    onClick = {
+                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        val clip = android.content.ClipData.newPlainText("Ecosystem Config", config.toSerializedString())
+                        clipboard.setPrimaryClip(clip)
+                        android.widget.Toast.makeText(context, "Config JSON copied! Paste anywhere to share design presets.", android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.08f))
+                ) {
+                    Text("Copy Active Config JSON to Clipboard 📋", color = Color.White, fontSize = 12.sp)
+                }
+
+                if (customPresets.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text(
+                        text = "YOUR SAVED CUSTOM PRESETS:",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.4f),
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    customPresets.forEach { name ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(name, color = Color.White, fontSize = 13.sp, modifier = Modifier.weight(1.0f).clickable {
+                                val prefs = context.getSharedPreferences("appearance_presets", android.content.Context.MODE_PRIVATE)
+                                val json = prefs.getString("preset_config_$name", "") ?: ""
+                                if (json.isNotEmpty()) {
+                                    viewModel.updateAppearanceConfig(AppAppearanceConfig.fromSerializedString(json))
+                                    android.widget.Toast.makeText(context, "$name Applied!", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            })
+                            Button(
+                                onClick = { viewModel.deleteCustomPreset(name) },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0x6A9D1C2A)),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+                            ) {
+                                Text("Delete", color = Color.White, fontSize = 10.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. APPEARANCE STUDIO (COSMIC STYLE EDITORS PER SURFACE)
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.04f))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
+                    .padding(14.dp)
+            ) {
+                Text(
+                    text = "UNIFIED APPEARANCE STUDIO",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PurpleGlow,
+                    letterSpacing = 1.5.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Configure parameters individually per system surface layer below:",
+                    fontSize = 10.sp,
+                    color = Color.White.copy(alpha = 0.5f)
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+                // Surface Layer Customizer selector buttons
+                val surfaceComponents = listOf(
+                    "dockableIsland" to "🏝️ Dock Island",
+                    "floatingBubble" to "🫧 Collapsed Bubble",
+                    "expandedBubblePanel" to "📋 Expanded Bubble",
+                    "timerWidget" to "⏱️ Timer Widget",
+                    "stopwatchWidget" to "🏁 SW Widget",
+                    "notificationControls" to "🔔 Notification"
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    surfaceComponents.take(3).forEach { (id, label) ->
+                        val isSelected = selectedComponent == id
+                        Button(
+                            onClick = { selectedComponent = id },
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(vertical = 4.dp, horizontal = 2.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isSelected) PurpleGlow else Color.White.copy(alpha = 0.04f))
+                        ) {
+                            Text(label, color = if (isSelected) Color.Black else Color.White, fontSize = 10.sp, maxLines = 1)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    surfaceComponents.drop(3).forEach { (id, label) ->
+                        val isSelected = selectedComponent == id
+                        Button(
+                            onClick = { selectedComponent = id },
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(vertical = 4.dp, horizontal = 2.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isSelected) PurpleGlow else Color.White.copy(alpha = 0.04f))
+                        ) {
+                            Text(label, color = if (isSelected) Color.Black else Color.White, fontSize = 10.sp, maxLines = 1)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                // Live preview render card
+                LivePreviewCard(componentName = selectedComponent, style = activeStyle)
+
+                Spacer(modifier = Modifier.height(16.dp))
+                // Color hex controllers with quick selection palettes
+                Text(
+                    text = "BACKGROUND HEX CODE",
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White.copy(alpha = 0.4f),
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Predefined hex code colors (AMOLED Black, Cyber Dark Violet, Deep Slate, Lavender Glass, Hot Pink, Mint Green)
+                    val bgPresets = listOf("#000000", "#0B0214", "#1C1C1D", "#FFFFFF", "#FF2A6D", "#00FF87")
+                    bgPresets.forEach { colorStr ->
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(android.graphics.Color.parseColor(colorStr)))
+                                .border(
+                                    width = if (activeStyle.bgColor == colorStr) 2.dp else 0.dp,
+                                    color = Color.White,
+                                    shape = RoundedCornerShape(6.dp)
+                                )
+                                .clickable {
+                                    updateStyle(activeStyle.copy(bgColor = colorStr))
+                                }
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1.0f))
+                    // Manual background string input field
+                    OutlinedTextField(
+                        value = activeStyle.bgColor,
+                        onValueChange = { updateStyle(activeStyle.copy(bgColor = it)) },
+                        modifier = Modifier.width(110.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = PurpleGlow,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.2f)
+                        ),
+                        singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 11.sp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                // Dual-Gradient support toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "ENABLE DUAL-GRADIENT MIX",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Blends background using 2 linear hex endpoints",
+                            fontSize = 8.sp,
+                            color = Color.White.copy(alpha = 0.5f)
+                        )
+                    }
+                    Switch(
+                        checked = activeStyle.gradientEnabled,
+                        onCheckedChange = { updateStyle(activeStyle.copy(gradientEnabled = it)) },
+                        colors = SwitchDefaults.colors(checkedThumbColor = PurpleGlow)
+                    )
+                }
+
+                if (activeStyle.gradientEnabled) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = activeStyle.gradientStartColor,
+                            onValueChange = { updateStyle(activeStyle.copy(gradientStartColor = it)) },
+                            label = { Text("Start Hex", fontSize = 9.sp) },
+                            modifier = Modifier.weight(1f),
+                            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                            singleLine = true,
+                            textStyle = LocalTextStyle.current.copy(fontSize = 11.sp)
+                        )
+                        OutlinedTextField(
+                            value = activeStyle.gradientEndColor,
+                            onValueChange = { updateStyle(activeStyle.copy(gradientEndColor = it)) },
+                            label = { Text("End Hex", fontSize = 9.sp) },
+                            modifier = Modifier.weight(1f),
+                            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                            singleLine = true,
+                            textStyle = LocalTextStyle.current.copy(fontSize = 11.sp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+                // TEXT and ACCENT row selectors
+                Text(
+                    text = "TEXT AND ACCENT COLORS",
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White.copy(alpha = 0.4f),
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = activeStyle.textColor,
+                        onValueChange = { updateStyle(activeStyle.copy(textColor = it)) },
+                        label = { Text("Main Text Color", fontSize = 9.sp) },
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                        singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 11.sp)
+                    )
+                    OutlinedTextField(
+                        value = activeStyle.accentColor,
+                        onValueChange = { updateStyle(activeStyle.copy(accentColor = it)) },
+                        label = { Text("Accent Neon Color", fontSize = 9.sp) },
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                        singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 11.sp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+                // BORDERS & OUTLINE TINTS
+                Text(
+                    text = "BORDER OUTLINES",
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White.copy(alpha = 0.4f),
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = activeStyle.borderColor,
+                        onValueChange = { updateStyle(activeStyle.copy(borderColor = it)) },
+                        label = { Text("Border Color Hex", fontSize = 9.sp) },
+                        modifier = Modifier.weight(1.3f),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                        singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 11.sp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Thickness", fontSize = 9.sp, color = Color.White.copy(alpha = 0.5f))
+                        Slider(
+                            value = activeStyle.borderThickness,
+                            onValueChange = { updateStyle(activeStyle.copy(borderThickness = it)) },
+                            valueRange = 0f..4f,
+                            colors = SliderDefaults.colors(thumbColor = PurpleGlow)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                // Master customization sliders (Opacity, Corner, Glow strength, Blur, Shadow, Neon)
                 CustomSettingSlider(
-                    title = "GLASS BLUR STRENGTH",
-                    value = glassBlur,
+                    title = "SURFACE DECORATION OPACITY",
+                    value = activeStyle.opacity * 100f,
+                    valueRange = 0f..100f,
+                    displaySuffix = "%",
+                    onValueChange = { updateStyle(activeStyle.copy(opacity = it / 100f)) }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+                CustomSettingSlider(
+                    title = "GLASS ACRYLIC BLUR",
+                    value = activeStyle.blur,
                     valueRange = 0f..50f,
-                    displaySuffix = "dp",
-                    onValueChange = {
-                        viewModel.updateStyleOptions(
-                            blur = it,
-                            opacity = glassOpacity,
-                            glow = glassGlow,
-                            cornerRadius = glassCornerRadius,
-                            tint = glassTint,
-                            shadow = glassShadow,
-                            animSpeed = glassAnimationSpeed
-                        )
-                    }
+                    displaySuffix = "px",
+                    onValueChange = { updateStyle(activeStyle.copy(blur = it)) }
                 )
 
-                // Opacity Option
+                Spacer(modifier = Modifier.height(12.dp))
                 CustomSettingSlider(
-                    title = "GLASS ACRYLIC OPACITY",
-                    value = glassOpacity * 100f,
+                    title = "GLASS CORNER BOUND RADIUS",
+                    value = activeStyle.cornerRadius.toFloat(),
+                    valueRange = 8f..36f,
+                    displaySuffix = "dp",
+                    onValueChange = { updateStyle(activeStyle.copy(cornerRadius = it.toInt())) }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+                CustomSettingSlider(
+                    title = "NEON GLOW INTEGRATED STRENGTH",
+                    value = activeStyle.glowStrength * 100f,
                     valueRange = 0f..100f,
                     displaySuffix = "%",
-                    onValueChange = {
-                        viewModel.updateStyleOptions(
-                            blur = glassBlur,
-                            opacity = it / 100f,
-                            glow = glassGlow,
-                            cornerRadius = glassCornerRadius,
-                            tint = glassTint,
-                            shadow = glassShadow,
-                            animSpeed = glassAnimationSpeed
-                        )
-                    }
+                    onValueChange = { updateStyle(activeStyle.copy(glowStrength = it / 100f)) }
                 )
 
-                // Border Glow Strength
-                CustomSettingSlider(
-                    title = "BORDER GLOW OPACITY",
-                    value = glassGlow * 100f,
-                    valueRange = 0f..100f,
-                    displaySuffix = "%",
-                    onValueChange = {
-                        viewModel.updateStyleOptions(
-                            blur = glassBlur,
-                            opacity = glassOpacity,
-                            glow = it / 100f,
-                            cornerRadius = glassCornerRadius,
-                            tint = glassTint,
-                            shadow = glassShadow,
-                            animSpeed = glassAnimationSpeed
-                        )
-                    }
-                )
-
-                // Corner Radius
-                CustomSettingSlider(
-                    title = "GLASS CORNER RADIUS",
-                    value = glassCornerRadius.toFloat(),
-                    valueRange = 12f..40f,
-                    displaySuffix = "dp",
-                    onValueChange = {
-                        viewModel.updateStyleOptions(
-                            blur = glassBlur,
-                            opacity = glassOpacity,
-                            glow = glassGlow,
-                            cornerRadius = it.toInt(),
-                            tint = glassTint,
-                            shadow = glassShadow,
-                            animSpeed = glassAnimationSpeed
-                        )
-                    }
-                )
-
-                // Shadow Depth
+                Spacer(modifier = Modifier.height(12.dp))
                 CustomSettingSlider(
                     title = "FROSTED SHADOW DEPTH",
-                    value = glassShadow,
-                    valueRange = 0f..12f,
+                    value = activeStyle.shadowIntensity,
+                    valueRange = 0f..20f,
                     displaySuffix = "dp",
-                    onValueChange = {
-                        viewModel.updateStyleOptions(
-                            blur = glassBlur,
-                            opacity = glassOpacity,
-                            glow = glassGlow,
-                            cornerRadius = glassCornerRadius,
-                            tint = glassTint,
-                            shadow = it,
-                            animSpeed = glassAnimationSpeed
-                        )
-                    }
+                    onValueChange = { updateStyle(activeStyle.copy(shadowIntensity = it)) }
                 )
+            }
+        }
+    }
 
-                // Animation velocity multiplier
-                CustomSettingSlider(
-                    title = "AMBIENT ANIMATION VELOCITY",
-                    value = glassAnimationSpeed,
-                    valueRange = 0f..3f,
-                    displaySuffix = "x",
-                    onValueChange = {
-                        viewModel.updateStyleOptions(
-                            blur = glassBlur,
-                            opacity = glassOpacity,
-                            glow = glassGlow,
-                            cornerRadius = glassCornerRadius,
-                            tint = glassTint,
-                            shadow = glassShadow,
-                            animSpeed = it
-                        )
+    // dialogs for loading and pasting configurations
+    if (showSavePresetDialog) {
+        Dialog(onDismissRequest = { showSavePresetDialog = false }) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF141416)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Save Custom Theme Preset", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = savePresetName,
+                        onValueChange = { savePresetName = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                        label = { Text("Preset name (e.g., Cyberpunk Dark)", fontSize = 11.sp) }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { showSavePresetDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)) {
+                            Text("Cancel", color = Color.White)
+                        }
+                        Button(
+                            onClick = {
+                                if (savePresetName.trim().isNotEmpty()) {
+                                    viewModel.saveAsCustomPreset(savePresetName.trim())
+                                    savePresetName = ""
+                                    showSavePresetDialog = false
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = PurpleGlow)
+                        ) {
+                            Text("Save", color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
                     }
-                )
+                }
+            }
+        }
+    }
+
+    if (showImportDialog) {
+        Dialog(onDismissRequest = { showImportDialog = false }) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF141416)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Paste Theme Configuration JSON", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = importJsonText,
+                        onValueChange = { importJsonText = it },
+                        modifier = Modifier.fillMaxWidth().height(140.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                        label = { Text("Paste configuration string here", fontSize = 10.sp) }
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { showImportDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)) {
+                            Text("Cancel", color = Color.White)
+                        }
+                        Button(
+                            onClick = {
+                                val text = importJsonText.trim()
+                                if (text.isNotEmpty()) {
+                                    try {
+                                        val parsed = AppAppearanceConfig.fromSerializedString(text)
+                                        viewModel.updateAppearanceConfig(parsed)
+                                        importJsonText = ""
+                                        showImportDialog = false
+                                        android.widget.Toast.makeText(context, "Preset imported and applied in real time!", android.widget.Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        android.widget.Toast.makeText(context, "Invalid Format! Make sure you copied the correct JSON string.", android.widget.Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = PurpleGlow)
+                        ) {
+                            Text("Import Preset", color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
         }
     }
