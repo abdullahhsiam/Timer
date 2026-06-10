@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Outer crown and stem of the stopwatch -->
+    <path
+        android:fillColor="#00E6FF"
+        android:pathData="M 51,16 h 6 v 12 h -6 z" />
+    <path
+        android:fillColor="#00E6FF"
+        android:pathData="M 44,12 h 20 v 4 h -20 z" />
+    
+    <!-- Stopwatch side button (lap button) -->
+    <path
+        android:fillColor="#00E6FF"
+        android:pathData="M 73.5,29.5 L 77.5,25.5 L 80.5,28.5 L 76.5,32.5 Z" />
+
+    <!-- Main stopwatch circular body with a thick glowing modern outline -->
+    <path
+        android:fillColor="#111C30"
+        android:strokeColor="#00E6FF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M 54,90 C 71.67,90 86,75.67 86,58 C 86,40.33 71.67,26 54,26 C 36.33,26 22,40.33 22,58 C 22,75.67 36.33,90 54,90 Z" />
+
+    <!-- Inner clock markings for polished visual depth -->
+    <path
+        android:fillColor="#4DFFFFFF"
+        android:pathData="M 53,32 h 2 v 6 h -2 z M 53,78 h 2 v 6 h -2 z M 28,57 h 6 v 2 h -6 z M 74,57 h 6 v 2 h -6 z" />
+
+    <!-- Dynamic pointer hand representing active motion/timing -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M 54,58 L 68,44" />
+
+    <!-- Center pin -->
+    <path
+        android:fillColor="#00E6FF"
+        android:pathData="M 54,61 C 55.65,61 57,59.65 57,58 C 57,56.35 55.65,55 54,55 C 52.35,55 51,56.35 51,58 C 51,59.65 52.35,61 54,61 Z" />
+        
+</vector>
