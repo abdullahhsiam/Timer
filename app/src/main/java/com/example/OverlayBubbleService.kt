@@ -525,7 +525,7 @@ class OverlayBubbleService : Service() {
             resetActiveTimerState()
         }
         overlayView!!.findViewById<View>(R.id.island_btn_close)?.setOnClickListener {
-            stopSelf()
+            animateIslandCloseAndStop()
         }
 
         // 2. FLOATING BUBBLE CARD EVENT LISTENERS
@@ -541,6 +541,68 @@ class OverlayBubbleService : Service() {
         overlayView!!.findViewById<View>(R.id.btn_overlay_reset)?.setOnClickListener {
             resetActiveTimerState()
         }
+    }
+
+    private fun animateIslandCloseAndStop() {
+        val mode = TimerStopwatchStateManager.overlayMode.value
+        val root = overlayView
+        if (mode != 0 || root == null) {
+            stopSelf()
+            return
+        }
+
+        val islandBg = root.findViewById<View>(R.id.dockable_island_bg)
+        val container = root.findViewById<View>(R.id.dockable_island_container)
+        
+        if (islandBg == null || container == null) {
+            stopSelf()
+            return
+        }
+
+        // Disable all clicks
+        container.isEnabled = false
+
+        islandWidthAnimator?.cancel()
+        
+        // 1. Fade out the text and buttons very quickly
+        container.animate().alpha(0f).setDuration(150L).start()
+
+        val density = resources.displayMetrics.density
+        val startWidth = islandBg.width
+        val targetWidth = (46 * density).toInt()
+
+        // 2. Animate width to make it a circle
+        val widthAnimator = ValueAnimator.ofInt(startWidth, targetWidth).apply {
+            duration = 300L
+            interpolator = android.view.animation.AnticipateOvershootInterpolator(1.2f)
+            addUpdateListener { anim ->
+                val lp = islandBg.layoutParams
+                lp.width = anim.animatedValue as Int
+                islandBg.layoutParams = lp
+            }
+        }
+
+        // 3. Animate scale to 0 to shrink it to the center
+        val scaleAnimator = ValueAnimator.ofFloat(1f, 0f).apply {
+            duration = 200L
+            interpolator = android.view.animation.AccelerateInterpolator()
+            addUpdateListener { anim ->
+                val scale = anim.animatedValue as Float
+                val wrapper = root.findViewById<View>(R.id.dockable_island_wrapper)
+                wrapper?.scaleX = scale
+                wrapper?.scaleY = scale
+            }
+        }
+
+        val animatorSet = android.animation.AnimatorSet()
+        animatorSet.playSequentially(widthAnimator, scaleAnimator)
+        animatorSet.addListener(object : android.animation.AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: android.animation.Animator) {
+                stopSelf()
+            }
+        })
+        
+        animatorSet.start()
     }
 
     private fun toggleActiveTimerState() {
