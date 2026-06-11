@@ -1,9 +1,24 @@
+import java.util.Base64
+
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.roborazzi)
   alias(libs.plugins.secrets)
+}
+
+// Automatically decode debug.keystore from base64 if it is not present
+val keystoreFile = rootProject.file("debug.keystore")
+val base64File = rootProject.file("debug.keystore.base64")
+if (!keystoreFile.exists() && base64File.exists()) {
+  try {
+    val base64Text = base64File.readText().trim()
+    val decodedBytes = Base64.getDecoder().decode(base64Text)
+    keystoreFile.writeBytes(decodedBytes)
+  } catch (e: Exception) {
+    project.logger.warn("Failed to decode debug.keystore: ${e.message}")
+  }
 }
 
 android {
@@ -27,6 +42,12 @@ android {
       storePassword = System.getenv("STORE_PASSWORD")
       keyAlias = "upload"
       keyPassword = System.getenv("KEY_PASSWORD")
+    }
+    getByName("debug") {
+      storeFile = rootProject.file("debug.keystore")
+      storePassword = "android"
+      keyAlias = "androiddebugkey"
+      keyPassword = "android"
     }
   }
 
