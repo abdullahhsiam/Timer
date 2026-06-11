@@ -260,11 +260,7 @@ class OverlayBubbleService : Service() {
                     btnClose.scaleY = buttonScale
                     
                     // Subtle dynamic physical scale compression for the active center time text
-                    root.findViewById<View>(R.id.island_time_text)?.let {
-                        val textScale = 1.0f - (0.08f * kotlin.math.sin(progress * Math.PI).toFloat())
-                        it.scaleX = textScale
-                        it.scaleY = textScale
-                    }
+                    // (Removed to fix shakiness)
                 } else {
                     val fadeProgress = (1f - progress * 1.5f).coerceIn(0f, 1f)
                     val buttonScale = 0.7f + 0.3f * fadeProgress
