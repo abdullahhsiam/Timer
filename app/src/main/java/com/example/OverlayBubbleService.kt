@@ -129,7 +129,7 @@ class OverlayBubbleService : Service() {
                 cornerRadius = 23f * density // pill
                 setStroke((1f * density).toInt(), android.graphics.Color.parseColor("#1CFFFFFF")) // Subtle glowing bezel
             }
-            root.findViewById<View>(R.id.dockable_island_container)?.apply {
+            root.findViewById<View>(R.id.dockable_island_bg)?.apply {
                 background = islandBgDrawable
                 clipToOutline = true // Ensure rectangular RenderEffect blur doesn't bleed outside of the pill bounds
             }
@@ -198,7 +198,7 @@ class OverlayBubbleService : Service() {
 
     private fun toggleIslandExpansion() {
         val root = overlayView ?: return
-        val islandContainer = root.findViewById<View>(R.id.dockable_island_container) ?: return
+        val islandBg = root.findViewById<View>(R.id.dockable_island_bg) ?: return
         val btnPlayPause = root.findViewById<View>(R.id.island_btn_play_pause) ?: return
         val btnReset = root.findViewById<View>(R.id.island_btn_reset) ?: return
         val btnClose = root.findViewById<View>(R.id.island_btn_close) ?: return
@@ -210,7 +210,6 @@ class OverlayBubbleService : Service() {
         // Deterministic morphing widths
         val startWidth = if (isIslandExpanded) (130 * density).toInt() else (300 * density).toInt()
         val endWidth = if (isIslandExpanded) (300 * density).toInt() else (130 * density).toInt()
-        val fixedCapsuleHeight = (46 * density).toInt()
 
         if (isIslandExpanded) {
             btnPlayPause.visibility = View.VISIBLE
@@ -233,9 +232,9 @@ class OverlayBubbleService : Service() {
             interpolator = customInterpolator
             addUpdateListener { animator ->
                 val currentWidth = animator.animatedValue as Int
-                val lp = islandContainer.layoutParams
+                val lp = islandBg.layoutParams
                 lp.width = currentWidth
-                islandContainer.layoutParams = lp
+                islandBg.layoutParams = lp
 
                 val progress = animator.animatedFraction
                 
@@ -255,9 +254,6 @@ class OverlayBubbleService : Service() {
                     btnClose.alpha = fadeProgress
                     btnClose.scaleX = buttonScale
                     btnClose.scaleY = buttonScale
-                    
-                    // Subtle dynamic physical scale compression for the active center time text
-                    // (Removed to fix shakiness)
                 } else {
                     val fadeProgress = (1f - progress * 1.5f).coerceIn(0f, 1f)
                     val buttonScale = 0.7f + 0.3f * fadeProgress
@@ -277,18 +273,14 @@ class OverlayBubbleService : Service() {
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    val lp = islandContainer.layoutParams
+                    val lp = islandBg.layoutParams
                     lp.width = endWidth
-                    islandContainer.layoutParams = lp
+                    islandBg.layoutParams = lp
 
                     if (!isIslandExpanded) {
                         btnPlayPause.visibility = View.GONE
                         btnReset.visibility = View.GONE
                         btnClose.visibility = View.GONE
-                    }
-                    root.findViewById<View>(R.id.island_time_text)?.let {
-                        it.scaleX = 1f
-                        it.scaleY = 1f
                     }
                 }
             })
@@ -335,16 +327,17 @@ class OverlayBubbleService : Service() {
             return
         }
 
-        val dockableContainer = overlayView!!.findViewById<View>(R.id.dockable_island_container)
+        val dockableContainer = overlayView!!.findViewById<View>(R.id.dockable_island_wrapper)
+        val dockableBg = overlayView!!.findViewById<View>(R.id.dockable_island_bg)
         val collapsedContainer = overlayView!!.findViewById<View>(R.id.collapsed_container)
         val expandedContainer = overlayView!!.findViewById<View>(R.id.expanded_container)
 
         if (mode == 0) {
             dockableContainer?.visibility = View.VISIBLE
-            val lp = dockableContainer?.layoutParams
+            val lp = dockableBg?.layoutParams
             if (lp != null) {
                 lp.width = (130 * density).toInt()
-                dockableContainer.layoutParams = lp
+                dockableBg.layoutParams = lp
             }
             collapsedContainer?.visibility = View.GONE
             expandedContainer?.visibility = View.GONE
@@ -638,10 +631,9 @@ class OverlayBubbleService : Service() {
         }
         val islandTimerIcon = view.findViewById<ImageView>(R.id.island_timer_icon)
         if (islandTimerIcon != null) {
-            islandTimerIcon.setImageResource(if (showTimer) R.drawable.ic_hourglass_island else R.drawable.ic_timer_island)
-            islandTimerIcon.setColorFilter(timeColor, android.graphics.PorterDuff.Mode.SRC_IN)
             val isRunning = (showTimer && state.timerStatus == TimerStatus.RUNNING) || (showSw && state.swStatus == StopwatchStatus.RUNNING)
             updateIconAnimation(islandTimerIcon, showTimer, isRunning)
+            islandTimerIcon.setColorFilter(timeColor, android.graphics.PorterDuff.Mode.SRC_IN)
         }
         val islandPlayPause = view.findViewById<ImageView>(R.id.island_btn_play_pause)
         if (islandPlayPause != null) {
@@ -709,34 +701,45 @@ class OverlayBubbleService : Service() {
         }
     }
 
-    private var iconRotationAnimator: android.animation.ObjectAnimator? = null
+    private var iconAnimator: android.animation.ValueAnimator? = null
     private var currentAnimType: Int = -1
+    private var customHourglassDrawable: MinimalHourglassDrawable? = null
+    private var customStopwatchDrawable: MinimalStopwatchDrawable? = null
 
     private fun updateIconAnimation(icon: ImageView, showTimer: Boolean, isRunning: Boolean) {
+        if (customHourglassDrawable == null) customHourglassDrawable = MinimalHourglassDrawable()
+        if (customStopwatchDrawable == null) customStopwatchDrawable = MinimalStopwatchDrawable()
+
         val animTypeToRun = if (!isRunning) -1 else if (showTimer) 1 else 2
         
-        if (animTypeToRun == currentAnimType && iconRotationAnimator?.isRunning == true) {
+        if (animTypeToRun == currentAnimType && iconAnimator?.isRunning == true) {
             return
         }
         
-        iconRotationAnimator?.cancel()
-        iconRotationAnimator = null
-        icon.rotation = 0f
+        iconAnimator?.cancel()
+        iconAnimator = null
         currentAnimType = animTypeToRun
+        
+        val activeDrawable = if (showTimer) customHourglassDrawable!! else customStopwatchDrawable!!
+        (activeDrawable as ProgressDrawable).progress = 0f
+        icon.setImageDrawable(activeDrawable)
         
         if (animTypeToRun == -1) return
         
-        val anim = android.animation.ObjectAnimator.ofFloat(icon, "rotation", 0f, 360f)
+        val anim = android.animation.ValueAnimator.ofFloat(0f, 1f)
+        anim.addUpdateListener {
+            (activeDrawable as ProgressDrawable).progress = it.animatedValue as Float
+        }
         if (animTypeToRun == 1) { // Timer (Hourglass)
             anim.duration = 2000L
-            anim.interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+            anim.interpolator = android.view.animation.LinearInterpolator()
         } else { // Stopwatch
             anim.duration = 1000L
             anim.interpolator = android.view.animation.LinearInterpolator()
         }
         anim.repeatCount = android.animation.ValueAnimator.INFINITE
         anim.start()
-        iconRotationAnimator = anim
+        iconAnimator = anim
     }
 
     private data class OverlayState(
