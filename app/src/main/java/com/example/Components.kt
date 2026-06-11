@@ -251,17 +251,17 @@ fun CircleProgressTimer(
     val sizeD = if (isInPip) {
         140.dp
     } else if (isTablet) {
-        if (isLandscape) 300.dp else 340.dp
+        if (isLandscape) 280.dp else 320.dp
     } else {
-        if (isLandscape) 200.dp else 260.dp
+        if (isLandscape) 180.dp else 230.dp
     }
     
     val textFontSize = if (isInPip) {
         22.sp
     } else if (isTablet) {
-        if (isLandscape) 46.sp else 60.sp
+        if (isLandscape) 42.sp else 54.sp
     } else {
-        if (isLandscape) 30.sp else 46.sp
+        if (isLandscape) 28.sp else 40.sp
     }
     
     val subtitleTopPadding = if (isInPip) {

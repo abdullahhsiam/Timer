@@ -1472,6 +1472,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .heightIn(max = if (isTablet) 240.dp else 140.dp)
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
                         .clip(RoundedCornerShape(18.dp))
@@ -1591,7 +1592,8 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
             // Lap Times list section (Takes remaining vertical scroll frame)
             Box(
                 modifier = Modifier
-                    .weight(1f)
+                    .weight(1f, fill = false)
+                    .heightIn(max = if (isTablet) 240.dp else 160.dp)
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 6.dp)
                     .clip(RoundedCornerShape(18.dp))
