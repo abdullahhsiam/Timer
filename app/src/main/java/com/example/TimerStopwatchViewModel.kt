@@ -155,6 +155,8 @@ class TimerStopwatchViewModel : ViewModel() {
     val currentSessionNumber: StateFlow<Int> = TimerStopwatchStateManager.currentSessionNumber
     val dailyTotalFocusTimeMs: StateFlow<Long> = TimerStopwatchStateManager.dailyTotalFocusTimeMs
     val dailyCompletedFocusSessions: StateFlow<Int> = TimerStopwatchStateManager.dailyCompletedFocusSessions
+    val dailyTotalBreakTimeMs: StateFlow<Long> = TimerStopwatchStateManager.dailyTotalBreakTimeMs
+    val totalPomodoroCyclesCompleted: StateFlow<Int> = TimerStopwatchStateManager.totalPomodoroCyclesCompleted
     val pomodoroNotificationsEnabled: StateFlow<Boolean> = TimerStopwatchStateManager.pomodoroNotificationsEnabled
 
     fun setFocusModeState(state: FocusModeState) {

@@ -35,6 +35,11 @@ class TimerStopwatchService : Service() {
         const val ACTION_RESUME_STOPWATCH = "com.example.ACTION_RESUME_STOPWATCH"
         const val ACTION_LAP_STOPWATCH = "com.example.ACTION_LAP_STOPWATCH"
         const val ACTION_RESET_STOPWATCH = "com.example.ACTION_RESET_STOPWATCH"
+
+        const val ACTION_PAUSE_POMODORO = "com.example.ACTION_PAUSE_POMODORO"
+        const val ACTION_RESUME_POMODORO = "com.example.ACTION_RESUME_POMODORO"
+        const val ACTION_SKIP_BREAK_POMODORO = "com.example.ACTION_SKIP_BREAK_POMODORO"
+        const val ACTION_RESET_POMODORO = "com.example.ACTION_RESET_POMODORO"
     }
 
     override fun onCreate() {
@@ -91,6 +96,11 @@ class TimerStopwatchService : Service() {
                 ACTION_RESUME_STOPWATCH -> TimerStopwatchStateManager.startStopwatch()
                 ACTION_LAP_STOPWATCH -> TimerStopwatchStateManager.addLap()
                 ACTION_RESET_STOPWATCH -> TimerStopwatchStateManager.resetStopwatch()
+
+                ACTION_PAUSE_POMODORO -> TimerStopwatchStateManager.pausePomodoro()
+                ACTION_RESUME_POMODORO -> TimerStopwatchStateManager.resumePomodoro()
+                ACTION_SKIP_BREAK_POMODORO -> TimerStopwatchStateManager.skipBreak()
+                ACTION_RESET_POMODORO -> TimerStopwatchStateManager.resetPomodoro()
             }
         }
 
@@ -112,9 +122,14 @@ class TimerStopwatchService : Service() {
         val timerRemainingMs = TimerStopwatchStateManager.timerRemainingMs.value
         val stopwatchStatus = TimerStopwatchStateManager.stopwatchStatus.value
         val stopwatchElapsedMs = TimerStopwatchStateManager.stopwatchElapsedMs.value
+        val pomoStatus = TimerStopwatchStateManager.pomodoroStatus.value
+        val pomoRemainingMs = TimerStopwatchStateManager.pomodoroRemainingMs.value
+        val focusState = TimerStopwatchStateManager.focusModeState.value
+        val completedFocus = TimerStopwatchStateManager.completedFocusSessions.value
 
         val isTimerActive = timerStatus != TimerStatus.IDLE
         val isStopwatchActive = stopwatchStatus != StopwatchStatus.IDLE
+        val isPomoActive = pomoStatus != PomodoroStatus.IDLE
 
         var title = "Minimalist Timer"
         var contentText = "Ticking in the background"
@@ -127,7 +142,36 @@ class TimerStopwatchService : Service() {
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setShowWhen(false)
 
-        if (isTimerActive && isStopwatchActive) {
+        val pomoFmt = formatTime(pomoRemainingMs)
+        val sessionLabel = when (focusState) {
+            FocusModeState.FOCUS -> {
+                val num = (completedFocus % 4) + 1
+                "Focus #$num"
+            }
+            FocusModeState.BREAK -> {
+                val num = completedFocus % 4
+                if (num == 0) "Long Break" else "Break #$num"
+            }
+            else -> "Pomodoro"
+        }
+
+        if (isPomoActive && (isTimerActive || isStopwatchActive)) {
+            val builderTextList = mutableListOf<String>()
+            if (isPomoActive) builderTextList.add("$sessionLabel: $pomoFmt")
+            if (isTimerActive) builderTextList.add("Timer: ${formatTime(timerRemainingMs)}")
+            if (isStopwatchActive) builderTextList.add("SW: ${formatStopwatch(stopwatchElapsedMs)}")
+            title = builderTextList.joinToString("  |  ")
+            contentText = "Active Background Operations"
+            addPomodoroActions(builder, pomoStatus, focusState)
+        } else if (isPomoActive) {
+            title = "$sessionLabel $pomoFmt"
+            contentText = if (pomoStatus == PomodoroStatus.RUNNING) "Remaining session time" else "Paused"
+            val maxMs = TimerStopwatchStateManager.pomodoroDurationMs.value
+            if (maxMs > 0 && pomoStatus == PomodoroStatus.RUNNING) {
+                builder.setProgress(100, ((1.0 - (pomoRemainingMs.toDouble() / maxMs.toDouble())) * 100).toInt(), false)
+            }
+            addPomodoroActions(builder, pomoStatus, focusState)
+        } else if (isTimerActive && isStopwatchActive) {
             val timerFmt = formatTime(timerRemainingMs)
             val swFmt = formatStopwatch(stopwatchElapsedMs)
             title = "Timer: $timerFmt  |  Stopwatch: $swFmt"
@@ -199,9 +243,27 @@ class TimerStopwatchService : Service() {
             builder.addAction(android.R.drawable.ic_menu_report_image, "Lap", pLap)
         } else if (status == StopwatchStatus.PAUSED) {
             val pResume = getActionPendingIntent(23, ACTION_RESUME_STOPWATCH)
-            builder.addAction(android.R.drawable.ic_media_play, "Resume", pResume)
+            builder.addAction(android.R.drawable.ic_media_play, "Resume SW", pResume)
 
             val pReset = getActionPendingIntent(24, ACTION_RESET_STOPWATCH)
+            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Reset", pReset)
+        }
+    }
+
+    private fun addPomodoroActions(builder: NotificationCompat.Builder, status: PomodoroStatus, focusState: FocusModeState) {
+        if (status == PomodoroStatus.RUNNING) {
+            val pPause = getActionPendingIntent(31, ACTION_PAUSE_POMODORO)
+            builder.addAction(android.R.drawable.ic_media_pause, "Pause", pPause)
+            
+            if (focusState == FocusModeState.BREAK) {
+                val pSkip = getActionPendingIntent(32, ACTION_SKIP_BREAK_POMODORO)
+                builder.addAction(android.R.drawable.ic_media_next, "Skip Break", pSkip)
+            }
+        } else if (status == PomodoroStatus.PAUSED) {
+            val pResume = getActionPendingIntent(33, ACTION_RESUME_POMODORO)
+            builder.addAction(android.R.drawable.ic_media_play, "Resume", pResume)
+
+            val pReset = getActionPendingIntent(34, ACTION_RESET_POMODORO)
             builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Reset", pReset)
         }
     }

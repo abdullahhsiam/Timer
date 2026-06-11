@@ -58,6 +58,8 @@ object TimerStopwatchStateManager {
             putInt("current_session_number", _currentSessionNumber.value)
             putLong("daily_total_focus_time_ms", _dailyTotalFocusTimeMs.value)
             putInt("daily_completed_focus_sessions", _dailyCompletedFocusSessions.value)
+            putLong("daily_total_break_time_ms", _dailyTotalBreakTimeMs.value)
+            putInt("total_pomodoro_cycles_completed", _totalPomodoroCyclesCompleted.value)
             putString("last_stats_day", lastStatsDay)
             putBoolean("pomodoro_notifications_enabled", _pomodoroNotificationsEnabled.value)
 
@@ -131,6 +133,8 @@ object TimerStopwatchStateManager {
         
         _dailyTotalFocusTimeMs.value = prefs.getLong("daily_total_focus_time_ms", 0L)
         _dailyCompletedFocusSessions.value = prefs.getInt("daily_completed_focus_sessions", 0)
+        _dailyTotalBreakTimeMs.value = prefs.getLong("daily_total_break_time_ms", 0L)
+        _totalPomodoroCyclesCompleted.value = prefs.getInt("total_pomodoro_cycles_completed", 0)
         lastStatsDay = prefs.getString("last_stats_day", "") ?: ""
         _pomodoroNotificationsEnabled.value = prefs.getBoolean("pomodoro_notifications_enabled", true)
 
@@ -738,6 +742,12 @@ object TimerStopwatchStateManager {
     private val _dailyCompletedFocusSessions = MutableStateFlow(0)
     val dailyCompletedFocusSessions: StateFlow<Int> = _dailyCompletedFocusSessions.asStateFlow()
 
+    private val _dailyTotalBreakTimeMs = MutableStateFlow(0L)
+    val dailyTotalBreakTimeMs: StateFlow<Long> = _dailyTotalBreakTimeMs.asStateFlow()
+
+    private val _totalPomodoroCyclesCompleted = MutableStateFlow(0)
+    val totalPomodoroCyclesCompleted: StateFlow<Int> = _totalPomodoroCyclesCompleted.asStateFlow()
+
     private var lastStatsDay = ""
 
     private val _pomodoroNotificationsEnabled = MutableStateFlow(true)
@@ -782,6 +792,7 @@ object TimerStopwatchStateManager {
             lastStatsDay = today
             _dailyTotalFocusTimeMs.value = 0L
             _dailyCompletedFocusSessions.value = 0
+            _dailyTotalBreakTimeMs.value = 0L
             saveState()
         }
     }
@@ -905,6 +916,7 @@ object TimerStopwatchStateManager {
         if (currentType == FocusModeState.FOCUS) {
             val focusCompletedCount = _completedFocusSessions.value + 1
             _completedFocusSessions.value = focusCompletedCount
+            _totalPomodoroCyclesCompleted.value += 1
             
             val focusSessionMs = _focusDefaultMin.value * 60_000L
             _totalFocusTimeMs.value += focusSessionMs
@@ -936,6 +948,10 @@ object TimerStopwatchStateManager {
             launchPomodoroJob(breakDuration)
         } else if (currentType == FocusModeState.BREAK) {
             _completedBreakSessions.value += 1
+            
+            checkAndResetDailyStats()
+            val breakDuration = getCycleDurationMs(FocusModeState.BREAK)
+            _dailyTotalBreakTimeMs.value += breakDuration
             
             _focusModeState.value = FocusModeState.FOCUS
             val focusDuration = _focusDefaultMin.value * 60_000L

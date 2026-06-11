@@ -667,7 +667,8 @@ class OverlayBubbleService : Service() {
                     TimerStopwatchStateManager.activeTab,
                     TimerStopwatchStateManager.pomodoroRemainingMs,
                     TimerStopwatchStateManager.pomodoroStatus,
-                    TimerStopwatchStateManager.focusModeState
+                    TimerStopwatchStateManager.focusModeState,
+                    TimerStopwatchStateManager.completedFocusSessions
                 )
             ) { array ->
                 OverlayState(
@@ -678,7 +679,8 @@ class OverlayBubbleService : Service() {
                     activeTab = array[4] as Int,
                     pomoRemainingMs = array[5] as Long,
                     pomoStatus = array[6] as PomodoroStatus,
-                    focusState = array[7] as FocusModeState
+                    focusState = array[7] as FocusModeState,
+                    completedFocus = array[8] as Int
                 )
             }.collectLatest { state ->
                 updateOverlayContent(state)
@@ -864,7 +866,18 @@ class OverlayBubbleService : Service() {
         btnAddTime?.setTextColor(android.graphics.Color.WHITE)
 
         if (showPomo) {
-            expandedTitle?.text = if (state.focusState == FocusModeState.FOCUS) "POMODORO FOCUS" else "POMODORO BREAK"
+            val sessionLabel = when (state.focusState) {
+                FocusModeState.FOCUS -> {
+                    val num = (state.completedFocus % 4) + 1
+                    "Focus #$num"
+                }
+                FocusModeState.BREAK -> {
+                    val num = state.completedFocus % 4
+                    if (num == 0) "Long Break" else "Break #$num"
+                }
+                else -> "POMODORO"
+            }
+            expandedTitle?.text = sessionLabel.uppercase()
             btnAddTime?.visibility = View.GONE
             if (btnPausePlay != null) {
                 btnPausePlay.text = if (state.pomoStatus == PomodoroStatus.RUNNING) "Pause" else "Resume"
@@ -956,6 +969,7 @@ class OverlayBubbleService : Service() {
         val activeTab: Int,
         val pomoRemainingMs: Long,
         val pomoStatus: PomodoroStatus,
-        val focusState: FocusModeState
+        val focusState: FocusModeState,
+        val completedFocus: Int
     )
 }
