@@ -553,22 +553,50 @@ fun MainScreen(
                     Spacer(modifier = Modifier.height(14.dp))
 
                     // Sliding Premium Glassmorphic Tab Switchers
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        SlidingTabSwitcher(
-                            activeTab = activeTab,
-                            onTabSelected = { viewModel.selectTab(it) },
-                            modifier = Modifier.weight(1.5f)
-                        )
-                        val activeVisualMode by viewModel.activeVisualMode.collectAsState()
-                        VisualModeSwitcher(
-                            activeMode = activeVisualMode,
-                            onModeSelected = { viewModel.selectVisualMode(it) },
-                            modifier = Modifier.weight(1f)
-                        )
+                    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+                    val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
+                    val isCompactWidth = configuration.screenWidthDp < 480
+
+                    if (isCompactWidth && isPortrait) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            SlidingTabSwitcher(
+                                activeTab = activeTab,
+                                onTabSelected = { viewModel.selectTab(it) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            val activeVisualMode by viewModel.activeVisualMode.collectAsState()
+                            VisualModeSwitcher(
+                                activeMode = activeVisualMode,
+                                onModeSelected = { viewModel.selectVisualMode(it) },
+                                modifier = Modifier.fillMaxWidth(0.85f)
+                            )
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SlidingTabSwitcher(
+                                activeTab = activeTab,
+                                onTabSelected = { viewModel.selectTab(it) },
+                                modifier = Modifier.weight(1.3f)
+                            )
+                            val activeVisualMode by viewModel.activeVisualMode.collectAsState()
+                            VisualModeSwitcher(
+                                activeMode = activeVisualMode,
+                                onModeSelected = { viewModel.selectVisualMode(it) },
+                                modifier = Modifier.weight(0.9f)
+                            )
+                        }
                     }
                 }
 
@@ -816,6 +844,16 @@ fun TabItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val isCompact = screenWidth < 400
+    val isTablet = screenWidth >= 600
+
+    val iconSize = if (isCompact) 13.dp else if (isTablet) 17.dp else 15.dp
+    val fontSize = if (isCompact) 10.5.sp else if (isTablet) 14.sp else 12.sp
+    val horizontalPadding = if (isCompact) 4.dp else if (isTablet) 12.dp else 8.dp
+    val spacerWidth = if (isCompact) 4.dp else if (isTablet) 8.dp else 6.dp
+
     // Smooth selection background transparency transition (reserved for potential press feedback)
     val animAlpha by animateFloatAsState(
         targetValue = if (selected) 0.12f else 0.0f,
@@ -829,7 +867,7 @@ fun TabItem(
         animationSpec = tween(320),
         label = "tab_item_text"
     )
-
+ 
     // Dynamic elastic micro-scaling for the pill element
     val scale by animateFloatAsState(
         targetValue = if (selected) 1.05f else 0.98f,
@@ -839,7 +877,7 @@ fun TabItem(
         ),
         label = "tab_item_scale"
     )
-
+ 
     Box(
         modifier = modifier
             .graphicsLayer {
@@ -853,19 +891,19 @@ fun TabItem(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(horizontal = 8.dp)
+            modifier = Modifier.padding(horizontal = horizontalPadding)
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = animTextColor,
-                modifier = Modifier.size(15.dp)
+                modifier = Modifier.size(iconSize)
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(spacerWidth))
             Text(
                 text = label,
                 color = animTextColor,
-                fontSize = 12.sp,
+                fontSize = fontSize,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 0.2.sp
             )

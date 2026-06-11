@@ -225,34 +225,46 @@ fun FlipClockDisplay(
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
-        val digitCount = timeString.count { it.isDigit() }
-        val separatorCount = timeString.length - digitCount
-        var internalSpacers = 0
-        for (i in 0 until timeString.length - 1) {
-            if (timeString[i].isDigit() && timeString[i+1].isDigit()) {
-                internalSpacers++
+        val firstColonIndex = timeString.indexOf(':')
+        val secondColonIndex = if (firstColonIndex != -1) timeString.indexOf(':', firstColonIndex + 1) else -1
+        val hasTwoColons = secondColonIndex != -1
+
+        // Calculate absolute precise unscaled total width
+        var unscaledTotalWidth = 0.dp
+        var consecutiveDigitIndex = -1
+
+        for (i in timeString.indices) {
+            val c = timeString[i]
+            if (c.isDigit()) {
+                val isSec = hasTwoColons && i > secondColonIndex
+                val cardW = if (isSec) width * 0.82f else width
+                unscaledTotalWidth += cardW
+
+                if (consecutiveDigitIndex == i - 1) {
+                    val isSecSpacer = isSec
+                    unscaledTotalWidth += if (isSecSpacer) 2.dp else 4.dp
+                }
+                consecutiveDigitIndex = i
+            } else {
+                // Separator
+                val isAfterSec = hasTwoColons && i >= secondColonIndex
+                val sepFontSize = if (isAfterSec) textSize * 0.82f else textSize
+                unscaledTotalWidth += (sepFontSize * 0.35f).dp + 8.dp
             }
         }
 
-        // Approximate separator width + padding (4.dp on each side)
-        val separatorWidth = (textSize * 0.7f * 0.5f).dp + 8.dp 
-        
-        val unscaledTotalWidth = (width * digitCount) + 
-                                 (4.dp * internalSpacers) + 
-                                 (separatorWidth * separatorCount)
-                                 
         val maxW = if (maxWidth != Dp.Infinity && maxWidth > 0.dp) {
              maxWidth
         } else {
              androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp - 32.dp
         }
-        
+
         val scale = if (unscaledTotalWidth > maxW) {
             maxW / unscaledTotalWidth
         } else {
             1f
         }
-        
+
         val scaledHeight = height * scale
         val scaledWidth = width * scale
         val scaledTextSize = textSize * scale
@@ -266,22 +278,32 @@ fun FlipClockDisplay(
             for (i in timeString.indices) {
                 val c = timeString[i]
                 if (c.isDigit()) {
+                    val isSec = hasTwoColons && i > secondColonIndex
+                    val currentCardHeight = if (isSec) scaledHeight * 0.82f else scaledHeight
+                    val currentCardWidth = if (isSec) scaledWidth * 0.82f else scaledWidth
+                    val currentTextSize = if (isSec) scaledTextSize * 0.82f else scaledTextSize
+                    val currentSpacer = if (isSec) scaledSpacer * 0.5f else scaledSpacer
+
                     FlipCardDigit(
                         digit = c,
-                        height = scaledHeight,
-                        width = scaledWidth,
-                        textSize = scaledTextSize
+                        height = currentCardHeight,
+                        width = currentCardWidth,
+                        textSize = currentTextSize
                     )
                     if (i < timeString.lastIndex && timeString[i+1].isDigit()) {
-                        Spacer(modifier = Modifier.width(scaledSpacer))
+                        Spacer(modifier = Modifier.width(currentSpacer))
                     }
                 } else {
+                    val isAfterSec = hasTwoColons && i >= secondColonIndex
+                    val currentTextSize = if (isAfterSec) scaledTextSize * 0.82f else scaledTextSize
+                    val currentPadding = if (isAfterSec) scaledPadding * 0.5f else scaledPadding
+
                     Text(
                         text = c.toString(),
-                        fontSize = (scaledTextSize * 0.7f).sp,
+                        fontSize = (currentTextSize * 0.7f).sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White.copy(alpha = 0.5f),
-                        modifier = Modifier.padding(horizontal = scaledPadding)
+                        modifier = Modifier.padding(horizontal = currentPadding)
                     )
                 }
             }
