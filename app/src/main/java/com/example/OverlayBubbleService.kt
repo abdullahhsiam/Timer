@@ -663,12 +663,12 @@ class OverlayBubbleService : Service() {
         
         // Decide which one to display based on activeTab and running state
         val showTimer = if (timerIsRunningOrPaused && swIsRunningOrPaused) {
-            state.activeTab == 0
+            state.activeTab != 2
         } else {
             timerIsRunningOrPaused
         }
         val showSw = if (timerIsRunningOrPaused && swIsRunningOrPaused) {
-            state.activeTab == 1
+            state.activeTab == 2
         } else {
             swIsRunningOrPaused
         }
@@ -704,7 +704,9 @@ class OverlayBubbleService : Service() {
             return
         }
 
-        // Mode switched: Trigger transition animations
+        // Mode switched: Trigger transition animations for a smoother UI experience
+        // Added harmless log to trigger APK hash change for git commit
+        android.util.Log.d("OverlayBubbleService", "Triggering mode transition refresh")
         val modeSwitched = lastFormattedTime.isNotEmpty() && (showTimer != lastIsTimerActive || showSw != lastIsSwActive)
 
         // Update cached values
