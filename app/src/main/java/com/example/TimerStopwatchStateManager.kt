@@ -448,7 +448,7 @@ object TimerStopwatchStateManager {
                     triggerWidgetUpdate()
                 }
 
-                delay(32)
+                delay(12)
             }
 
             _timerStatus.value = TimerStatus.FINISHED
@@ -579,7 +579,7 @@ object TimerStopwatchStateManager {
                     triggerWidgetUpdate()
                 }
 
-                delay(32)
+                delay(12)
             }
         }
         notifyServiceOfStateChange()

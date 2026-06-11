@@ -256,7 +256,11 @@ fun CircleProgressTimer(
     } else if (isTablet) {
         if (isLandscape) 300.dp else 340.dp
     } else {
-        if (isLandscape) (configuration.screenHeightDp * 0.65f).dp else (configuration.screenWidthDp * 0.65f).dp
+        if (isLandscape) {
+            minOf(200.dp, (configuration.screenHeightDp * 0.6f).dp)
+        } else {
+            minOf(280.dp, maxOf(160.dp, (configuration.screenWidthDp * 0.65f).dp))
+        }
     }
     
     val textFontSize = if (isInPip) {

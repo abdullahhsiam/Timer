@@ -261,7 +261,8 @@ fun MainScreen(
                     val m = (totalSeconds / 60) % 60
                     val s = totalSeconds % 60
                     val cc = (elapsedMs / 10) % 100
-                    val readableTime = String.format("%02d:%02d.%02d", m, s, cc)
+                    val pad = { n: Long -> if (n < 10) "0$n" else n.toString() }
+                    val readableTime = "${pad(m)}:${pad(s)}.${pad(cc)}"
 
                     CircleProgressTimer(
                         remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
@@ -279,11 +280,9 @@ fun MainScreen(
                     val h = totalSecs / 3600
                     val m = (totalSecs % 3600) / 60
                     val s = totalSecs % 60
-                    val displayString = if (h > 0) {
-                        String.format("%02d:%02d:%02d", h, m, s)
-                    } else {
-                        String.format("%02d:%02d", m, s)
-                    }
+                    
+                    val pad = { n: Long -> if (n < 10) "0$n" else n.toString() }
+                    val displayString = if (h > 0) "${pad(h)}:${pad(m)}:${pad(s)}" else "${pad(m)}:${pad(s)}"
 
                     CircleProgressTimer(
                         remainingMs = timerRemainingMs,
@@ -855,18 +854,57 @@ fun TabItem(
 }
 
 @Composable
-fun ReactiveTimerFace(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isLandscape: Boolean) {
-    val timerStatus by viewModel.timerStatus.collectAsState()
+fun TimerFlipView(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isLandscape: Boolean) {
     val timerRemainingMs by viewModel.timerRemainingMs.collectAsState()
-    val timerMaxMs by viewModel.timerMaxMs.collectAsState()
-    val activeVisualMode by viewModel.activeVisualMode.collectAsState()
-    val accentColor = if (activeVisualMode == 1) Color(0xFF4C8DFF) else PurpleGlow
-
     val remainingSeconds = (timerRemainingMs + 999) / 1000
     val h = remainingSeconds / 3600
     val m = (remainingSeconds % 3600) / 60
     val s = remainingSeconds % 60
-    val readableTime = String.format("%02d:%02d:%02d", h, m, s)
+    
+    val pad = { n: Long -> if (n < 10) "0$n" else n.toString() }
+    val readableTime = "${pad(h)}:${pad(m)}:${pad(s)}"
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        FlipClockDisplay(
+            timeString = readableTime,
+            height = if (isTablet) 95.dp else if (isLandscape) 70.dp else 80.dp,
+            width = if (isTablet) 65.dp else if (isLandscape) 48.dp else 54.dp,
+            textSize = if (isTablet) 68f else if (isLandscape) 50f else 56f,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 24.dp))
+    }
+}
+
+@Composable
+fun TimerCircleView(viewModel: TimerStopwatchViewModel, timerStatus: TimerStatus, accentColor: Color) {
+    val timerRemainingMs by viewModel.timerRemainingMs.collectAsState()
+    val timerMaxMs by viewModel.timerMaxMs.collectAsState()
+    val remainingSeconds = (timerRemainingMs + 999) / 1000
+    val h = remainingSeconds / 3600
+    val m = (remainingSeconds % 3600) / 60
+    val s = remainingSeconds % 60
+    
+    val pad = { n: Long -> if (n < 10) "0$n" else n.toString() }
+    val readableTime = "${pad(h)}:${pad(m)}:${pad(s)}"
+    
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        CircleProgressTimer(
+            remainingMs = timerRemainingMs,
+            totalMs = timerMaxMs,
+            displayString = readableTime,
+            statusText = if (timerStatus == TimerStatus.RUNNING) "RUNNING" else "PAUSED",
+            onProgressColor = if (timerStatus == TimerStatus.RUNNING) accentColor else Color.White.copy(alpha = 0.15f),
+            glowEnabled = timerStatus == TimerStatus.RUNNING
+        )
+    }
+}
+
+@Composable
+fun ReactiveTimerFace(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isLandscape: Boolean) {
+    val timerStatus by viewModel.timerStatus.collectAsState()
+    val activeVisualMode by viewModel.activeVisualMode.collectAsState()
+    val accentColor = if (activeVisualMode == 1) Color(0xFF4C8DFF) else PurpleGlow
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -884,27 +922,9 @@ fun ReactiveTimerFace(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isL
             label = "visual_mode_transition"
         ) { mode ->
             if (mode == 1) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    FlipClockDisplay(
-                        timeString = readableTime,
-                        height = if (isTablet) 110.dp else if (isLandscape) 75.dp else 90.dp,
-                        width = if (isTablet) 75.dp else if (isLandscape) 52.dp else 60.dp,
-                        textSize = if (isTablet) 80f else if (isLandscape) 55f else 62f,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 30.dp))
-                }
+                TimerFlipView(viewModel, isTablet, isLandscape)
             } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircleProgressTimer(
-                        remainingMs = timerRemainingMs,
-                        totalMs = timerMaxMs,
-                        displayString = readableTime,
-                        statusText = if (timerStatus == TimerStatus.RUNNING) "RUNNING" else "PAUSED",
-                        onProgressColor = if (timerStatus == TimerStatus.RUNNING) accentColor else Color.White.copy(alpha = 0.15f),
-                        glowEnabled = timerStatus == TimerStatus.RUNNING
-                    )
-                }
+                TimerCircleView(viewModel, timerStatus, accentColor)
             }
         }
     }
@@ -1331,18 +1351,62 @@ fun SettingsRadioItem(
 // STOPWATCH TAB CONTENT VIEWS
 // ==========================================
 @Composable
-fun ReactiveStopwatchFace(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isCompactHeightScreen: Boolean, isLandscape: Boolean) {
+fun StopwatchFlipView(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isLandscape: Boolean) {
     val elapsedMs by viewModel.stopwatchElapsedMs.collectAsState()
-    val stopwatchStatus by viewModel.stopwatchStatus.collectAsState()
-    val activeVisualMode by viewModel.activeVisualMode.collectAsState()
-
     val totalSeconds = elapsedMs / 1000
     val m = (totalSeconds / 60) % 60
     val s = totalSeconds % 60
     val cc = (elapsedMs / 10) % 100
-    val readableTime = String.format("%02d:%02d.%02d", m, s, cc)
-    val flipTime = String.format("%02d:%02d", m, s)
-    val fractionTime = String.format(".%02d", cc)
+    
+    val pad = { n: Long -> if (n < 10) "0$n" else n.toString() }
+    val flipTime = "${pad(m)}:${pad(s)}"
+    val fractionTime = ".${pad(cc)}"
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.Center) {
+            FlipClockDisplay(
+                timeString = flipTime,
+                height = if (isTablet) 90.dp else if (isLandscape) 64.dp else 75.dp,
+                width = if (isTablet) 60.dp else if (isLandscape) 44.dp else 52.dp,
+                textSize = if (isTablet) 60f else if (isLandscape) 44f else 52f,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = fractionTime, color = Color.White, fontSize = if (isTablet) 24.sp else if (isLandscape) 20.sp else 22.sp, fontWeight = FontWeight.Bold, modifier = if (!isLandscape) Modifier.padding(bottom = 12.dp) else Modifier)
+        }
+        if (!isLandscape) Spacer(modifier = Modifier.height(if (isTablet) 20.dp else 12.dp))
+    }
+}
+
+@Composable
+fun StopwatchCircleView(viewModel: TimerStopwatchViewModel, stopwatchStatus: StopwatchStatus, accentColorPrimary: Color) {
+    val elapsedMs by viewModel.stopwatchElapsedMs.collectAsState()
+    val totalSeconds = elapsedMs / 1000
+    val m = (totalSeconds / 60) % 60
+    val s = totalSeconds % 60
+    val cc = (elapsedMs / 10) % 100
+    
+    val pad = { n: Long -> if (n < 10) "0$n" else n.toString() }
+    val readableTime = "${pad(m)}:${pad(s)}.${pad(cc)}"
+
+    CircleProgressTimer(
+        remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
+        totalMs = 1L,
+        displayString = readableTime,
+        statusText = when (stopwatchStatus) {
+            StopwatchStatus.IDLE -> "STOPWATCH"
+            StopwatchStatus.RUNNING -> "RUNNING"
+            StopwatchStatus.PAUSED -> "PAUSED"
+        },
+        onProgressColor = accentColorPrimary,
+        glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
+    )
+}
+
+@Composable
+fun ReactiveStopwatchFace(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isCompactHeightScreen: Boolean, isLandscape: Boolean) {
+    val stopwatchStatus by viewModel.stopwatchStatus.collectAsState()
+    val activeVisualMode by viewModel.activeVisualMode.collectAsState()
     val accentColorPrimary = if (activeVisualMode == 1) Color(0xFF4C8DFF) else PurpleGlow
 
     AnimatedContent(
@@ -1353,33 +1417,9 @@ fun ReactiveStopwatchFace(viewModel: TimerStopwatchViewModel, isTablet: Boolean,
         label = "sw_visual_mode_transition"
     ) { mode ->
         if (mode == 1) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.Center) {
-                    FlipClockDisplay(
-                        timeString = flipTime,
-                        height = if (isTablet) 100.dp else if (isLandscape) 70.dp else 80.dp,
-                        width = if (isTablet) 68.dp else if (isLandscape) 48.dp else 52.dp,
-                        textSize = if (isTablet) 70f else if (isLandscape) 50f else 54f,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = fractionTime, color = Color.White, fontSize = if (isTablet) 28.sp else if (isLandscape) 24.sp else 22.sp, fontWeight = FontWeight.Bold, modifier = if (!isLandscape) Modifier.padding(bottom = 12.dp) else Modifier)
-                }
-                if (!isLandscape) Spacer(modifier = Modifier.height(if (isTablet) 20.dp else 12.dp))
-            }
+            StopwatchFlipView(viewModel, isTablet, isLandscape)
         } else {
-            CircleProgressTimer(
-                remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
-                totalMs = 1L,
-                displayString = readableTime,
-                statusText = when (stopwatchStatus) {
-                    StopwatchStatus.IDLE -> "STOPWATCH"
-                    StopwatchStatus.RUNNING -> "RUNNING"
-                    StopwatchStatus.PAUSED -> "PAUSED"
-                },
-                onProgressColor = accentColorPrimary,
-                glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
-            )
+            StopwatchCircleView(viewModel, stopwatchStatus, accentColorPrimary)
         }
     }
 }
@@ -1433,6 +1473,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
+                        .heightIn(min = 60.dp, max = 180.dp)
                         .padding(bottom = 8.dp)
                         .clip(RoundedCornerShape(18.dp))
                         .background(Color(0x06FFFFFF))
@@ -1553,6 +1594,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
+                    .heightIn(min = 60.dp, max = if (isTablet) 300.dp else 220.dp)
                     .padding(horizontal = 8.dp, vertical = 6.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .background(Color(0x06FFFFFF))
@@ -1667,12 +1709,14 @@ fun LapRowItem(lap: LapRecord) {
     val lapMin = (lap.lapTimeMs / 60000) % 60
     val lapSec = (lap.lapTimeMs / 1000) % 60
     val lapCc = (lap.lapTimeMs / 10) % 100
-    val formattedLap = String.format("%02d:%02d.%02d", lapMin, lapSec, lapCc)
+    
+    val pad = { n: Long -> if (n < 10) "0$n" else n.toString() }
+    val formattedLap = "${pad(lapMin)}:${pad(lapSec)}.${pad(lapCc)}"
 
     val overallMin = (lap.totalTimeMs / 60000) % 60
     val overallSec = (lap.totalTimeMs / 1000) % 60
     val overallCc = (lap.totalTimeMs / 10) % 100
-    val formattedOverall = String.format("%02d:%02d.%02d", overallMin, overallSec, overallCc)
+    val formattedOverall = "${pad(overallMin)}:${pad(overallSec)}.${pad(overallCc)}"
 
     Row(
         modifier = Modifier
@@ -1684,8 +1728,9 @@ fun LapRowItem(lap: LapRecord) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            val padInt = { n: Int -> if (n < 10) "0$n" else n.toString() }
             Text(
-                text = String.format("#%02d", lap.index),
+                text = "#${padInt(lap.index)}",
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp,
                 color = PurpleGlow,
