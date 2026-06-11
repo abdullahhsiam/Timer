@@ -11,8 +11,10 @@ plugins {
 
 tasks.register<Exec>("generateDebugKeystore") {
     val keystoreFile = file("debug.keystore")
-    if (keystoreFile.exists()) {
-        keystoreFile.delete()
+    doFirst {
+        if (keystoreFile.exists()) {
+            keystoreFile.delete()
+        }
     }
     commandLine(
         "keytool", "-genkey", "-v", 
@@ -38,5 +40,10 @@ tasks.register("encodeKeystore") {
         println("SUCCESS: debug.keystore encoded to debug.keystore.base64")
     }
 }
+
+
+
+
+
 
 

@@ -29,8 +29,22 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Recreate Debug Keystore
+        run: |
+          echo "Recreating debug.keystore from debug.keystore.base64"
+          if [ -f debug.keystore.base64 ]; then
+            base64 -d debug.keystore.base64 > debug.keystore
+            echo "Successfully decoded debug.keystore"
+          else
+            echo "debug.keystore.base64 not found!"
+            exit 1
+          fi
+
+      - name: Make Gradlew Executable
+        run: chmod +x gradlew
+
       - name: Build Debug APK
-        run: gradle assembleDebug
+        run: ./gradlew assembleDebug
 
       - name: Commit and Push APK
         if: github.event_name == 'push'
@@ -44,8 +58,9 @@ jobs:
             git commit -m "chore: update built app-debug.apk [skip ci]"
             git push origin HEAD:${{ github.ref }}
           fi
+
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: .build-outputs/app-debug.apk
