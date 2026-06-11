@@ -231,7 +231,8 @@ fun CircleProgressTimer(
     displayString: String,
     statusText: String,
     onProgressColor: Color = PurpleGlow,
-    glowEnabled: Boolean = true
+    glowEnabled: Boolean = true,
+    sizeFraction: Float = 1f
 ) {
     // Smooth progress fraction anim
     val progressFraction = if (totalMs > 0) remainingMs.toFloat() / totalMs.toFloat() else 0f
@@ -248,7 +249,7 @@ fun CircleProgressTimer(
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val isTablet = configuration.screenWidthDp >= 600 && configuration.screenHeightDp >= 600
 
-    val sizeD = if (isInPip) {
+    val baseSizeD = if (isInPip) {
         140.dp
     } else if (isTablet) {
         if (isLandscape) 280.dp else 320.dp
@@ -256,13 +257,17 @@ fun CircleProgressTimer(
         if (isLandscape) 180.dp else 230.dp
     }
     
-    val textFontSize = if (isInPip) {
+    val sizeD = baseSizeD * sizeFraction
+    
+    val baseTextFontSize = if (isInPip) {
         22.sp
     } else if (isTablet) {
         if (isLandscape) 42.sp else 54.sp
     } else {
         if (isLandscape) 28.sp else 40.sp
     }
+    
+    val textFontSize = baseTextFontSize * sizeFraction
     
     val subtitleTopPadding = if (isInPip) {
         1.dp

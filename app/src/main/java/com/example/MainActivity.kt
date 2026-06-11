@@ -25,6 +25,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -1366,15 +1367,15 @@ fun StopwatchFlipView(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isL
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.Center) {
             FlipClockDisplay(
                 timeString = flipTime,
-                height = if (isTablet) 90.dp else if (isLandscape) 64.dp else 75.dp,
-                width = if (isTablet) 60.dp else if (isLandscape) 44.dp else 52.dp,
-                textSize = if (isTablet) 60f else if (isLandscape) 44f else 52f,
+                height = if (isTablet) 68.dp else if (isLandscape) 48.dp else 56.dp,
+                width = if (isTablet) 45.dp else if (isLandscape) 33.dp else 39.dp,
+                textSize = if (isTablet) 45f else if (isLandscape) 33f else 39f,
                 modifier = Modifier.weight(1f, fill = false)
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = fractionTime, color = Color.White, fontSize = if (isTablet) 24.sp else if (isLandscape) 20.sp else 22.sp, fontWeight = FontWeight.Bold, modifier = if (!isLandscape) Modifier.padding(bottom = 12.dp) else Modifier)
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(text = fractionTime, color = Color.White, fontSize = if (isTablet) 18.sp else if (isLandscape) 15.sp else 16.sp, fontWeight = FontWeight.Bold, modifier = if (!isLandscape) Modifier.padding(bottom = 12.dp) else Modifier)
         }
-        if (!isLandscape) Spacer(modifier = Modifier.height(if (isTablet) 20.dp else 12.dp))
+        if (!isLandscape) Spacer(modifier = Modifier.height(if (isTablet) 15.dp else 9.dp))
     }
 }
 
@@ -1399,7 +1400,8 @@ fun StopwatchCircleView(viewModel: TimerStopwatchViewModel, stopwatchStatus: Sto
             StopwatchStatus.PAUSED -> "PAUSED"
         },
         onProgressColor = accentColorPrimary,
-        glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
+        glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING,
+        sizeFraction = 0.75f
     )
 }
 
@@ -1452,7 +1454,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    LiveDigitalClock()
+                    LiveDigitalClock(scale = 0.75f)
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     ReactiveStopwatchFace(viewModel, isTablet, isCompactHeightScreen, isLandscape = true)
@@ -1494,7 +1496,14 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                             )
                         }
                     } else {
+                        val listState = rememberLazyListState()
+                        LaunchedEffect(laps.size) {
+                            if (laps.isNotEmpty()) {
+                                listState.animateScrollToItem(0)
+                            }
+                        }
                         LazyColumn(
+                            state = listState,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(8.dp),
@@ -1511,7 +1520,8 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 4.dp),
+                        .padding(bottom = 4.dp)
+                        .scale(0.8f),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
                 ) {
                     when (stopwatchStatus) {
@@ -1580,7 +1590,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
         ) {
             // Display counting stopwatch layout
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                LiveDigitalClock()
+                LiveDigitalClock(scale = 0.75f)
                 Spacer(modifier = Modifier.height(if (isCompactHeightScreen) 8.dp else 16.dp))
                 ReactiveStopwatchFace(viewModel, isTablet, isCompactHeightScreen, isLandscape = false)
             }
@@ -1619,7 +1629,14 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                         )
                     }
                 } else {
+                    val listState = rememberLazyListState()
+                    LaunchedEffect(laps.size) {
+                        if (laps.isNotEmpty()) {
+                            listState.animateScrollToItem(0)
+                        }
+                    }
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(12.dp),
@@ -1638,7 +1655,8 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 12.dp)
+                    .scale(0.8f),
                 horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
             ) {
                 when (stopwatchStatus) {
@@ -1719,9 +1737,9 @@ fun LapRowItem(lap: LapRecord) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(6.dp))
             .background(Color(0x08FFFFFF))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 10.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1730,14 +1748,14 @@ fun LapRowItem(lap: LapRecord) {
             Text(
                 text = "#${padInt(lap.index)}",
                 fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
+                fontSize = 10.sp,
                 color = PurpleGlow,
                 fontFamily = FontFamily.Monospace
             )
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "Delta: $formattedLap",
-                fontSize = 13.sp,
+                fontSize = 10.sp,
                 color = Color.LightGray
             )
         }
@@ -1745,7 +1763,7 @@ fun LapRowItem(lap: LapRecord) {
         Text(
             text = formattedOverall,
             fontWeight = FontWeight.Medium,
-            fontSize = 13.sp,
+            fontSize = 10.sp,
             color = Color.White,
             fontFamily = FontFamily.Monospace
         )
@@ -2015,7 +2033,7 @@ fun SoundSelectionDialog(
 // LIVE DIGITAL CLOCK COMPOSABLE
 // ==========================================
 @Composable
-fun LiveDigitalClock() {
+fun LiveDigitalClock(modifier: Modifier = Modifier, scale: Float = 1f) {
     var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
 
     LaunchedEffect(Unit) {
@@ -2052,34 +2070,34 @@ fun LiveDigitalClock() {
     Row(
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .padding(bottom = 12.dp)
+        modifier = modifier
+            .padding(bottom = (12 * scale).dp)
             .testTag("live_digital_clock")
     ) {
         Text(
             text = timeString,
-            fontSize = 22.sp,
+            fontSize = (22 * scale).sp,
             fontWeight = FontWeight.Medium,
             color = Color.White.copy(alpha = 0.9f),
             fontFamily = FontFamily.Monospace,
-            letterSpacing = 0.5.sp
+            letterSpacing = (0.5f * scale).sp
         )
-        Spacer(modifier = Modifier.width(3.dp))
+        Spacer(modifier = Modifier.width((3 * scale).dp))
         Row(
             verticalAlignment = Alignment.Bottom,
-            modifier = Modifier.padding(bottom = 2.dp)
+            modifier = Modifier.padding(bottom = (2 * scale).dp)
         ) {
             Text(
                 text = secondsString,
-                fontSize = 12.sp,
+                fontSize = (12 * scale).sp,
                 fontWeight = FontWeight.Light,
                 color = PurpleGlow,
                 fontFamily = FontFamily.Monospace
             )
-            Spacer(modifier = Modifier.width(3.dp))
+            Spacer(modifier = Modifier.width((3 * scale).dp))
             Text(
                 text = amPm,
-                fontSize = 10.sp,
+                fontSize = (10 * scale).sp,
                 fontWeight = FontWeight.Light,
                 color = Color.White.copy(alpha = 0.5f),
                 fontFamily = FontFamily.SansSerif
