@@ -704,6 +704,7 @@ class OverlayBubbleService : Service() {
             return
         }
 
+        // Mode switched: Trigger transition animations
         val modeSwitched = lastFormattedTime.isNotEmpty() && (showTimer != lastIsTimerActive || showSw != lastIsSwActive)
 
         // Update cached values
