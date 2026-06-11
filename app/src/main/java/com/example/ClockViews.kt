@@ -97,10 +97,38 @@ fun ClockAnalogView(currentTimeMillis: Long, isTablet: Boolean, isLandscape: Boo
         val totalWidth = maxWidth
         val totalHeight = maxHeight
 
-        // Bounded layout calculations
-        val paddingSpace = if (isLandscape) 100.dp else 150.dp
+        // Device-class aware bounding calculations
+        val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+        val screenWidth = configuration.screenWidthDp
+
+        // Define bounds for each device class
+        val baseMin = if (isTablet) {
+            260.dp
+        } else if (isLandscape) {
+            130.dp // Allow landscape on phones to shrink nicely without clipping
+        } else if (screenWidth < 360) { // Compact phone
+            135.dp
+        } else if (screenWidth in 360..411) { // Standard phone
+            165.dp
+        } else { // Large phone (412 to 599 dp)
+            185.dp
+        }
+
+        val baseMax = if (isTablet) {
+            350.dp
+        } else if (isLandscape) {
+            180.dp
+        } else if (screenWidth < 360) { // Compact phone
+            155.dp
+        } else if (screenWidth in 360..411) { // Standard phone
+            195.dp
+        } else { // Large phone
+            220.dp
+        }
+
+        val paddingSpace = if (isLandscape) 70.dp else 115.dp
         val safeDiameter = if (totalWidth < totalHeight - paddingSpace) totalWidth else totalHeight - paddingSpace
-        val clockSize = safeDiameter.coerceIn(180.dp, 350.dp)
+        val clockSize = safeDiameter.coerceIn(baseMin, baseMax)
         val scaleFactor = clockSize.value / 260f
 
         val rawTimeFontSize = (48f * scaleFactor).coerceAtLeast(32f)

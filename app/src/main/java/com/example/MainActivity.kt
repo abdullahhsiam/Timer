@@ -1657,46 +1657,53 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
             verticalArrangement = Arrangement.Center
         ) {
             // Display counting stopwatch layout
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(if (isCompactHeightScreen) 8.dp else 16.dp)
+            ) {
                 LiveDigitalClock(scale = 0.75f)
-                Spacer(modifier = Modifier.height(if (isCompactHeightScreen) 8.dp else 16.dp))
                 ReactiveStopwatchFace(viewModel, isTablet, isCompactHeightScreen, isLandscape = false)
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Lap Times list section (Takes remaining vertical scroll frame)
-            Box(
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .heightIn(max = if (isTablet) 240.dp else 160.dp)
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color(0x06FFFFFF))
-                    .border(width = 0.5.dp, color = Color(0x0AFFFFFF), shape = RoundedCornerShape(18.dp))
-            ) {
-                if (laps.isEmpty()) {
+            // Lap Times list section (Takes remaining vertical scroll frame or remains compact)
+            if (laps.isEmpty()) {
+                // Compact placeholder state (no excessive empty space)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0x06FFFFFF))
+                        .border(width = 0.5.dp, color = Color(0x0AFFFFFF), shape = RoundedCornerShape(14.dp))
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Text(
                             text = "NO LAPS RECORDED",
                             color = Color.DarkGray,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Record laps on running stopwatch.",
-                            color = Color.DarkGray,
-                            fontSize = 10.sp
-                        )
                     }
-                } else {
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .heightIn(max = if (isTablet) 240.dp else 160.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color(0x06FFFFFF))
+                        .border(width = 0.5.dp, color = Color(0x0AFFFFFF), shape = RoundedCornerShape(18.dp))
+                ) {
                     val listState = rememberLazyListState()
                     LaunchedEffect(laps.size) {
                         if (laps.isNotEmpty()) {
