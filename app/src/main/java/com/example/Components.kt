@@ -322,16 +322,44 @@ fun CircleProgressTimer(
             modifier = Modifier.padding(16.dp)
         ) {
             // Giant extralight time tracking string
-            Text(
-                text = displayString,
-                color = if (statusText.uppercase().contains("PAUSE")) Color(0xFFFF3333) else Color.White,
-                fontSize = textFontSize,
-                fontWeight = FontWeight.ExtraLight,
-                fontFamily = FontFamily.SansSerif,
-                textAlign = TextAlign.Center,
-                letterSpacing = (-1).sp,
-                style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
-            )
+            if (displayString.contains(".")) {
+                val parts = displayString.split(".")
+                Box(contentAlignment = Alignment.BottomCenter) {
+                    Text(
+                        text = parts[0],
+                        color = if (statusText.uppercase().contains("PAUSE")) Color(0xFFFF3333) else Color.White,
+                        fontSize = textFontSize,
+                        fontWeight = FontWeight.ExtraLight,
+                        fontFamily = FontFamily.SansSerif,
+                        textAlign = TextAlign.Center,
+                        letterSpacing = (-1).sp,
+                        style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
+                    )
+                    Text(
+                        text = ".${parts[1]}",
+                        color = if (statusText.uppercase().contains("PAUSE")) Color(0xFFFF3333) else Color.White,
+                        fontSize = textFontSize * 0.45f,
+                        fontWeight = FontWeight.Light,
+                        fontFamily = FontFamily.SansSerif,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier
+                            .padding(bottom = textFontSize.value.dp * 0.15f)
+                            .absoluteOffset(x = textFontSize.value.dp * 1.55f),
+                        style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
+                    )
+                }
+            } else {
+                Text(
+                    text = displayString,
+                    color = if (statusText.uppercase().contains("PAUSE")) Color(0xFFFF3333) else Color.White,
+                    fontSize = textFontSize,
+                    fontWeight = FontWeight.ExtraLight,
+                    fontFamily = FontFamily.SansSerif,
+                    textAlign = TextAlign.Center,
+                    letterSpacing = (-1).sp,
+                    style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
+                )
+            }
             
             Spacer(modifier = Modifier.height(subtitleTopPadding))
             

@@ -1371,16 +1371,25 @@ fun StopwatchFlipView(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isL
     val fractionTime = ".${pad(cc)}"
 
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.Center) {
+        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), contentAlignment = Alignment.BottomCenter) {
             FlipClockDisplay(
                 timeString = flipTime,
                 height = if (isTablet) 68.dp else if (isLandscape) 48.dp else 56.dp,
                 width = if (isTablet) 45.dp else if (isLandscape) 33.dp else 39.dp,
-                textSize = if (isTablet) 45f else if (isLandscape) 33f else 39f,
-                modifier = Modifier.weight(1f, fill = false)
+                textSize = if (isTablet) 45f else if (isLandscape) 33f else 39f
             )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(text = fractionTime, color = Color.White, fontSize = if (isTablet) 18.sp else if (isLandscape) 15.sp else 16.sp, fontWeight = FontWeight.Bold, modifier = if (!isLandscape) Modifier.padding(bottom = 12.dp) else Modifier, style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum"))
+            // Offset the fraction to the right of the center
+            val offsetFromCenter = if (isTablet) 120.dp else if (isLandscape) 90.dp else 105.dp
+            Text(
+                text = fractionTime,
+                color = Color.White,
+                fontSize = if (isTablet) 18.sp else if (isLandscape) 15.sp else 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .padding(bottom = if (isLandscape) 4.dp else 12.dp)
+                    .absoluteOffset(x = offsetFromCenter),
+                style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
+            )
         }
         if (!isLandscape) Spacer(modifier = Modifier.height(if (isTablet) 15.dp else 9.dp))
     }
