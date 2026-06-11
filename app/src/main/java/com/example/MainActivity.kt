@@ -2208,16 +2208,16 @@ fun LivePreviewCard(componentName: String, style: ComponentStyle) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(7.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF00FF87))
+                            androidx.compose.material3.Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Default.Timer,
+                                contentDescription = "Timer Indicator",
+                                tint = accentColorVal,
+                                modifier = Modifier.size(14.dp)
                             )
                             Text(
-                                text = "DOCKABLE NOTCH • 24:18",
+                                text = "24:18",
                                 color = accentColorVal,
-                                fontSize = 11.sp,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.6.sp
                             )

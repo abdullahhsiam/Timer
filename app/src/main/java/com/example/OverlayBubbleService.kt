@@ -208,8 +208,8 @@ class OverlayBubbleService : Service() {
         islandWidthAnimator?.cancel()
 
         // Deterministic morphing widths
-        val startWidth = if (isIslandExpanded) (130 * density).toInt() else (240 * density).toInt()
-        val endWidth = if (isIslandExpanded) (240 * density).toInt() else (130 * density).toInt()
+        val startWidth = if (isIslandExpanded) (130 * density).toInt() else (300 * density).toInt()
+        val endWidth = if (isIslandExpanded) (300 * density).toInt() else (130 * density).toInt()
         val fixedCapsuleHeight = (46 * density).toInt()
 
         if (isIslandExpanded) {
@@ -630,6 +630,10 @@ class OverlayBubbleService : Service() {
         if (islandTimeText != null) {
             islandTimeText.text = formattedTime
             islandTimeText.setTextColor(timeColor)
+        }
+        val islandTimerIcon = view.findViewById<ImageView>(R.id.island_timer_icon)
+        if (islandTimerIcon != null) {
+            islandTimerIcon.setColorFilter(timeColor, android.graphics.PorterDuff.Mode.SRC_IN)
         }
         val islandPlayPause = view.findViewById<ImageView>(R.id.island_btn_play_pause)
         if (islandPlayPause != null) {
