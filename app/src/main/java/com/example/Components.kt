@@ -246,21 +246,23 @@ fun CircleProgressTimer(
     val isAnimationsEnabled by TimerStopwatchStateManager.isBackgroundAnimated.collectAsState()
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    
+    val isCompactScreen = configuration.screenWidthDp < 600
+    val isCompactHeightScreen = configuration.screenHeightDp < 800
+
     val sizeD = if (isInPip) {
         140.dp
     } else if (isLandscape) {
-        200.dp
+        if (isCompactScreen) 160.dp else 200.dp
     } else {
-        310.dp
+        if (isCompactHeightScreen) 260.dp else 310.dp
     }
     
     val textFontSize = if (isInPip) {
         22.sp
     } else if (isLandscape) {
-        36.sp
+        if (isCompactScreen) 30.sp else 36.sp
     } else {
-        52.sp
+        if (isCompactHeightScreen) 44.sp else 52.sp
     }
     
     val subtitleTopPadding = if (isInPip) {

@@ -1326,6 +1326,8 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val isCompactScreen = configuration.screenWidthDp < 600
+    val isCompactHeightScreen = configuration.screenHeightDp < 800
 
     // Formatter centered on centisecond precision
     val totalSeconds = elapsedMs / 1000
@@ -1509,12 +1511,14 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(if (isCompactHeightScreen) 8.dp else 18.dp))
 
             // Display massive counting stopwatch layout
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                LiveDigitalClock()
-                Spacer(modifier = Modifier.height(20.dp))
+                if (!isCompactHeightScreen) {
+                    LiveDigitalClock()
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
                 AnimatedContent(
                     targetState = activeVisualMode,
                     transitionSpec = {
@@ -1527,15 +1531,15 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.Center) {
                                 FlipClockDisplay(
                                     timeString = flipTime,
-                                    height = 100.dp,
-                                    width = 68.dp,
-                                    textSize = 70f,
+                                    height = if (isCompactHeightScreen) 68.dp else 100.dp,
+                                    width = if (isCompactHeightScreen) 46.dp else 68.dp,
+                                    textSize = if (isCompactHeightScreen) 48f else 70f,
                                     modifier = Modifier.weight(1f, fill = false)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = fractionTime, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
+                                Text(text = fractionTime, color = Color.White, fontSize = if (isCompactHeightScreen) 20.sp else 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
                             }
-                            Spacer(modifier = Modifier.height(20.dp))
+                            Spacer(modifier = Modifier.height(if (isCompactHeightScreen) 10.dp else 20.dp))
                         }
                     } else {
                         CircleProgressTimer(
@@ -1554,7 +1558,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(if (isCompactHeightScreen) 8.dp else 16.dp))
 
             // Lap Times list section (Takes remaining vertical scroll frame)
             Box(
@@ -1600,7 +1604,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(if (isCompactHeightScreen) 8.dp else 16.dp))
 
             // Controls
             Row(

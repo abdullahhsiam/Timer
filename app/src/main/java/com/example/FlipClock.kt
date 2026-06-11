@@ -51,7 +51,8 @@ fun FlipCardDigit(
         }
     }
 
-    val rot = rotation.value
+    val rotAnim = rotation.asState() // Read only when needed
+    // Use derived state just for the threshold if really needed, but it's better to just put both flaps in UI and toggle their alpha in graphicsLayer!
 
     Box(
         modifier = modifier
@@ -72,69 +73,73 @@ fun FlipCardDigit(
         // Add static shadows for depth
         Box(modifier = Modifier.fillMaxSize()) {
             // Shadow over bottom half as flap comes down
-            val staticShadowAlpha = if (rot < 90f) (rot / 90f) * 0.5f else 0.5f
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(height / 2)
                     .align(Alignment.BottomCenter)
                     .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                    .background(Color.Black.copy(alpha = staticShadowAlpha))
+                    .graphicsLayer {
+                        val r = rotation.value
+                        val staticShadowAlpha = if (r < 90f) (r / 90f) * 0.5f else 0.5f
+                        alpha = staticShadowAlpha
+                    }
+                    .background(Color.Black)
             )
         }
 
-        // The flipping flap logic
-        // We only animate the flap. Rotating forward means negative rotationX.
-        if (rot < 90f) {
-            // Top Flap falling forward (0 to -90 degrees)
-            // Shows the top half of the previous digit
+        // Top Flap falling forward (0 to 90 degrees)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .graphicsLayer {
+                    val r = rotation.value
+                    alpha = if (r < 90f) 1f else 0f
+                    rotationX = -r
+                    transformOrigin = TransformOrigin(0.5f, 1f) // Pivot at bottom edge (center hinge)
+                    cameraDistance = 12f * density
+                }
+        ) {
+            DigitHalfStatic(digit = previousDigit, isTop = true, height = height / 2, width = width, textSize = textSize)
+            
+            // Shadow on the flap itself as it faces down
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
+                    .matchParentSize()
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
                     .graphicsLayer {
-                        rotationX = -rot
-                        transformOrigin = TransformOrigin(0.5f, 1f) // Pivot at bottom edge (center hinge)
-                        cameraDistance = 12f * density
+                        val r = rotation.value
+                        alpha = (r / 90f) * 0.4f
                     }
-            ) {
-                DigitHalfStatic(digit = previousDigit, isTop = true, height = height / 2, width = width, textSize = textSize)
-                
-                // Shadow on the flap itself as it faces down
-                val flapShadow = (rot / 90f) * 0.4f
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                        .background(Color.Black.copy(alpha = flapShadow))
-                )
-            }
-        } else {
-            // Bottom Flap finishing the fall (-90 to 0 degrees)
-            // Shows bottom half of the current digit
+                    .background(Color.Black)
+            )
+        }
+
+        // Bottom Flap finishing the fall (90 to 180 degrees)
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .graphicsLayer {
+                    val r = rotation.value
+                    alpha = if (r >= 90f) 1f else 0f
+                    rotationX = 180f - r
+                    transformOrigin = TransformOrigin(0.5f, 0f) // Pivot at top edge (center hinge)
+                    cameraDistance = 12f * density
+                }
+        ) {
+            DigitHalfStatic(digit = currentDigit, isTop = false, height = height / 2, width = width, textSize = textSize)
+            
+            // Shadow on the flap dissipating as it lands
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
+                    .matchParentSize()
+                    .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
                     .graphicsLayer {
-                        // Start at 90 degrees rotated forward (which means -90 relative to the bottom flap's top-edge pivot)
-                        // Actually, if we pivot at top edge of bottom half, rotating +90 goes into screen, -90 comes out.
-                        // We want it to swing down from the user towards flat.
-                        // So it starts at +90 (pointing right at user) and goes to 0 (flat).
-                        rotationX = 180f - rot
-                        transformOrigin = TransformOrigin(0.5f, 0f) // Pivot at top edge (center hinge)
-                        cameraDistance = 12f * density
+                        val r = rotation.value
+                        alpha = ((180f - r) / 90f) * 0.4f
                     }
-            ) {
-                DigitHalfStatic(digit = currentDigit, isTop = false, height = height / 2, width = width, textSize = textSize)
-                
-                // Shadow on the flap dissipating as it lands
-                val flapShadow = ((180f - rot) / 90f) * 0.4f
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                        .background(Color.Black.copy(alpha = flapShadow))
-                )
-            }
+                    .background(Color.Black)
+            )
         }
 
         // Center split line to sell the mechanical look
