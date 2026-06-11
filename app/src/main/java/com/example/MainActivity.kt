@@ -1473,7 +1473,6 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .heightIn(min = 60.dp, max = 180.dp)
                         .padding(bottom = 8.dp)
                         .clip(RoundedCornerShape(18.dp))
                         .background(Color(0x06FFFFFF))
@@ -1594,7 +1593,6 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .heightIn(min = 60.dp, max = if (isTablet) 300.dp else 220.dp)
                     .padding(horizontal = 8.dp, vertical = 6.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .background(Color(0x06FFFFFF))

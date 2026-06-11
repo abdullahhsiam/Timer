@@ -248,19 +248,12 @@ fun CircleProgressTimer(
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val isTablet = configuration.screenWidthDp >= 600 && configuration.screenHeightDp >= 600
 
-    val sizeRatio = if (isTablet) 0.5f else if (isLandscape) 0.6f else 0.65f
-    val baseSize = minOf(configuration.screenWidthDp, configuration.screenHeightDp)
-    
     val sizeD = if (isInPip) {
         140.dp
     } else if (isTablet) {
         if (isLandscape) 300.dp else 340.dp
     } else {
-        if (isLandscape) {
-            minOf(200.dp, (configuration.screenHeightDp * 0.6f).dp)
-        } else {
-            minOf(280.dp, maxOf(160.dp, (configuration.screenWidthDp * 0.65f).dp))
-        }
+        if (isLandscape) 200.dp else 260.dp
     }
     
     val textFontSize = if (isInPip) {

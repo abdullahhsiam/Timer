@@ -47,6 +47,7 @@ object TimerStopwatchStateManager {
             putFloat("glass_animation_speed", _glassAnimationSpeed.value)
             putString("wallpaper_uri", _wallpaperUri.value)
             putInt("overlay_mode", _overlayMode.value)
+            putInt("active_tab", _activeTab.value)
 
             // New multi-surface config saving
             putString("appearance_config_json", _appearanceConfig.value.toSerializedString())
@@ -67,6 +68,7 @@ object TimerStopwatchStateManager {
         _glassAnimationSpeed.value = prefs.getFloat("glass_animation_speed", 1.0f)
         _wallpaperUri.value = prefs.getString("wallpaper_uri", "") ?: ""
         _overlayMode.value = prefs.getInt("overlay_mode", 0)
+        _activeTab.value = prefs.getInt("active_tab", 0)
 
         // Restore appearance configs
         val appearanceJson = prefs.getString("appearance_config_json", "") ?: ""
@@ -322,6 +324,15 @@ object TimerStopwatchStateManager {
     // --- Always On Display Keep-Screen State ---
     private val _isAlwaysOn = MutableStateFlow(true)
     val isAlwaysOn: StateFlow<Boolean> = _isAlwaysOn.asStateFlow()
+
+    private val _activeTab = MutableStateFlow(0)
+    val activeTab: StateFlow<Int> = _activeTab.asStateFlow()
+
+    fun selectTab(index: Int) {
+        _activeTab.value = index
+        saveState()
+        triggerWidgetUpdate()
+    }
 
     fun toggleAlwaysOn() {
         _isAlwaysOn.value = !_isAlwaysOn.value

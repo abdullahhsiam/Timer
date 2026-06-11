@@ -570,9 +570,10 @@ class OverlayBubbleService : Service() {
                 TimerStopwatchStateManager.timerRemainingMs,
                 TimerStopwatchStateManager.timerStatus,
                 TimerStopwatchStateManager.stopwatchElapsedMs,
-                TimerStopwatchStateManager.stopwatchStatus
-            ) { timerRemaining, timerStatus, swElapsed, swStatus ->
-                OverlayState(timerRemaining, timerStatus, swElapsed, swStatus)
+                TimerStopwatchStateManager.stopwatchStatus,
+                TimerStopwatchStateManager.activeTab
+            ) { timerRemaining, timerStatus, swElapsed, swStatus, activeTab ->
+                OverlayState(timerRemaining, timerStatus, swElapsed, swStatus, activeTab)
             }.collectLatest { state ->
                 updateOverlayContent(state)
             }
@@ -582,36 +583,47 @@ class OverlayBubbleService : Service() {
     private fun updateOverlayContent(state: OverlayState) {
         val view = overlayView ?: return
 
-        val isTimerActive = state.timerStatus != TimerStatus.IDLE
-        val isSwActive = state.swStatus != StopwatchStatus.IDLE
-        val isPaused = (isTimerActive && state.timerStatus == TimerStatus.PAUSED) || (isSwActive && state.swStatus == StopwatchStatus.PAUSED)
+        val timerIsRunningOrPaused = state.timerStatus != TimerStatus.IDLE
+        val swIsRunningOrPaused = state.swStatus != StopwatchStatus.IDLE
+        
+        // Decide which one to display based on activeTab and running state
+        val showTimer = if (timerIsRunningOrPaused && swIsRunningOrPaused) {
+            state.activeTab == 0
+        } else {
+            timerIsRunningOrPaused
+        }
+        val showSw = if (timerIsRunningOrPaused && swIsRunningOrPaused) {
+            state.activeTab == 1
+        } else {
+            swIsRunningOrPaused
+        }
+
+        val isPaused = (showTimer && state.timerStatus == TimerStatus.PAUSED) || (showSw && state.swStatus == StopwatchStatus.PAUSED)
         val timeColor = if (isPaused) android.graphics.Color.RED else android.graphics.Color.WHITE
 
         var formattedTime = "00:00"
-        if (isTimerActive) {
+        if (showTimer) {
             val totalSecs = state.timerRemainingMs / 1000
             val h = totalSecs / 3600
             val m = (totalSecs % 3600) / 60
             val s = totalSecs % 60
-            formattedTime = if (h > 0) {
-                String.format("%02d:%02d:%02d", h, m, s)
-            } else {
-                String.format("%02d:%02d", m, s)
-            }
-        } else if (isSwActive) {
+            val pad = { n: Long -> if (n < 10) "0$n" else n.toString() }
+            formattedTime = if (h > 0) "${pad(h)}:${pad(m)}:${pad(s)}" else "${pad(m)}:${pad(s)}"
+        } else if (showSw) {
             val totalSecs = state.swElapsed / 1000
             val m = (totalSecs / 60) % 60
             val s = totalSecs % 60
             val cc = (state.swElapsed / 10) % 100
-            formattedTime = String.format("%02d:%02d.%02d", m, s, cc)
+            val pad = { n: Long -> if (n < 10) "0$n" else n.toString() }
+            formattedTime = "${pad(m)}:${pad(s)}.${pad(cc)}"
         }
 
         // Cache hit check: skip layout traversal if visual representation hasn't changed
         if (formattedTime == lastFormattedTime &&
             state.timerStatus == lastTimerStatus &&
             state.swStatus == lastSwStatus &&
-            isTimerActive == lastIsTimerActive &&
-            isSwActive == lastIsSwActive &&
+            showTimer == lastIsTimerActive &&
+            showSw == lastIsSwActive &&
             isPaused == lastIsPaused
         ) {
             return
@@ -621,8 +633,8 @@ class OverlayBubbleService : Service() {
         lastFormattedTime = formattedTime
         lastTimerStatus = state.timerStatus
         lastSwStatus = state.swStatus
-        lastIsTimerActive = isTimerActive
-        lastIsSwActive = isSwActive
+        lastIsTimerActive = showTimer
+        lastIsSwActive = showSw
         lastIsPaused = isPaused
 
         // 1. UPDATE DOCKABLE ISLAND UI
@@ -633,11 +645,12 @@ class OverlayBubbleService : Service() {
         }
         val islandTimerIcon = view.findViewById<ImageView>(R.id.island_timer_icon)
         if (islandTimerIcon != null) {
+            islandTimerIcon.setImageResource(if (showTimer) R.drawable.ic_hourglass_island else R.drawable.ic_timer_island)
             islandTimerIcon.setColorFilter(timeColor, android.graphics.PorterDuff.Mode.SRC_IN)
         }
         val islandPlayPause = view.findViewById<ImageView>(R.id.island_btn_play_pause)
         if (islandPlayPause != null) {
-            val isRunning = (isTimerActive && state.timerStatus == TimerStatus.RUNNING) || (isSwActive && state.swStatus == StopwatchStatus.RUNNING)
+            val isRunning = (showTimer && state.timerStatus == TimerStatus.RUNNING) || (showSw && state.swStatus == StopwatchStatus.RUNNING)
             islandPlayPause.setImageResource(
                 if (isRunning) R.drawable.ic_pause_symbol else R.drawable.ic_play_symbol
             )
@@ -665,14 +678,14 @@ class OverlayBubbleService : Service() {
         btnPausePlay?.setTextColor(android.graphics.Color.WHITE)
         btnAddTime?.setTextColor(android.graphics.Color.WHITE)
 
-        if (isTimerActive) {
+        if (showTimer) {
             expandedTitle?.text = "ACTIVE TIMER"
             btnAddTime?.visibility = View.VISIBLE
             if (btnPausePlay != null) {
                 btnPausePlay.text = if (state.timerStatus == TimerStatus.RUNNING) "Pause" else "Resume"
             }
             glowingDot?.visibility = if (state.timerStatus == TimerStatus.RUNNING) View.VISIBLE else View.GONE
-        } else if (isSwActive) {
+        } else if (showSw) {
             expandedTitle?.text = "STOPWATCH"
             btnAddTime?.visibility = View.GONE
             if (btnPausePlay != null) {
@@ -705,6 +718,7 @@ class OverlayBubbleService : Service() {
         val timerRemainingMs: Long,
         val timerStatus: TimerStatus,
         val swElapsed: Long,
-        val swStatus: StopwatchStatus
+        val swStatus: StopwatchStatus,
+        val activeTab: Int
     )
 }

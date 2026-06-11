@@ -21,12 +21,11 @@ class TimerStopwatchViewModel : ViewModel() {
         TimerStopwatchStateManager.setBackgroundAnimated(animated)
     }
 
-    // --- Tab Selection State (UI View State only) ---
-    private val _activeTab = MutableStateFlow(0) // 0: Timer, 1: Stopwatch
-    val activeTab: StateFlow<Int> = _activeTab.asStateFlow()
+    // --- Tab Selection State ---
+    val activeTab: StateFlow<Int> = TimerStopwatchStateManager.activeTab
 
     fun selectTab(index: Int) {
-        _activeTab.value = index
+        TimerStopwatchStateManager.selectTab(index)
     }
 
     // --- Visual Mode State (0 = Circular, 1 = Flip Clock) ---
