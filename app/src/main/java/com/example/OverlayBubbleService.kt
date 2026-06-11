@@ -704,6 +704,8 @@ class OverlayBubbleService : Service() {
             return
         }
 
+        val modeSwitched = lastFormattedTime.isNotEmpty() && (showTimer != lastIsTimerActive || showSw != lastIsSwActive)
+
         // Update cached values
         lastFormattedTime = formattedTime
         lastTimerStatus = state.timerStatus
@@ -724,6 +726,35 @@ class OverlayBubbleService : Service() {
             updateIconAnimation(islandTimerIcon, showTimer, isRunning)
             islandTimerIcon.setColorFilter(timeColor, android.graphics.PorterDuff.Mode.SRC_IN)
         }
+        
+        if (modeSwitched) {
+            islandTimeText?.alpha = 0f
+            islandTimeText?.animate()?.alpha(1f)?.setDuration(300)?.start()
+            
+            islandTimerIcon?.scaleX = 0f
+            islandTimerIcon?.scaleY = 0f
+            islandTimerIcon?.animate()?.scaleX(1f)?.scaleY(1f)?.setDuration(300)?.setInterpolator(android.view.animation.OvershootInterpolator())?.start()
+            
+            val islandPlayPauseBtn = view.findViewById<ImageView>(R.id.island_btn_play_pause)
+            val islandResetBtn = view.findViewById<ImageView>(R.id.island_btn_reset)
+            val islandCloseBtn = view.findViewById<ImageView>(R.id.island_btn_close)
+            
+            val views = listOfNotNull(islandPlayPauseBtn, islandResetBtn, islandCloseBtn)
+            views.forEach { v ->
+                v.alpha = 0f
+                v.animate().alpha(1f).setDuration(300).start()
+            }
+            
+            val collapsedTimeText = view.findViewById<TextView>(R.id.collapsed_time_text)
+            val expandedTimeText = view.findViewById<TextView>(R.id.expanded_time_text)
+            val expandedTitle = view.findViewById<TextView>(R.id.expanded_title)
+            
+            listOfNotNull(collapsedTimeText, expandedTimeText, expandedTitle).forEach { v ->
+                v.alpha = 0f
+                v.animate().alpha(1f).setDuration(300).start()
+            }
+        }
+
         val islandPlayPause = view.findViewById<ImageView>(R.id.island_btn_play_pause)
         if (islandPlayPause != null) {
             val isRunning = (showTimer && state.timerStatus == TimerStatus.RUNNING) || (showSw && state.swStatus == StopwatchStatus.RUNNING)
