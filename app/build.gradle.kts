@@ -1,52 +1,9 @@
-import java.util.Base64
-
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.roborazzi)
   alias(libs.plugins.secrets)
-}
-
-// Automatically decode debug.keystore from base64 if it is not present, or generate it on the fly
-val keystoreFile = rootProject.file("debug.keystore")
-val base64File = rootProject.file("debug.keystore.base64")
-if (!keystoreFile.exists()) {
-  if (base64File.exists()) {
-    try {
-      val base64Text = base64File.readText().replace("\\s".toRegex(), "")
-      val decodedBytes = Base64.getDecoder().decode(base64Text)
-      keystoreFile.writeBytes(decodedBytes)
-      project.logger.lifecycle("Successfully restored debug.keystore from base64")
-    } catch (e: Exception) {
-      project.logger.warn("Failed to decode debug.keystore: ${e.message}")
-    }
-  } else {
-    try {
-      project.logger.lifecycle("No debug.keystore or base64 file found. Generating design/debug keystore on-the-fly...")
-      val pb = ProcessBuilder(
-        "keytool", "-genkeypair", "-v",
-        "-keystore", keystoreFile.absolutePath,
-        "-storepass", "android",
-        "-alias", "androiddebugkey",
-        "-keypass", "android",
-        "-keyalg", "RSA",
-        "-keysize", "2048",
-        "-validity", "10000",
-        "-dname", "CN=Android Debug,O=Android,C=US"
-      )
-      pb.redirectErrorStream(true)
-      val process = pb.start()
-      val exitCode = process.waitFor()
-      if (exitCode == 0) {
-        project.logger.lifecycle("Successfully generated fresh debug.keystore!")
-      } else {
-        project.logger.warn("Failed to generate debug keystore; process exited with $exitCode")
-      }
-    } catch (e: java.lang.Exception) {
-      project.logger.warn("Failed to run keytool process: ${e.message}")
-    }
-  }
 }
 
 android {
