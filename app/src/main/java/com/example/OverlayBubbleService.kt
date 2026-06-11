@@ -233,12 +233,9 @@ class OverlayBubbleService : Service() {
             interpolator = customInterpolator
             addUpdateListener { animator ->
                 val currentWidth = animator.animatedValue as Int
-                val currentParams = params ?: return@addUpdateListener
-                currentParams.width = currentWidth
-                currentParams.height = fixedCapsuleHeight
-                try {
-                    windowManager.updateViewLayout(root, currentParams)
-                } catch (e: Exception) {}
+                val lp = islandContainer.layoutParams
+                lp.width = currentWidth
+                islandContainer.layoutParams = lp
 
                 val progress = animator.animatedFraction
                 
@@ -280,14 +277,9 @@ class OverlayBubbleService : Service() {
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    val currentParams = params
-                    if (currentParams != null) {
-                        currentParams.width = endWidth
-                        currentParams.height = fixedCapsuleHeight
-                        try {
-                            windowManager.updateViewLayout(root, currentParams)
-                        } catch (e: Exception) {}
-                    }
+                    val lp = islandContainer.layoutParams
+                    lp.width = endWidth
+                    islandContainer.layoutParams = lp
 
                     if (!isIslandExpanded) {
                         btnPlayPause.visibility = View.GONE
@@ -310,7 +302,7 @@ class OverlayBubbleService : Service() {
 
         val density = resources.displayMetrics.density
         val layoutParams = WindowManager.LayoutParams(
-            if (mode == 0) (130 * density).toInt() else WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
             if (mode == 0) (46 * density).toInt() else WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -349,6 +341,11 @@ class OverlayBubbleService : Service() {
 
         if (mode == 0) {
             dockableContainer?.visibility = View.VISIBLE
+            val lp = dockableContainer?.layoutParams
+            if (lp != null) {
+                lp.width = (130 * density).toInt()
+                dockableContainer.layoutParams = lp
+            }
             collapsedContainer?.visibility = View.GONE
             expandedContainer?.visibility = View.GONE
             
@@ -643,6 +640,8 @@ class OverlayBubbleService : Service() {
         if (islandTimerIcon != null) {
             islandTimerIcon.setImageResource(if (showTimer) R.drawable.ic_hourglass_island else R.drawable.ic_timer_island)
             islandTimerIcon.setColorFilter(timeColor, android.graphics.PorterDuff.Mode.SRC_IN)
+            val isRunning = (showTimer && state.timerStatus == TimerStatus.RUNNING) || (showSw && state.swStatus == StopwatchStatus.RUNNING)
+            updateIconAnimation(islandTimerIcon, showTimer, isRunning)
         }
         val islandPlayPause = view.findViewById<ImageView>(R.id.island_btn_play_pause)
         if (islandPlayPause != null) {
@@ -708,6 +707,36 @@ class OverlayBubbleService : Service() {
                 windowManager.removeView(it)
             } catch (e: Exception) {}
         }
+    }
+
+    private var iconRotationAnimator: android.animation.ObjectAnimator? = null
+    private var currentAnimType: Int = -1
+
+    private fun updateIconAnimation(icon: ImageView, showTimer: Boolean, isRunning: Boolean) {
+        val animTypeToRun = if (!isRunning) -1 else if (showTimer) 1 else 2
+        
+        if (animTypeToRun == currentAnimType && iconRotationAnimator?.isRunning == true) {
+            return
+        }
+        
+        iconRotationAnimator?.cancel()
+        iconRotationAnimator = null
+        icon.rotation = 0f
+        currentAnimType = animTypeToRun
+        
+        if (animTypeToRun == -1) return
+        
+        val anim = android.animation.ObjectAnimator.ofFloat(icon, "rotation", 0f, 360f)
+        if (animTypeToRun == 1) { // Timer (Hourglass)
+            anim.duration = 2000L
+            anim.interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+        } else { // Stopwatch
+            anim.duration = 1000L
+            anim.interpolator = android.view.animation.LinearInterpolator()
+        }
+        anim.repeatCount = android.animation.ValueAnimator.INFINITE
+        anim.start()
+        iconRotationAnimator = anim
     }
 
     private data class OverlayState(

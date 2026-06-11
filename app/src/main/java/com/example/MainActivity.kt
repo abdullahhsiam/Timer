@@ -918,7 +918,8 @@ fun ReactiveTimerFace(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isL
         AnimatedContent(
             targetState = activeVisualMode,
             transitionSpec = {
-                (fadeIn(animationSpec = tween(450)) + scaleIn(initialScale = 0.9f)) togetherWith (fadeOut(animationSpec = tween(450)) + scaleOut(targetScale = 1.1f))
+                (fadeIn(animationSpec = tween(220, easing = LinearOutSlowInEasing)) + scaleIn(initialScale = 0.92f, animationSpec = tween(220, easing = LinearOutSlowInEasing))) togetherWith 
+                (fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 1.05f, animationSpec = tween(150)))
             },
             label = "visual_mode_transition"
         ) { mode ->
@@ -1414,7 +1415,8 @@ fun ReactiveStopwatchFace(viewModel: TimerStopwatchViewModel, isTablet: Boolean,
     AnimatedContent(
         targetState = activeVisualMode,
         transitionSpec = {
-            (fadeIn(animationSpec = tween(450)) + scaleIn(initialScale = 0.9f)) togetherWith (fadeOut(animationSpec = tween(450)) + scaleOut(targetScale = 1.1f))
+            (fadeIn(animationSpec = tween(220, easing = LinearOutSlowInEasing)) + scaleIn(initialScale = 0.92f, animationSpec = tween(220, easing = LinearOutSlowInEasing))) togetherWith 
+            (fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 1.05f, animationSpec = tween(150)))
         },
         label = "sw_visual_mode_transition"
     ) { mode ->
