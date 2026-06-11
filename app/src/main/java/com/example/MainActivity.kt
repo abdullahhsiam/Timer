@@ -986,12 +986,13 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                             verticalArrangement = Arrangement.Center,
                             modifier = Modifier.weight(1.1f)
                         ) {
+                            val isCompactLand = configuration.screenHeightDp < 600
                             ModernKeypad(
-                                buttonSize = 58.dp,
-                                spacing = 6.dp,
-                                horizontalSpacing = 14.dp,
-                                fontSize = 24.sp,
-                                actionFontSize = 18.sp,
+                                buttonSize = if (isCompactLand) 48.dp else 58.dp,
+                                spacing = if (isCompactLand) 4.dp else 6.dp,
+                                horizontalSpacing = if (isCompactLand) 8.dp else 14.dp,
+                                fontSize = if (isCompactLand) 20.sp else 24.sp,
+                                actionFontSize = if (isCompactLand) 16.sp else 18.sp,
                                 onDigitClicked = { if (transitionProgress < 0.1f) viewModel.appendDigit(it) },
                                 onDeleteClicked = { if (transitionProgress < 0.1f) viewModel.deleteDigit() },
                                 onClearAllClicked = { if (transitionProgress < 0.1f) viewModel.clearTimerInput() }
@@ -1043,8 +1044,14 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         Spacer(modifier = Modifier.height(12.dp))
 
                         // Tactical numeric layout keys overlay
+                        val isCompactScreen = configuration.screenWidthDp < 600
                         ModernKeypad(
                             modifier = Modifier.padding(horizontal = 16.dp),
+                            buttonSize = if (isCompactScreen) 56.dp else 72.dp,
+                            spacing = if (isCompactScreen) 8.dp else 12.dp,
+                            horizontalSpacing = if (isCompactScreen) 16.dp else 24.dp,
+                            fontSize = if (isCompactScreen) 22.sp else 26.sp,
+                            actionFontSize = if (isCompactScreen) 16.sp else 18.sp,
                             onDigitClicked = { if (transitionProgress < 0.1f) viewModel.appendDigit(it) },
                             onDeleteClicked = { if (transitionProgress < 0.1f) viewModel.deleteDigit() },
                             onClearAllClicked = { if (transitionProgress < 0.1f) viewModel.clearTimerInput() }
@@ -1188,45 +1195,10 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                                 .testTag("timer_add_1m_btn")
                         )
                     }
-
-                    if (!isLandscape) {
-                        Spacer(modifier = Modifier.height(30.dp))
-                        SpotifyPlayer(modifier = Modifier.padding(horizontal = 16.dp))
-                    }
                 }
             }
         }
     }
-}
-
-@Composable
-fun SpotifyPlayer(modifier: Modifier = Modifier) {
-    androidx.compose.ui.viewinterop.AndroidView(
-        modifier = modifier.fillMaxWidth().height(80.dp),
-        factory = { context ->
-            android.webkit.WebView(context).apply {
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.mediaPlaybackRequiresUserGesture = false
-                setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                
-                // Load an iframe of the Spotify embed for a lofi focus playlist
-                val html = """
-                    <html>
-                    <body style='margin:0;padding:0;'>
-                        <iframe style='border-radius:12px' 
-                            src='https://open.spotify.com/embed/playlist/37i9dQZF1DWZeKCadgRdKQ?utm_source=generator&theme=0' 
-                            width='100%' height='80' frameborder='0' allowfullscreen='' 
-                            allow='autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture'>
-                        </iframe>
-                    </body>
-                    </html>
-                """.trimIndent()
-                
-                loadDataWithBaseURL("https://open.spotify.com", html, "text/html", "UTF-8", null)
-            }
-        }
-    )
 }
 
 @Composable
