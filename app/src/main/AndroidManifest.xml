@@ -42,7 +42,10 @@
 
         <service
             android:name=".OverlayBubbleService"
-            android:exported="false" />
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Luminous overlay bubble service."/>
+        </service>
 
         <receiver
             android:name=".BootReceiver"

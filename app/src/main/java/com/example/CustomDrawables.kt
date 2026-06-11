@@ -65,30 +65,26 @@ class MinimalHourglassDrawable : Drawable(), ProgressDrawable {
         
         canvas.drawPath(path, paint)
         
-        // Top Fluid (shrinking from top)
+        // Top Fluid (shrinking from top - fluid stays at bottom of the top triangle)
         if (flowProgress < 1f) {
-            val topH = hh * (1f - flowProgress)
-            val yStop = cy - hh + (hh - topH)
-            val wRatio = topH / hh
-            val wOuter = hw * 0.2f + (hw * 0.8f) * wRatio
+            val fluidTopY = cy - hh + hh * flowProgress
+            val wOuter = hw * 0.2f + (hw * 0.8f) * ((cy - fluidTopY) / hh)
             path.reset()
-            path.moveTo(cx - hw, cy - hh)
-            path.lineTo(cx + hw, cy - hh)
-            path.lineTo(cx + wOuter, yStop)
-            path.lineTo(cx - wOuter, yStop)
+            path.moveTo(cx - wOuter, fluidTopY)
+            path.lineTo(cx + wOuter, fluidTopY)
+            path.lineTo(cx + hw * 0.2f, cy)
+            path.lineTo(cx - hw * 0.2f, cy)
             path.close()
             canvas.drawPath(path, fillPaint)
         }
         
-        // Bottom Fluid (growing from bottom)
+        // Bottom Fluid (growing from bottom - fluid fills from bottom up)
         if (flowProgress > 0f) {
-            val bottomH = hh * flowProgress
-            val yStart = cy + hh - bottomH
-            val wRatio = bottomH / hh
-            val wOuter = hw * 0.2f + (hw * 0.8f) * wRatio
+            val fluidBottomY = cy + hh - hh * flowProgress
+            val wOuter = hw * 0.2f + (hw * 0.8f) * ((fluidBottomY - cy) / hh)
             path.reset()
-            path.moveTo(cx - wOuter, yStart)
-            path.lineTo(cx + wOuter, yStart)
+            path.moveTo(cx - wOuter, fluidBottomY)
+            path.lineTo(cx + wOuter, fluidBottomY)
             path.lineTo(cx + hw, cy + hh)
             path.lineTo(cx - hw, cy + hh)
             path.close()

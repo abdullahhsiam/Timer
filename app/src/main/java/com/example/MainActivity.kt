@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.view.WindowManager
 import android.provider.Settings
 import android.net.Uri
+import android.os.Build
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LayersClear
 import androidx.activity.ComponentActivity
@@ -623,7 +624,12 @@ fun MainScreen(
                                         if (overlayActive) {
                                             context.stopService(Intent(context, OverlayBubbleService::class.java))
                                         } else {
-                                            context.startService(Intent(context, OverlayBubbleService::class.java))
+                                            val serviceIntent = Intent(context, OverlayBubbleService::class.java)
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                context.startForegroundService(serviceIntent)
+                                            } else {
+                                                context.startService(serviceIntent)
+                                            }
                                         }
                                     } else {
                                         val intent = Intent(

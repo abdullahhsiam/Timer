@@ -53,6 +53,33 @@ class OverlayBubbleService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        
+        val channelId = "LuminousOverlayChannel"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = android.app.NotificationChannel(
+                channelId,
+                "Luminous Overlay Service",
+                android.app.NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Keeps the luminous dockable island running"
+            }
+            val manager = getSystemService(android.app.NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
+        }
+        
+        val notification = androidx.core.app.NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Luminous Overlay")
+            .setContentText("Dockable island active")
+            .setSmallIcon(R.drawable.ic_timer_island)
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW)
+            .build()
+            
+        if (Build.VERSION.SDK_INT >= 34) {
+            startForeground(2, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(2, notification)
+        }
+
         if (!Settings.canDrawOverlays(this)) {
             stopSelf()
             return
@@ -722,6 +749,7 @@ class OverlayBubbleService : Service() {
         
         val activeDrawable = if (showTimer) customHourglassDrawable!! else customStopwatchDrawable!!
         (activeDrawable as ProgressDrawable).progress = 0f
+        icon.rotation = 0f
         icon.setImageDrawable(activeDrawable)
         
         if (animTypeToRun == -1) return
@@ -731,10 +759,10 @@ class OverlayBubbleService : Service() {
             (activeDrawable as ProgressDrawable).progress = it.animatedValue as Float
         }
         if (animTypeToRun == 1) { // Timer (Hourglass)
-            anim.duration = 2000L
+            anim.duration = 4000L
             anim.interpolator = android.view.animation.LinearInterpolator()
         } else { // Stopwatch
-            anim.duration = 1000L
+            anim.duration = 2000L
             anim.interpolator = android.view.animation.LinearInterpolator()
         }
         anim.repeatCount = android.animation.ValueAnimator.INFINITE

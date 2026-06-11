@@ -59,7 +59,7 @@
 
         <!-- Center Time Text Display (Always Visible) -->
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="105dp"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:gravity="center_vertical"
@@ -69,19 +69,21 @@
                 android:id="@+id/island_timer_icon"
                 android:layout_width="16dp"
                 android:layout_height="16dp"
-                android:layout_marginEnd="6dp"
+                android:layout_marginEnd="4dp"
                 android:src="@drawable/ic_timer_island"
                 android:tint="#FFFFFF"
                 android:alpha="0.8" />
                 
             <TextView
                 android:id="@+id/island_time_text"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="center"
                 android:fontFamily="sans-serif-medium"
+                android:fontFeatureSettings="tnum"
                 android:text="00:00"
                 android:textColor="#FFFFFF"
-                android:textSize="17sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.04" />
         </LinearLayout>
