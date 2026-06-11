@@ -329,7 +329,8 @@ fun CircleProgressTimer(
                 fontWeight = FontWeight.ExtraLight,
                 fontFamily = FontFamily.SansSerif,
                 textAlign = TextAlign.Center,
-                letterSpacing = (-1).sp
+                letterSpacing = (-1).sp,
+                style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
             )
             
             Spacer(modifier = Modifier.height(subtitleTopPadding))

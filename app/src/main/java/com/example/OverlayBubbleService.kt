@@ -821,10 +821,10 @@ class OverlayBubbleService : Service() {
             (activeDrawable as ProgressDrawable).progress = it.animatedValue as Float
         }
         if (animTypeToRun == 1) { // Timer (Hourglass)
-            anim.duration = 4000L
+            anim.duration = 6000L
             anim.interpolator = android.view.animation.LinearInterpolator()
         } else { // Stopwatch
-            anim.duration = 2000L
+            anim.duration = 3000L
             anim.interpolator = android.view.animation.LinearInterpolator()
         }
         anim.repeatCount = android.animation.ValueAnimator.INFINITE

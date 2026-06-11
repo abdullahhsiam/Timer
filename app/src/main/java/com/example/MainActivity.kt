@@ -1380,7 +1380,7 @@ fun StopwatchFlipView(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isL
                 modifier = Modifier.weight(1f, fill = false)
             )
             Spacer(modifier = Modifier.width(6.dp))
-            Text(text = fractionTime, color = Color.White, fontSize = if (isTablet) 18.sp else if (isLandscape) 15.sp else 16.sp, fontWeight = FontWeight.Bold, modifier = if (!isLandscape) Modifier.padding(bottom = 12.dp) else Modifier)
+            Text(text = fractionTime, color = Color.White, fontSize = if (isTablet) 18.sp else if (isLandscape) 15.sp else 16.sp, fontWeight = FontWeight.Bold, modifier = if (!isLandscape) Modifier.padding(bottom = 12.dp) else Modifier, style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum"))
         }
         if (!isLandscape) Spacer(modifier = Modifier.height(if (isTablet) 15.dp else 9.dp))
     }
