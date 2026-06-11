@@ -1465,7 +1465,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                     .weight(1.1f)
                     .fillMaxHeight()
                     .padding(horizontal = 8.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Lap Times list section (Takes remaining vertical scroll frame)
@@ -1576,10 +1576,8 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                 .fillMaxSize()
                 .padding(horizontal = if (isTablet) 32.dp else 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.Center
         ) {
-            Spacer(modifier = Modifier.height(if (isCompactHeightScreen) 4.dp else 16.dp))
-
             // Display counting stopwatch layout
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 LiveDigitalClock()
@@ -1587,7 +1585,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                 ReactiveStopwatchFace(viewModel, isTablet, isCompactHeightScreen, isLandscape = false)
             }
 
-            Spacer(modifier = Modifier.height(if (isTablet) 20.dp else 12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Lap Times list section (Takes remaining vertical scroll frame)
             Box(
