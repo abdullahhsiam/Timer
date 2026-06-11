@@ -211,34 +211,74 @@ fun DigitHalfStatic(
 @Composable
 fun FlipClockDisplay(
     timeString: String,
+    modifier: Modifier = Modifier,
     height: Dp = 100.dp,
     width: Dp = 68.dp,
     textSize: Float = 70f
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
+    BoxWithConstraints(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
     ) {
-        for (i in timeString.indices) {
-            val c = timeString[i]
-            if (c.isDigit()) {
-                FlipCardDigit(
-                    digit = c,
-                    height = height,
-                    width = width,
-                    textSize = textSize
-                )
-                if (i < timeString.lastIndex && timeString[i+1].isDigit()) {
-                    Spacer(modifier = Modifier.width(4.dp))
+        val digitCount = timeString.count { it.isDigit() }
+        val separatorCount = timeString.length - digitCount
+        var internalSpacers = 0
+        for (i in 0 until timeString.length - 1) {
+            if (timeString[i].isDigit() && timeString[i+1].isDigit()) {
+                internalSpacers++
+            }
+        }
+
+        // Approximate separator width + padding (4.dp on each side)
+        val separatorWidth = (textSize * 0.7f * 0.5f).dp + 8.dp 
+        
+        val unscaledTotalWidth = (width * digitCount) + 
+                                 (4.dp * internalSpacers) + 
+                                 (separatorWidth * separatorCount)
+                                 
+        val maxW = if (maxWidth != Dp.Infinity && maxWidth > 0.dp) {
+             maxWidth
+        } else {
+             androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp - 32.dp
+        }
+        
+        val scale = if (unscaledTotalWidth > maxW) {
+            maxW / unscaledTotalWidth
+        } else {
+            1f
+        }
+        
+        val scaledHeight = height * scale
+        val scaledWidth = width * scale
+        val scaledTextSize = textSize * scale
+        val scaledSpacer = 4.dp * scale
+        val scaledPadding = 4.dp * scale
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            for (i in timeString.indices) {
+                val c = timeString[i]
+                if (c.isDigit()) {
+                    FlipCardDigit(
+                        digit = c,
+                        height = scaledHeight,
+                        width = scaledWidth,
+                        textSize = scaledTextSize
+                    )
+                    if (i < timeString.lastIndex && timeString[i+1].isDigit()) {
+                        Spacer(modifier = Modifier.width(scaledSpacer))
+                    }
+                } else {
+                    Text(
+                        text = c.toString(),
+                        fontSize = (scaledTextSize * 0.7f).sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(horizontal = scaledPadding)
+                    )
                 }
-            } else {
-                Text(
-                    text = c.toString(),
-                    fontSize = (textSize * 0.7f).sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White.copy(alpha = 0.5f),
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
             }
         }
     }

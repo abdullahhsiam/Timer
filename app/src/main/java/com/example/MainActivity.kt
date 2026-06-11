@@ -1122,12 +1122,13 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                         label = "visual_mode_transition"
                     ) { mode ->
                         if (mode == 1) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                                 FlipClockDisplay(
                                     timeString = readableTime,
                                     height = if (isLandscape) 75.dp else 110.dp,
                                     width = if (isLandscape) 52.dp else 75.dp,
-                                    textSize = if (isLandscape) 55f else 80f
+                                    textSize = if (isLandscape) 55f else 80f,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                                 Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 30.dp))
                             }
@@ -1354,12 +1355,13 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                         label = "sw_visual_mode_transition"
                     ) { mode ->
                         if (mode == 1) {
-                            Row(verticalAlignment = Alignment.Bottom) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.Center) {
                                 FlipClockDisplay(
                                     timeString = flipTime,
                                     height = 70.dp,
                                     width = 48.dp,
-                                    textSize = 50f
+                                    textSize = 50f,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(text = fractionTime, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
@@ -1514,13 +1516,14 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                     label = "sw_visual_mode_transition"
                 ) { mode ->
                     if (mode == 1) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Row(verticalAlignment = Alignment.Bottom) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.Center) {
                                 FlipClockDisplay(
                                     timeString = flipTime,
                                     height = 100.dp,
                                     width = 68.dp,
-                                    textSize = 70f
+                                    textSize = 70f,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(text = fractionTime, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
