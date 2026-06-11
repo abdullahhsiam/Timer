@@ -1188,10 +1188,45 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                                 .testTag("timer_add_1m_btn")
                         )
                     }
+
+                    if (!isLandscape) {
+                        Spacer(modifier = Modifier.height(30.dp))
+                        SpotifyPlayer(modifier = Modifier.padding(horizontal = 16.dp))
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+fun SpotifyPlayer(modifier: Modifier = Modifier) {
+    androidx.compose.ui.viewinterop.AndroidView(
+        modifier = modifier.fillMaxWidth().height(80.dp),
+        factory = { context ->
+            android.webkit.WebView(context).apply {
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                settings.mediaPlaybackRequiresUserGesture = false
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                
+                // Load an iframe of the Spotify embed for a lofi focus playlist
+                val html = """
+                    <html>
+                    <body style='margin:0;padding:0;'>
+                        <iframe style='border-radius:12px' 
+                            src='https://open.spotify.com/embed/playlist/37i9dQZF1DWZeKCadgRdKQ?utm_source=generator&theme=0' 
+                            width='100%' height='80' frameborder='0' allowfullscreen='' 
+                            allow='autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture'>
+                        </iframe>
+                    </body>
+                    </html>
+                """.trimIndent()
+                
+                loadDataWithBaseURL("https://open.spotify.com", html, "text/html", "UTF-8", null)
+            }
+        }
+    )
 }
 
 @Composable
