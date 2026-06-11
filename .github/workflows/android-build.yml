@@ -29,6 +29,11 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Recreate Debug Keystore
+        run: |
+          echo "Recreating debug.keystore from debug.keystore.base64"
+          base64 -d debug.keystore.base64 > debug.keystore
+
       - name: Build Debug APK
         run: gradle assembleDebug
 

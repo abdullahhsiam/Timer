@@ -13,7 +13,7 @@ val keystoreFile = rootProject.file("debug.keystore")
 val base64File = rootProject.file("debug.keystore.base64")
 if (!keystoreFile.exists() && base64File.exists()) {
   try {
-    val base64Text = base64File.readText().trim()
+    val base64Text = base64File.readText().replace("\\s".toRegex(), "")
     val decodedBytes = Base64.getDecoder().decode(base64Text)
     keystoreFile.writeBytes(decodedBytes)
   } catch (e: Exception) {

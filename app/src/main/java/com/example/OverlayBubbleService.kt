@@ -45,8 +45,11 @@ class OverlayBubbleService : Service() {
     private var lastFormattedTime = ""
     private var lastTimerStatus: TimerStatus? = null
     private var lastSwStatus: StopwatchStatus? = null
+    private var lastPomoStatus: PomodoroStatus? = null
+    private var lastFocusState: FocusModeState? = null
     private var lastIsTimerActive = false
     private var lastIsSwActive = false
+    private var lastIsPomoActive = false
     private var lastIsPaused = false
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -606,6 +609,15 @@ class OverlayBubbleService : Service() {
     }
 
     private fun toggleActiveTimerState() {
+        val isPomoActive = TimerStopwatchStateManager.focusModeState.value != FocusModeState.OFF
+        if (isPomoActive) {
+            if (TimerStopwatchStateManager.pomodoroStatus.value == PomodoroStatus.RUNNING) {
+                TimerStopwatchStateManager.pausePomodoro()
+            } else {
+                TimerStopwatchStateManager.startPomodoro()
+            }
+            return
+        }
         val isTimerActive = TimerStopwatchStateManager.timerStatus.value != TimerStatus.IDLE
         if (isTimerActive) {
             if (TimerStopwatchStateManager.timerStatus.value == TimerStatus.RUNNING) {
@@ -623,6 +635,11 @@ class OverlayBubbleService : Service() {
     }
 
     private fun resetActiveTimerState() {
+        val isPomoActive = TimerStopwatchStateManager.focusModeState.value != FocusModeState.OFF
+        if (isPomoActive) {
+            TimerStopwatchStateManager.resetPomodoro()
+            return
+        }
         val isTimerActive = TimerStopwatchStateManager.timerStatus.value != TimerStatus.IDLE
         if (isTimerActive) {
             TimerStopwatchStateManager.resetTimer()
@@ -642,13 +659,27 @@ class OverlayBubbleService : Service() {
         updateJob?.cancel()
         updateJob = serviceScope.launch {
             combine(
-                TimerStopwatchStateManager.timerRemainingMs,
-                TimerStopwatchStateManager.timerStatus,
-                TimerStopwatchStateManager.stopwatchElapsedMs,
-                TimerStopwatchStateManager.stopwatchStatus,
-                TimerStopwatchStateManager.activeTab
-            ) { timerRemaining, timerStatus, swElapsed, swStatus, activeTab ->
-                OverlayState(timerRemaining, timerStatus, swElapsed, swStatus, activeTab)
+                listOf(
+                    TimerStopwatchStateManager.timerRemainingMs,
+                    TimerStopwatchStateManager.timerStatus,
+                    TimerStopwatchStateManager.stopwatchElapsedMs,
+                    TimerStopwatchStateManager.stopwatchStatus,
+                    TimerStopwatchStateManager.activeTab,
+                    TimerStopwatchStateManager.pomodoroRemainingMs,
+                    TimerStopwatchStateManager.pomodoroStatus,
+                    TimerStopwatchStateManager.focusModeState
+                )
+            ) { array ->
+                OverlayState(
+                    timerRemainingMs = array[0] as Long,
+                    timerStatus = array[1] as TimerStatus,
+                    swElapsed = array[2] as Long,
+                    swStatus = array[3] as StopwatchStatus,
+                    activeTab = array[4] as Int,
+                    pomoRemainingMs = array[5] as Long,
+                    pomoStatus = array[6] as PomodoroStatus,
+                    focusState = array[7] as FocusModeState
+                )
             }.collectLatest { state ->
                 updateOverlayContent(state)
             }
@@ -660,24 +691,58 @@ class OverlayBubbleService : Service() {
 
         val timerIsRunningOrPaused = state.timerStatus != TimerStatus.IDLE
         val swIsRunningOrPaused = state.swStatus != StopwatchStatus.IDLE
-        
-        // Decide which one to display based on activeTab and running state
-        val showTimer = if (timerIsRunningOrPaused && swIsRunningOrPaused) {
-            state.activeTab != 2
-        } else {
-            timerIsRunningOrPaused
-        }
-        val showSw = if (timerIsRunningOrPaused && swIsRunningOrPaused) {
-            state.activeTab == 2
-        } else {
-            swIsRunningOrPaused
+        val isPomoActive = state.focusState != FocusModeState.OFF
+
+        // Prioritize active and running operations dynamically
+        val showType = when {
+            state.pomoStatus == PomodoroStatus.RUNNING -> "POMO"
+            state.timerStatus == TimerStatus.RUNNING -> "TIMER"
+            state.swStatus == StopwatchStatus.RUNNING -> "SW"
+            
+            state.pomoStatus == PomodoroStatus.PAUSED -> "POMO"
+            state.timerStatus == TimerStatus.PAUSED -> "TIMER"
+            state.swStatus == StopwatchStatus.PAUSED -> "SW"
+            
+            isPomoActive -> "POMO"
+            timerIsRunningOrPaused -> "TIMER"
+            swIsRunningOrPaused -> "SW"
+            
+            else -> {
+                when (state.activeTab) {
+                    0 -> "POMO"
+                    1 -> "TIMER"
+                    2 -> "SW"
+                    else -> "TIMER"
+                }
+            }
         }
 
-        val isPaused = (showTimer && state.timerStatus == TimerStatus.PAUSED) || (showSw && state.swStatus == StopwatchStatus.PAUSED)
-        val timeColor = if (isPaused) android.graphics.Color.RED else android.graphics.Color.WHITE
+        val showPomo = showType == "POMO" && isPomoActive
+        val showSw = showType == "SW"
+        val showTimer = showType == "TIMER" || (showType == "POMO" && !isPomoActive)
 
+        var isPaused = false
+        var timeColor = android.graphics.Color.WHITE
         var formattedTime = "00:00"
-        if (showTimer) {
+
+        if (showPomo) {
+            isPaused = state.pomoStatus == PomodoroStatus.PAUSED
+            timeColor = if (isPaused) {
+                android.graphics.Color.RED
+            } else if (state.focusState == FocusModeState.BREAK) {
+                android.graphics.Color.parseColor("#00E6FF") // CyanGlow
+            } else {
+                android.graphics.Color.parseColor("#10B981") // GlowGreen
+            }
+            
+            val totalSecs = state.pomoRemainingMs / 1000
+            val m = totalSecs / 60
+            val s = totalSecs % 60
+            val pad = { n: Long -> if (n < 10) "0$n" else n.toString() }
+            formattedTime = "${pad(m)}:${pad(s)}"
+        } else if (showTimer) {
+            isPaused = state.timerStatus == TimerStatus.PAUSED
+            timeColor = if (isPaused) android.graphics.Color.RED else android.graphics.Color.WHITE
             val totalSecs = state.timerRemainingMs / 1000
             val h = totalSecs / 3600
             val m = (totalSecs % 3600) / 60
@@ -685,6 +750,8 @@ class OverlayBubbleService : Service() {
             val pad = { n: Long -> if (n < 10) "0$n" else n.toString() }
             formattedTime = if (h > 0) "${pad(h)}:${pad(m)}:${pad(s)}" else "${pad(m)}:${pad(s)}"
         } else if (showSw) {
+            isPaused = state.swStatus == StopwatchStatus.PAUSED
+            timeColor = if (isPaused) android.graphics.Color.RED else android.graphics.Color.WHITE
             val totalSecs = state.swElapsed / 1000
             val m = (totalSecs / 60) % 60
             val s = totalSecs % 60
@@ -697,24 +764,28 @@ class OverlayBubbleService : Service() {
         if (formattedTime == lastFormattedTime &&
             state.timerStatus == lastTimerStatus &&
             state.swStatus == lastSwStatus &&
+            state.pomoStatus == lastPomoStatus &&
+            state.focusState == lastFocusState &&
             showTimer == lastIsTimerActive &&
             showSw == lastIsSwActive &&
+            showPomo == lastIsPomoActive &&
             isPaused == lastIsPaused
         ) {
             return
         }
 
         // Mode switched: Trigger transition animations for a smoother UI experience
-        // Added harmless log to trigger APK hash change for git commit
-        android.util.Log.d("OverlayBubbleService", "Triggering mode transition refresh")
-        val modeSwitched = lastFormattedTime.isNotEmpty() && (showTimer != lastIsTimerActive || showSw != lastIsSwActive)
+        val modeSwitched = lastFormattedTime.isNotEmpty() && (showTimer != lastIsTimerActive || showSw != lastIsSwActive || showPomo != lastIsPomoActive)
 
         // Update cached values
         lastFormattedTime = formattedTime
         lastTimerStatus = state.timerStatus
         lastSwStatus = state.swStatus
+        lastPomoStatus = state.pomoStatus
+        lastFocusState = state.focusState
         lastIsTimerActive = showTimer
         lastIsSwActive = showSw
+        lastIsPomoActive = showPomo
         lastIsPaused = isPaused
 
         // 1. UPDATE DOCKABLE ISLAND UI
@@ -725,8 +796,10 @@ class OverlayBubbleService : Service() {
         }
         val islandTimerIcon = view.findViewById<ImageView>(R.id.island_timer_icon)
         if (islandTimerIcon != null) {
-            val isRunning = (showTimer && state.timerStatus == TimerStatus.RUNNING) || (showSw && state.swStatus == StopwatchStatus.RUNNING)
-            updateIconAnimation(islandTimerIcon, showTimer, isRunning)
+            val isRunning = (showPomo && state.pomoStatus == PomodoroStatus.RUNNING) || 
+                            (showTimer && state.timerStatus == TimerStatus.RUNNING) || 
+                            (showSw && state.swStatus == StopwatchStatus.RUNNING)
+            updateIconAnimation(islandTimerIcon, !showSw, isRunning)
             islandTimerIcon.setColorFilter(timeColor, android.graphics.PorterDuff.Mode.SRC_IN)
         }
         
@@ -760,7 +833,9 @@ class OverlayBubbleService : Service() {
 
         val islandPlayPause = view.findViewById<ImageView>(R.id.island_btn_play_pause)
         if (islandPlayPause != null) {
-            val isRunning = (showTimer && state.timerStatus == TimerStatus.RUNNING) || (showSw && state.swStatus == StopwatchStatus.RUNNING)
+            val isRunning = (showPomo && state.pomoStatus == PomodoroStatus.RUNNING) || 
+                            (showTimer && state.timerStatus == TimerStatus.RUNNING) || 
+                            (showSw && state.swStatus == StopwatchStatus.RUNNING)
             islandPlayPause.setImageResource(
                 if (isRunning) R.drawable.ic_pause_symbol else R.drawable.ic_play_symbol
             )
@@ -788,7 +863,14 @@ class OverlayBubbleService : Service() {
         btnPausePlay?.setTextColor(android.graphics.Color.WHITE)
         btnAddTime?.setTextColor(android.graphics.Color.WHITE)
 
-        if (showTimer) {
+        if (showPomo) {
+            expandedTitle?.text = if (state.focusState == FocusModeState.FOCUS) "POMODORO FOCUS" else "POMODORO BREAK"
+            btnAddTime?.visibility = View.GONE
+            if (btnPausePlay != null) {
+                btnPausePlay.text = if (state.pomoStatus == PomodoroStatus.RUNNING) "Pause" else "Resume"
+            }
+            glowingDot?.visibility = if (state.pomoStatus == PomodoroStatus.RUNNING) View.VISIBLE else View.GONE
+        } else if (showTimer) {
             expandedTitle?.text = "ACTIVE TIMER"
             btnAddTime?.visibility = View.VISIBLE
             if (btnPausePlay != null) {
@@ -871,6 +953,9 @@ class OverlayBubbleService : Service() {
         val timerStatus: TimerStatus,
         val swElapsed: Long,
         val swStatus: StopwatchStatus,
-        val activeTab: Int
+        val activeTab: Int,
+        val pomoRemainingMs: Long,
+        val pomoStatus: PomodoroStatus,
+        val focusState: FocusModeState
     )
 }

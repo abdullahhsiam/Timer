@@ -8,6 +8,14 @@ enum class StopwatchStatus {
     IDLE, RUNNING, PAUSED
 }
 
+enum class FocusModeState {
+    OFF, FOCUS, BREAK
+}
+
+enum class PomodoroStatus {
+    IDLE, RUNNING, PAUSED
+}
+
 data class LapRecord(
     val index: Int,
     val lapTimeMs: Long,

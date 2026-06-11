@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.DoNotDisturbAlt
@@ -302,8 +303,8 @@ fun MainScreen(
             ActiveAlarmOverlay(viewModel = viewModel)
         } else {
             // Main Standard Navigation and Layout Structure with stable coordinates
-            val isFullScreenDisplay = (timerStatus == TimerStatus.RUNNING && activeTab == 1) || 
-                                      (stopwatchStatus == StopwatchStatus.RUNNING && activeTab == 2)
+            val isFullScreenDisplay = (timerStatus == TimerStatus.RUNNING && activeTab == 2) || 
+                                      (stopwatchStatus == StopwatchStatus.RUNNING && activeTab == 3)
 
             val fullScreenTransitionProgress by animateFloatAsState(
                 targetValue = if (isFullScreenDisplay) 1f else 0f,
@@ -329,7 +330,7 @@ fun MainScreen(
                                 onDragEnd = {
                                     if (swipeOffset > 100f && activeTab > 0) {
                                         viewModel.selectTab(activeTab - 1)
-                                    } else if (swipeOffset < -100f && activeTab < 2) {
+                                    } else if (swipeOffset < -100f && activeTab < 3) {
                                         viewModel.selectTab(activeTab + 1)
                                     }
                                     swipeOffset = 0f
@@ -365,8 +366,9 @@ fun MainScreen(
                         ) {
                             when (targetTab) {
                                 0 -> ClockTabContent(viewModel = viewModel)
-                                1 -> TimerTabContent(viewModel = viewModel)
-                                2 -> StopwatchTabContent(viewModel = viewModel)
+                                1 -> PomodoroTabContent(viewModel = viewModel)
+                                2 -> TimerTabContent(viewModel = viewModel)
+                                3 -> StopwatchTabContent(viewModel = viewModel)
                             }
                         }
                     }
@@ -725,8 +727,8 @@ fun SlidingTabSwitcher(
         contentAlignment = Alignment.CenterStart
     ) {
         val totalWidth = maxWidth
-        val tabWidth = totalWidth / 3
-        val stretchWidth = tabWidth + (20.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat())
+        val tabWidth = totalWidth / 4
+        val stretchWidth = tabWidth + (12.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat())
 
         // Sliding glassmorphic indicator capsule
         Box(
@@ -736,7 +738,7 @@ fun SlidingTabSwitcher(
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(16.dp))
                 .blur(
-                    radius = (8.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat())
+                    radius = (6.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat())
                 )
                 .background(Color.White.copy(alpha = 0.12f))
         )
@@ -756,10 +758,20 @@ fun SlidingTabSwitcher(
                     .testTag("tab_clock")
             )
             TabItem(
-                label = "Timer",
+                label = "Pomo",
                 selected = activeTab == 1,
-                icon = Icons.Default.Timer,
+                icon = Icons.Default.Spa,
                 onClick = { onTabSelected(1) },
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .testTag("tab_pomodoro")
+            )
+            TabItem(
+                label = "Timer",
+                selected = activeTab == 2,
+                icon = Icons.Default.Timer,
+                onClick = { onTabSelected(2) },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -767,9 +779,9 @@ fun SlidingTabSwitcher(
             )
             TabItem(
                 label = "Watch",
-                selected = activeTab == 2,
+                selected = activeTab == 3,
                 icon = Icons.Default.HourglassEmpty,
-                onClick = { onTabSelected(2) },
+                onClick = { onTabSelected(3) },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()

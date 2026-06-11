@@ -137,6 +137,63 @@ class TimerStopwatchViewModel : ViewModel() {
     }
 
     // ==========================================
+    // POMODORO DELEGATIONS
+    // ==========================================
+    val focusModeState: StateFlow<FocusModeState> = TimerStopwatchStateManager.focusModeState
+    val pomodoroStatus: StateFlow<PomodoroStatus> = TimerStopwatchStateManager.pomodoroStatus
+    val pomodoroRemainingMs: StateFlow<Long> = TimerStopwatchStateManager.pomodoroRemainingMs
+    val pomodoroDurationMs: StateFlow<Long> = TimerStopwatchStateManager.pomodoroDurationMs
+    
+    val focusDefaultMin: StateFlow<Int> = TimerStopwatchStateManager.focusDefaultMin
+    val shortBreakDefaultMin: StateFlow<Int> = TimerStopwatchStateManager.shortBreakDefaultMin
+    val longBreakDefaultMin: StateFlow<Int> = TimerStopwatchStateManager.longBreakDefaultMin
+
+    val totalFocusTimeMs: StateFlow<Long> = TimerStopwatchStateManager.totalFocusTimeMs
+    val completedFocusSessions: StateFlow<Int> = TimerStopwatchStateManager.completedFocusSessions
+    val completedBreakSessions: StateFlow<Int> = TimerStopwatchStateManager.completedBreakSessions
+    val manualBreaksCount: StateFlow<Int> = TimerStopwatchStateManager.manualBreaksCount
+    val currentSessionNumber: StateFlow<Int> = TimerStopwatchStateManager.currentSessionNumber
+    val dailyTotalFocusTimeMs: StateFlow<Long> = TimerStopwatchStateManager.dailyTotalFocusTimeMs
+    val dailyCompletedFocusSessions: StateFlow<Int> = TimerStopwatchStateManager.dailyCompletedFocusSessions
+    val pomodoroNotificationsEnabled: StateFlow<Boolean> = TimerStopwatchStateManager.pomodoroNotificationsEnabled
+
+    fun setFocusModeState(state: FocusModeState) {
+        TimerStopwatchStateManager.setFocusModeState(state)
+    }
+
+    fun startPomodoro() {
+        TimerStopwatchStateManager.startPomodoro()
+    }
+
+    fun pausePomodoro() {
+        TimerStopwatchStateManager.pausePomodoro()
+    }
+
+    fun resumePomodoro() {
+        TimerStopwatchStateManager.resumePomodoro()
+    }
+
+    fun resetPomodoro() {
+        TimerStopwatchStateManager.resetPomodoro()
+    }
+
+    fun skipBreak() {
+        TimerStopwatchStateManager.skipBreak()
+    }
+
+    fun startBreakManually() {
+        TimerStopwatchStateManager.startBreakManually()
+    }
+
+    fun setPomodoroNotificationsEnabled(enabled: Boolean) {
+        TimerStopwatchStateManager.setPomodoroNotificationsEnabled(enabled)
+    }
+
+    fun setPomodoroDurations(focus: Int, shortBreak: Int, longBreak: Int) {
+        TimerStopwatchStateManager.setPomodoroDurations(focus, shortBreak, longBreak)
+    }
+
+    // ==========================================
     // STYLING & ECOSYSTEM DELEGATIONS
     // ==========================================
     val glassBlur: StateFlow<Float> = TimerStopwatchStateManager.glassBlur

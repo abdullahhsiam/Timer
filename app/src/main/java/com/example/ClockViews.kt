@@ -5,7 +5,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -60,16 +62,16 @@ fun ClockTabContent(viewModel: TimerStopwatchViewModel) {
             label = "clock_visual_mode_transition"
         ) { mode ->
             if (mode == 1) {
-                ClockFlipView(currentTimeMillis, isTablet, isLandscape)
+                ClockFlipView(viewModel, currentTimeMillis, isTablet, isLandscape)
             } else {
-                ClockAnalogView(currentTimeMillis, isTablet, isLandscape)
+                ClockAnalogView(viewModel, currentTimeMillis, isTablet, isLandscape)
             }
         }
     }
 }
 
 @Composable
-fun ClockAnalogView(currentTimeMillis: Long, isTablet: Boolean, isLandscape: Boolean) {
+fun ClockAnalogView(viewModel: TimerStopwatchViewModel, currentTimeMillis: Long, isTablet: Boolean, isLandscape: Boolean) {
     // Beautiful live analog clock as the main centerpiece
     val cal = Calendar.getInstance().apply { timeInMillis = currentTimeMillis }
     val hour = cal.get(Calendar.HOUR)
@@ -142,7 +144,9 @@ fun ClockAnalogView(currentTimeMillis: Long, isTablet: Boolean, isLandscape: Boo
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             Box(
                 modifier = Modifier
@@ -262,7 +266,7 @@ fun ClockAnalogView(currentTimeMillis: Long, isTablet: Boolean, isLandscape: Boo
 }
 
 @Composable
-fun ClockFlipView(currentTimeMillis: Long, isTablet: Boolean, isLandscape: Boolean) {
+fun ClockFlipView(viewModel: TimerStopwatchViewModel, currentTimeMillis: Long, isTablet: Boolean, isLandscape: Boolean) {
     val cal = Calendar.getInstance().apply { timeInMillis = currentTimeMillis }
     val hour = cal.get(Calendar.HOUR)
     val minute = cal.get(Calendar.MINUTE)
@@ -291,7 +295,10 @@ fun ClockFlipView(currentTimeMillis: Long, isTablet: Boolean, isLandscape: Boole
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             FlipClockDisplay(
                 timeString = timeString,
