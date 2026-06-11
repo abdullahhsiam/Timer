@@ -246,31 +246,33 @@ fun CircleProgressTimer(
     val isAnimationsEnabled by TimerStopwatchStateManager.isBackgroundAnimated.collectAsState()
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val isCompactScreen = configuration.screenWidthDp < 600
-    val isCompactHeightScreen = configuration.screenHeightDp < 800
+    val isTablet = configuration.screenWidthDp >= 600 && configuration.screenHeightDp >= 600
 
+    val sizeRatio = if (isTablet) 0.5f else if (isLandscape) 0.6f else 0.65f
+    val baseSize = minOf(configuration.screenWidthDp, configuration.screenHeightDp)
+    
     val sizeD = if (isInPip) {
         140.dp
-    } else if (isLandscape) {
-        if (isCompactScreen) 160.dp else 200.dp
+    } else if (isTablet) {
+        if (isLandscape) 300.dp else 340.dp
     } else {
-        if (isCompactHeightScreen) 260.dp else 310.dp
+        if (isLandscape) (configuration.screenHeightDp * 0.65f).dp else (configuration.screenWidthDp * 0.65f).dp
     }
     
     val textFontSize = if (isInPip) {
         22.sp
-    } else if (isLandscape) {
-        if (isCompactScreen) 30.sp else 36.sp
+    } else if (isTablet) {
+        if (isLandscape) 46.sp else 60.sp
     } else {
-        if (isCompactHeightScreen) 44.sp else 52.sp
+        if (isLandscape) 30.sp else 46.sp
     }
     
     val subtitleTopPadding = if (isInPip) {
         1.dp
-    } else if (isLandscape) {
-        2.dp
+    } else if (isTablet) {
+        if (isLandscape) 6.dp else 12.dp
     } else {
-        10.dp
+        if (isLandscape) 2.dp else 8.dp
     }
 
     // Determine state for our premium blurred fluid shape backdrop

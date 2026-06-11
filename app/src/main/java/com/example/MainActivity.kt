@@ -854,6 +854,62 @@ fun TabItem(
     }
 }
 
+@Composable
+fun ReactiveTimerFace(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isLandscape: Boolean) {
+    val timerStatus by viewModel.timerStatus.collectAsState()
+    val timerRemainingMs by viewModel.timerRemainingMs.collectAsState()
+    val timerMaxMs by viewModel.timerMaxMs.collectAsState()
+    val activeVisualMode by viewModel.activeVisualMode.collectAsState()
+    val accentColor = if (activeVisualMode == 1) Color(0xFF4C8DFF) else PurpleGlow
+
+    val remainingSeconds = (timerRemainingMs + 999) / 1000
+    val h = remainingSeconds / 3600
+    val m = (remainingSeconds % 3600) / 60
+    val s = remainingSeconds % 60
+    val readableTime = String.format("%02d:%02d:%02d", h, m, s)
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        LiveDigitalClock()
+        Spacer(modifier = Modifier.height(if (isLandscape) 12.dp else 24.dp))
+        
+        AnimatedContent(
+            targetState = activeVisualMode,
+            transitionSpec = {
+                (fadeIn(animationSpec = tween(450)) + scaleIn(initialScale = 0.9f)) togetherWith (fadeOut(animationSpec = tween(450)) + scaleOut(targetScale = 1.1f))
+            },
+            label = "visual_mode_transition"
+        ) { mode ->
+            if (mode == 1) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    FlipClockDisplay(
+                        timeString = readableTime,
+                        height = if (isTablet) 110.dp else if (isLandscape) 75.dp else 90.dp,
+                        width = if (isTablet) 75.dp else if (isLandscape) 52.dp else 60.dp,
+                        textSize = if (isTablet) 80f else if (isLandscape) 55f else 62f,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 30.dp))
+                }
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircleProgressTimer(
+                        remainingMs = timerRemainingMs,
+                        totalMs = timerMaxMs,
+                        displayString = readableTime,
+                        statusText = if (timerStatus == TimerStatus.RUNNING) "RUNNING" else "PAUSED",
+                        onProgressColor = if (timerStatus == TimerStatus.RUNNING) accentColor else Color.White.copy(alpha = 0.15f),
+                        glowEnabled = timerStatus == TimerStatus.RUNNING
+                    )
+                }
+            }
+        }
+    }
+}
+
 // ==========================================
 // TIMER TAB CONTENT VIEWS
 // ==========================================
@@ -861,11 +917,10 @@ fun TabItem(
 fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
     val timerInput by viewModel.timerInput.collectAsState()
     val timerStatus by viewModel.timerStatus.collectAsState()
-    val timerRemainingMs by viewModel.timerRemainingMs.collectAsState()
-    val timerMaxMs by viewModel.timerMaxMs.collectAsState()
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val isTablet = configuration.screenWidthDp >= 600 && configuration.screenHeightDp >= 600
 
     val isTimerActive = timerStatus == TimerStatus.RUNNING || timerStatus == TimerStatus.PAUSED
     val activeVisualMode by viewModel.activeVisualMode.collectAsState()
@@ -1106,52 +1161,12 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
                     },
                 contentAlignment = Alignment.Center
             ) {
-                // Countdown radial displaying Always On look
-                val remainingSeconds = (timerRemainingMs + 999) / 1000
-                val h = remainingSeconds / 3600
-                val m = (remainingSeconds % 3600) / 60
-                val s = remainingSeconds % 60
-                val readableTime = String.format("%02d:%02d:%02d", h, m, s)
-
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    LiveDigitalClock()
-                    Spacer(modifier = Modifier.height(if (isLandscape) 12.dp else 24.dp))
-                    
-                    AnimatedContent(
-                        targetState = activeVisualMode,
-                        transitionSpec = {
-                            (fadeIn(animationSpec = tween(450)) + scaleIn(initialScale = 0.9f)) togetherWith (fadeOut(animationSpec = tween(450)) + scaleOut(targetScale = 1.1f))
-                        },
-                        label = "visual_mode_transition"
-                    ) { mode ->
-                        if (mode == 1) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                                FlipClockDisplay(
-                                    timeString = readableTime,
-                                    height = if (isLandscape) 75.dp else 110.dp,
-                                    width = if (isLandscape) 52.dp else 75.dp,
-                                    textSize = if (isLandscape) 55f else 80f,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 30.dp))
-                            }
-                        } else {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircleProgressTimer(
-                                    remainingMs = timerRemainingMs,
-                                    totalMs = timerMaxMs,
-                                    displayString = readableTime,
-                                    statusText = if (timerStatus == TimerStatus.RUNNING) "RUNNING" else "PAUSED",
-                                    onProgressColor = if (timerStatus == TimerStatus.RUNNING) accentColor else Color.White.copy(alpha = 0.15f),
-                                    glowEnabled = timerStatus == TimerStatus.RUNNING
-                                )
-                            }
-                        }
-                    }
+                    ReactiveTimerFace(viewModel, isTablet, isLandscape)
 
                     Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 40.dp))
 
@@ -1316,8 +1331,61 @@ fun SettingsRadioItem(
 // STOPWATCH TAB CONTENT VIEWS
 // ==========================================
 @Composable
-fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
+fun ReactiveStopwatchFace(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isCompactHeightScreen: Boolean, isLandscape: Boolean) {
     val elapsedMs by viewModel.stopwatchElapsedMs.collectAsState()
+    val stopwatchStatus by viewModel.stopwatchStatus.collectAsState()
+    val activeVisualMode by viewModel.activeVisualMode.collectAsState()
+
+    val totalSeconds = elapsedMs / 1000
+    val m = (totalSeconds / 60) % 60
+    val s = totalSeconds % 60
+    val cc = (elapsedMs / 10) % 100
+    val readableTime = String.format("%02d:%02d.%02d", m, s, cc)
+    val flipTime = String.format("%02d:%02d", m, s)
+    val fractionTime = String.format(".%02d", cc)
+    val accentColorPrimary = if (activeVisualMode == 1) Color(0xFF4C8DFF) else PurpleGlow
+
+    AnimatedContent(
+        targetState = activeVisualMode,
+        transitionSpec = {
+            (fadeIn(animationSpec = tween(450)) + scaleIn(initialScale = 0.9f)) togetherWith (fadeOut(animationSpec = tween(450)) + scaleOut(targetScale = 1.1f))
+        },
+        label = "sw_visual_mode_transition"
+    ) { mode ->
+        if (mode == 1) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.Center) {
+                    FlipClockDisplay(
+                        timeString = flipTime,
+                        height = if (isTablet) 100.dp else if (isLandscape) 70.dp else 80.dp,
+                        width = if (isTablet) 68.dp else if (isLandscape) 48.dp else 52.dp,
+                        textSize = if (isTablet) 70f else if (isLandscape) 50f else 54f,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = fractionTime, color = Color.White, fontSize = if (isTablet) 28.sp else if (isLandscape) 24.sp else 22.sp, fontWeight = FontWeight.Bold, modifier = if (!isLandscape) Modifier.padding(bottom = 12.dp) else Modifier)
+                }
+                if (!isLandscape) Spacer(modifier = Modifier.height(if (isTablet) 20.dp else 12.dp))
+            }
+        } else {
+            CircleProgressTimer(
+                remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
+                totalMs = 1L,
+                displayString = readableTime,
+                statusText = when (stopwatchStatus) {
+                    StopwatchStatus.IDLE -> "STOPWATCH"
+                    StopwatchStatus.RUNNING -> "RUNNING"
+                    StopwatchStatus.PAUSED -> "PAUSED"
+                },
+                onProgressColor = accentColorPrimary,
+                glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
+            )
+        }
+    }
+}
+
+@Composable
+fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
     val stopwatchStatus by viewModel.stopwatchStatus.collectAsState()
     val laps by viewModel.laps.collectAsState()
     val activeVisualMode by viewModel.activeVisualMode.collectAsState()
@@ -1326,17 +1394,8 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val isCompactScreen = configuration.screenWidthDp < 600
-    val isCompactHeightScreen = configuration.screenHeightDp < 800
-
-    // Formatter centered on centisecond precision
-    val totalSeconds = elapsedMs / 1000
-    val m = (totalSeconds / 60) % 60
-    val s = totalSeconds % 60
-    val cc = (elapsedMs / 10) % 100
-    val readableTime = String.format("%02d:%02d.%02d", m, s, cc)
-    val flipTime = String.format("%02d:%02d", m, s)
-    val fractionTime = String.format(".%02d", cc)
+    val isTablet = configuration.screenWidthDp >= 600 && configuration.screenHeightDp >= 600
+    val isCompactHeightScreen = configuration.screenHeightDp < 600
 
     if (isLandscape) {
         Row(
@@ -1356,40 +1415,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                     LiveDigitalClock()
                     Spacer(modifier = Modifier.height(12.dp))
                     
-                    AnimatedContent(
-                        targetState = activeVisualMode,
-                        transitionSpec = {
-                            (fadeIn(animationSpec = tween(450)) + scaleIn(initialScale = 0.9f)) togetherWith (fadeOut(animationSpec = tween(450)) + scaleOut(targetScale = 1.1f))
-                        },
-                        label = "sw_visual_mode_transition"
-                    ) { mode ->
-                        if (mode == 1) {
-                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.Center) {
-                                FlipClockDisplay(
-                                    timeString = flipTime,
-                                    height = 70.dp,
-                                    width = 48.dp,
-                                    textSize = 50f,
-                                    modifier = Modifier.weight(1f, fill = false)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = fractionTime, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                            }
-                        } else {
-                            CircleProgressTimer(
-                                remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
-                                totalMs = 1L,
-                                displayString = readableTime,
-                                statusText = when (stopwatchStatus) {
-                                    StopwatchStatus.IDLE -> "STOPWATCH"
-                                    StopwatchStatus.RUNNING -> "RUNNING"
-                                    StopwatchStatus.PAUSED -> "PAUSED"
-                                },
-                                onProgressColor = accentColorPrimary,
-                                glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
-                            )
-                        }
-                    }
+                    ReactiveStopwatchFace(viewModel, isTablet, isCompactHeightScreen, isLandscape = true)
                 }
             }
 
@@ -1507,58 +1533,20 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .scale(0.88f),
+                .padding(horizontal = if (isTablet) 32.dp else 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Spacer(modifier = Modifier.height(if (isCompactHeightScreen) 8.dp else 18.dp))
+            Spacer(modifier = Modifier.height(if (isCompactHeightScreen) 4.dp else 16.dp))
 
-            // Display massive counting stopwatch layout
+            // Display counting stopwatch layout
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                if (!isCompactHeightScreen) {
-                    LiveDigitalClock()
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-                AnimatedContent(
-                    targetState = activeVisualMode,
-                    transitionSpec = {
-                        (fadeIn(animationSpec = tween(450)) + scaleIn(initialScale = 0.9f)) togetherWith (fadeOut(animationSpec = tween(450)) + scaleOut(targetScale = 1.1f))
-                    },
-                    label = "sw_visual_mode_transition"
-                ) { mode ->
-                    if (mode == 1) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.Center) {
-                                FlipClockDisplay(
-                                    timeString = flipTime,
-                                    height = if (isCompactHeightScreen) 68.dp else 100.dp,
-                                    width = if (isCompactHeightScreen) 46.dp else 68.dp,
-                                    textSize = if (isCompactHeightScreen) 48f else 70f,
-                                    modifier = Modifier.weight(1f, fill = false)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = fractionTime, color = Color.White, fontSize = if (isCompactHeightScreen) 20.sp else 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
-                            }
-                            Spacer(modifier = Modifier.height(if (isCompactHeightScreen) 10.dp else 20.dp))
-                        }
-                    } else {
-                        CircleProgressTimer(
-                            remainingMs = if (stopwatchStatus == StopwatchStatus.RUNNING) 1L else 0L,
-                            totalMs = 1L,
-                            displayString = readableTime,
-                            statusText = when (stopwatchStatus) {
-                                StopwatchStatus.IDLE -> "STOPWATCH"
-                                StopwatchStatus.RUNNING -> "RUNNING"
-                                StopwatchStatus.PAUSED -> "PAUSED"
-                            },
-                            onProgressColor = accentColorPrimary,
-                            glowEnabled = stopwatchStatus == StopwatchStatus.RUNNING
-                        )
-                    }
-                }
+                LiveDigitalClock()
+                Spacer(modifier = Modifier.height(if (isCompactHeightScreen) 8.dp else 16.dp))
+                ReactiveStopwatchFace(viewModel, isTablet, isCompactHeightScreen, isLandscape = false)
             }
 
-            Spacer(modifier = Modifier.height(if (isCompactHeightScreen) 8.dp else 16.dp))
+            Spacer(modifier = Modifier.height(if (isTablet) 20.dp else 12.dp))
 
             // Lap Times list section (Takes remaining vertical scroll frame)
             Box(
@@ -1604,7 +1592,7 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(if (isCompactHeightScreen) 8.dp else 16.dp))
+            Spacer(modifier = Modifier.height(if (isTablet) 16.dp else 8.dp))
 
             // Controls
             Row(
