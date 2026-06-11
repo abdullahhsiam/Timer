@@ -29,6 +29,11 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Recreate Gradle Wrapper
+        run: |
+          echo "Regenerating gradle wrapper to prevent binary file corruption"
+          gradle wrapper --gradle-version 9.3.1
+
       - name: Recreate Debug Keystore
         run: |
           echo "Recreating debug.keystore from debug.keystore.base64 if possible"

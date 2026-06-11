@@ -1,0 +1,10 @@
+# Set default behavior to automatic text line ending normalization
+* text=auto
+
+# Explicitly mark binary files to prevent corruption during transfers/checkouts
+*.jar binary
+*.png binary
+*.webp binary
+*.gif binary
+*.keystore binary
+*.base64 text
