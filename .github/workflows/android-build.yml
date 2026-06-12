@@ -1,73 +1,80 @@
 name: Android Build
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+push:
+branches:
+- main
+pull_request:
+branches:
+- main
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+build:
+runs-on: ubuntu-latest
+permissions:
+contents: write
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+steps:
+  - name: Checkout Repository
+    uses: actions/checkout@v4
+    with:
+      fetch-depth: 0
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+  - name: Set up JDK 17
+    uses: actions/setup-java@v4
+    with:
+      java-version: '17'
+      distribution: 'temurin'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+  - name: Setup Gradle
+    uses: gradle/actions/setup-gradle@v3
 
-      - name: Restore Debug Keystore
-  run: |
-    echo "Restoring debug.keystore from debug.keystore.base64"
+  - name: Recreate Gradle Wrapper
+    run: |
+      echo "Regenerating gradle wrapper to prevent binary file corruption"
+      gradle wrapper --gradle-version 9.3.1
 
-    if [ ! -f debug.keystore.base64 ]; then
-      echo "ERROR: debug.keystore.base64 not found!"
-      exit 1
-    fi
+  - name: Restore Debug Keystore
+    run: |
+      echo "Restoring debug.keystore from debug.keystore.base64"
 
-    base64 -d debug.keystore.base64 > debug.keystore
+      if [ ! -f debug.keystore.base64 ]; then
+        echo "ERROR: debug.keystore.base64 not found!"
+        exit 1
+      fi
 
-    if [ ! -f debug.keystore ]; then
-      echo "ERROR: Failed to restore debug.keystore!"
-      exit 1
-    fi
+      base64 -d debug.keystore.base64 > debug.keystore
 
-    echo "Successfully restored debug.keystore"
+      if [ ! -f debug.keystore ]; then
+        echo "ERROR: Failed to restore debug.keystore!"
+        exit 1
+      fi
 
-      - name: Make Gradlew Executable
-        run: chmod +x gradlew
+      echo "Successfully restored debug.keystore"
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
+  - name: Make Gradlew Executable
+    run: chmod +x gradlew
 
-      - name: Commit and Push APK
-        if: github.event_name == 'push'
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .build-outputs/app-debug.apk
-          if git diff --staged --quiet; then
-            echo "No change in APK detected."
-          else
-            git commit -m "chore: update built app-debug.apk [skip ci]"
-            git push origin HEAD:${{ github.ref }}
-          fi
+  - name: Build Debug APK
+    run: ./gradlew assembleDebug
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug
-          path: .build-outputs/app-debug.apk
+  - name: Commit and Push APK
+    if: github.event_name == 'push'
+    run: |
+      git config --global user.name "github-actions[bot]"
+      git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      git add .build-outputs/app-debug.apk
+
+      if git diff --staged --quiet; then
+        echo "No change in APK detected."
+      else
+        git commit -m "chore: update built app-debug.apk [skip ci]"
+        git push origin HEAD:${{ github.ref_name }}
+      fi
+
+  - name: Upload APK Artifact
+    uses: actions/upload-artifact@v4
+    with:
+      name: app-debug
+      path: .build-outputs/app-debug.apk
