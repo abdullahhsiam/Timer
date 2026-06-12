@@ -37,6 +37,11 @@ jobs:
 
           base64 -d debug.keystore.base64 > debug.keystore
 
+      - name: Recreate Gradle Wrapper
+        run: |
+          rm -f gradle/wrapper/gradle-wrapper.jar
+          gradle wrapper --gradle-version 9.3.1
+          
       - name: Make Gradlew Executable
         run: chmod +x gradlew
 
