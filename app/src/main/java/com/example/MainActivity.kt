@@ -303,8 +303,10 @@ fun MainScreen(
             ActiveAlarmOverlay(viewModel = viewModel)
         } else {
             // Main Standard Navigation and Layout Structure with stable coordinates
+            val showPomoHistory by viewModel.showPomoHistory.collectAsState()
             val isFullScreenDisplay = (timerStatus == TimerStatus.RUNNING && activeTab == 2) || 
-                                      (stopwatchStatus == StopwatchStatus.RUNNING && activeTab == 3)
+                                      (stopwatchStatus == StopwatchStatus.RUNNING && activeTab == 3) ||
+                                      (activeTab == 1 && showPomoHistory)
 
             val fullScreenTransitionProgress by animateFloatAsState(
                 targetValue = if (isFullScreenDisplay) 1f else 0f,
@@ -383,26 +385,17 @@ fun MainScreen(
                             alpha = 1f - fullScreenTransitionProgress
                             translationY = -35.dp.toPx() * fullScreenTransitionProgress
                         }
-                        .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    Color(0xF00D0D11), // 94% opaque dark, perfect depth
-                                    Color(0xD00D0D11)  // Translucent dark slate, 81% opaque
+                                    androidx.compose.material3.MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
+                                    androidx.compose.material3.MaterialTheme.colorScheme.background.copy(alpha = 0.85f),
+                                    androidx.compose.material3.MaterialTheme.colorScheme.background.copy(alpha = 0.3f),
+                                    Color.Transparent
                                 )
                             )
                         )
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.08f),
-                                    Color.White.copy(alpha = 0.02f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
-                        )
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                        .padding(start = 14.dp, top = 6.dp, end = 14.dp, bottom = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(
@@ -412,24 +405,45 @@ fun MainScreen(
                             .fillMaxWidth()
                             .padding(top = 12.dp, bottom = 12.dp, start = 4.dp, end = 4.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = "Focus Mode",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                letterSpacing = 2.sp,
-                                color = Color.White.copy(alpha = 0.60f)
-                            )
-                            // Active status pulse green dot
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(GlowGreen)
-                            )
+                        val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+                        val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
+                        val isCompactWidth = configuration.screenWidthDp < 480
+
+                        Box(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            if (isCompactWidth && isPortrait) {
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    SlidingTabSwitcher(
+                                        activeTab = activeTab,
+                                        onTabSelected = { viewModel.selectTab(it) },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    val activeVisualMode by viewModel.activeVisualMode.collectAsState()
+                                    VisualModeSwitcher(
+                                        activeMode = activeVisualMode,
+                                        onModeSelected = { viewModel.selectVisualMode(it) },
+                                        modifier = Modifier.fillMaxWidth(0.9f)
+                                    )
+                                }
+                            } else {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    SlidingTabSwitcher(
+                                        activeTab = activeTab,
+                                        onTabSelected = { viewModel.selectTab(it) },
+                                        modifier = Modifier.weight(1.3f)
+                                    )
+                                    val activeVisualMode by viewModel.activeVisualMode.collectAsState()
+                                    VisualModeSwitcher(
+                                        activeMode = activeVisualMode,
+                                        onModeSelected = { viewModel.selectVisualMode(it) },
+                                        modifier = Modifier.weight(0.9f)
+                                    )
+                                }
+                            }
                         }
                         
                         // Options Trigger & Dropdown Menu
@@ -506,6 +520,84 @@ fun MainScreen(
                                                 }
                                             )
 
+                                            SettingsMenuItem(
+                                                icon = if (isAlwaysOn) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
+                                                title = "Always-On Screen",
+                                                subtitle = if (isAlwaysOn) "Enforced" else "Sleep allowed",
+                                                onClick = { viewModel.toggleAlwaysOn() },
+                                                trailing = {
+                                                    Switch(
+                                                        checked = isAlwaysOn,
+                                                        onCheckedChange = { viewModel.toggleAlwaysOn() },
+                                                        modifier = Modifier.scale(0.85f),
+                                                        colors = SwitchDefaults.colors(
+                                                            checkedThumbColor = PurpleGlow,
+                                                            checkedTrackColor = PurpleGlow.copy(alpha = 0.4f)
+                                                        )
+                                                    )
+                                                }
+                                            )
+
+                                            val context = LocalContext.current
+                                            val overlayActive by viewModel.overlayActive.collectAsState()
+                                            val hasOverlayPermission = Settings.canDrawOverlays(context)
+
+                                            SettingsMenuItem(
+                                                icon = if (overlayActive) Icons.Default.Layers else Icons.Default.LayersClear,
+                                                title = "Floating Overlay",
+                                                subtitle = if (!hasOverlayPermission) "Missing permission" else if (overlayActive) "Active" else "Inactive",
+                                                onClick = {
+                                                    if (Settings.canDrawOverlays(context)) {
+                                                        if (overlayActive) {
+                                                            context.stopService(Intent(context, OverlayBubbleService::class.java))
+                                                        } else {
+                                                            val serviceIntent = Intent(context, OverlayBubbleService::class.java)
+                                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                                context.startForegroundService(serviceIntent)
+                                                            } else {
+                                                                context.startService(serviceIntent)
+                                                            }
+                                                        }
+                                                    } else {
+                                                        val intent = Intent(
+                                                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                                            Uri.parse("package:${context.packageName}")
+                                                        )
+                                                        context.startActivity(intent)
+                                                    }
+                                                },
+                                                trailing = {
+                                                    Switch(
+                                                        checked = overlayActive,
+                                                        onCheckedChange = {
+                                                            if (Settings.canDrawOverlays(context)) {
+                                                                if (overlayActive) {
+                                                                    context.stopService(Intent(context, OverlayBubbleService::class.java))
+                                                                } else {
+                                                                    val serviceIntent = Intent(context, OverlayBubbleService::class.java)
+                                                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                                        context.startForegroundService(serviceIntent)
+                                                                    } else {
+                                                                        context.startService(serviceIntent)
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                val intent = Intent(
+                                                                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                                                    Uri.parse("package:${context.packageName}")
+                                                                )
+                                                                context.startActivity(intent)
+                                                            }
+                                                        },
+                                                        modifier = Modifier.scale(0.85f),
+                                                        colors = SwitchDefaults.colors(
+                                                            checkedThumbColor = PurpleGlow,
+                                                            checkedTrackColor = PurpleGlow.copy(alpha = 0.4f)
+                                                        )
+                                                    )
+                                                }
+                                            )
+
                                             Spacer(modifier = Modifier.height(8.dp))
                                             Box(
                                                 modifier = Modifier
@@ -571,169 +663,6 @@ fun MainScreen(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Sliding Premium Glassmorphic Tab Switchers
-                    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-                    val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
-                    val isCompactWidth = configuration.screenWidthDp < 480
-
-                    if (isCompactWidth && isPortrait) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            SlidingTabSwitcher(
-                                activeTab = activeTab,
-                                onTabSelected = { viewModel.selectTab(it) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            val activeVisualMode by viewModel.activeVisualMode.collectAsState()
-                            VisualModeSwitcher(
-                                activeMode = activeVisualMode,
-                                onModeSelected = { viewModel.selectVisualMode(it) },
-                                modifier = Modifier.fillMaxWidth(0.85f)
-                            )
-                        }
-                    } else {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            SlidingTabSwitcher(
-                                activeTab = activeTab,
-                                onTabSelected = { viewModel.selectTab(it) },
-                                modifier = Modifier.weight(1.3f)
-                            )
-                            val activeVisualMode by viewModel.activeVisualMode.collectAsState()
-                            VisualModeSwitcher(
-                                activeMode = activeVisualMode,
-                                onModeSelected = { viewModel.selectVisualMode(it) },
-                                modifier = Modifier.weight(0.9f)
-                            )
-                        }
-                    }
-                }
-
-                // 3. BOTTOM CONTAINER (ALWAYS-ON & BUBBLE CONFIG FOOTER ACTIONS)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .graphicsLayer {
-                            alpha = 1f - fullScreenTransitionProgress
-                            translationY = 35.dp.toPx() * fullScreenTransitionProgress
-                        }
-                        .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xD00D0D11), // Translucent dark, 81% opaque
-                                    Color(0xF00D0D11)  // 94% opaque dark base
-                                )
-                            )
-                        )
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.02f),
-                                    Color.White.copy(alpha = 0.08f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-                        )
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val context = LocalContext.current
-                    val overlayActive by viewModel.overlayActive.collectAsState()
-                    val hasOverlayPermission = Settings.canDrawOverlays(context)
-
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Color(0x06FFFFFF))
-                                .clickable { viewModel.toggleAlwaysOn() }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (isAlwaysOn) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
-                                contentDescription = "AOD State",
-                                tint = if (isAlwaysOn) PurpleGlow else Color.Gray,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (isAlwaysOn) "Always-On Enforced" else "Screen Sleep Allowed",
-                                fontSize = 11.sp,
-                                color = if (isAlwaysOn) Color.White else Color.Gray,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Color(0x06FFFFFF))
-                                .clickable {
-                                    if (Settings.canDrawOverlays(context)) {
-                                        if (overlayActive) {
-                                            context.stopService(Intent(context, OverlayBubbleService::class.java))
-                                        } else {
-                                            val serviceIntent = Intent(context, OverlayBubbleService::class.java)
-                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                                context.startForegroundService(serviceIntent)
-                                            } else {
-                                                context.startService(serviceIntent)
-                                            }
-                                        }
-                                    } else {
-                                        val intent = Intent(
-                                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                            Uri.parse("package:${context.packageName}")
-                                        )
-                                        context.startActivity(intent)
-                                    }
-                                }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (overlayActive) Icons.Default.Layers else Icons.Default.LayersClear,
-                                contentDescription = "Overlay State",
-                                tint = if (overlayActive) PurpleGlow else Color.Gray,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (!hasOverlayPermission) "Grant Overlay Permission" else if (overlayActive) "Floating Bubble Active" else "Enable Floating Bubble",
-                                fontSize = 11.sp,
-                                color = if (overlayActive) Color.White else Color.Gray,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-
-                    Text(
-                        text = "v1.0.0 Stable",
-                        fontSize = 11.sp,
-                        color = Color.DarkGray,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
                 }
             }
         }
@@ -760,8 +689,17 @@ fun SlidingTabSwitcher(
         modifier = modifier
             .height(40.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White.copy(alpha = 0.05f))
-            .border(width = 1.dp, color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(20.dp))
+            .background(Color.White.copy(alpha = 0.03f))
+            .border(
+                width = 1.dp,
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color(0xFF00F0FF).copy(alpha = 0.15f), // subtle cyan stroke
+                        Color.White.copy(alpha = 0.04f)
+                    )
+                ),
+                shape = RoundedCornerShape(20.dp)
+            )
             .padding(3.dp),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -769,7 +707,7 @@ fun SlidingTabSwitcher(
         val tabWidth = totalWidth / 4
         val stretchWidth = tabWidth + (12.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat())
 
-        // Sliding glassmorphic indicator capsule
+        // Sliding glassmorphic indicator capsule in premium cyan-blue gradient
         Box(
             modifier = Modifier
                 .offset(x = tabWidth * tabProgress)
@@ -779,7 +717,14 @@ fun SlidingTabSwitcher(
                 .blur(
                     radius = (6.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat())
                 )
-                .background(Color.White.copy(alpha = 0.12f))
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFF00F0FF).copy(alpha = 0.20f), // cyan glow
+                            Color(0xFF0080FF).copy(alpha = 0.12f)  // ocean blue glow
+                        )
+                    )
+                )
         )
 
         Row(
@@ -846,8 +791,17 @@ fun VisualModeSwitcher(
         modifier = modifier
             .height(40.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White.copy(alpha = 0.05f))
-            .border(width = 1.dp, color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(20.dp))
+            .background(Color.White.copy(alpha = 0.03f))
+            .border(
+                width = 1.dp,
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color(0xFF00F0FF).copy(alpha = 0.15f), // subtle cyan stroke
+                        Color.White.copy(alpha = 0.04f)
+                    )
+                ),
+                shape = RoundedCornerShape(20.dp)
+            )
             .padding(3.dp),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -862,7 +816,14 @@ fun VisualModeSwitcher(
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(16.dp))
                 .blur(radius = (8.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat()))
-                .background(Color.White.copy(alpha = 0.12f))
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFF00F0FF).copy(alpha = 0.20f), // cyan glow focus
+                            Color(0xFF0080FF).copy(alpha = 0.12f)  // ocean blue secondary gradient
+                        )
+                    )
+                )
         )
 
         Row(
@@ -944,13 +905,16 @@ fun TabItem(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.padding(horizontal = horizontalPadding)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = animTextColor,
-                modifier = Modifier.size(iconSize)
-            )
-            Spacer(modifier = Modifier.width(spacerWidth))
+            val showIcon = screenWidth >= 450
+            if (showIcon) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = animTextColor,
+                    modifier = Modifier.size(iconSize)
+                )
+                Spacer(modifier = Modifier.width(spacerWidth))
+            }
             Text(
                 text = label,
                 color = animTextColor,

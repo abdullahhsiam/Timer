@@ -117,16 +117,16 @@ fun AnimatedGradientBackground(
         label = "background_active_transition"
     )
 
-    val targetColor1 = if (visualMode == 1) Color(0xFF030D1A) else Color(0xFF070510)
-    val targetColor2 = if (visualMode == 1) Color(0x350A2E5C) else Color(0x356C3082)
-    val targetColor3 = if (visualMode == 1) Color(0x2514305E) else Color(0x2500E6FF)
+    val targetColor1 = if (visualMode == 1) Color(0xFF0D1B2A) else Color(0xFF07070F)
+    val targetColor2 = if (visualMode == 1) Color(0x351B263B) else Color(0x356C3082)
+    val targetColor3 = if (visualMode == 1) Color(0x25415A77) else Color(0x2500E6FF)
 
     val bgColor1 by animateColorAsState(targetValue = targetColor1, animationSpec = tween(600), label = "bg_color_1")
     val bgColor2 by animateColorAsState(targetValue = targetColor2, animationSpec = tween(600), label = "bg_color_2")
     val bgColor3 by animateColorAsState(targetValue = targetColor3, animationSpec = tween(600), label = "bg_color_3")
 
     val activeColors = if (visualMode == 1) {
-        listOf(Color(0xFF051020), Color(0xFF0D2545), Color(0xFF051730), Color(0xFF14305E), Color(0xFF051020))
+        listOf(Color(0xFF0D1B2A), Color(0xFF1B263B), Color(0xFF0D1B2A), Color(0xFF415A77), Color(0xFF0D1B2A))
     } else {
         listOf(Color(0xFF090812), Color(0xFF160E2E), Color(0xFF0F1E28), Color(0xFF2E124D), Color(0xFF090812))
     }

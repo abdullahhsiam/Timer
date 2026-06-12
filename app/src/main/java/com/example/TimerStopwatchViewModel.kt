@@ -18,6 +18,14 @@ data class PomodoroStreaks(
 
 class TimerStopwatchViewModel : ViewModel() {
 
+    // --- UI Navigation Overrides ---
+    private val _showPomoHistory = MutableStateFlow(false)
+    val showPomoHistory = _showPomoHistory.asStateFlow()
+
+    fun setPomoHistoryVisibility(visible: Boolean) {
+        _showPomoHistory.value = visible
+    }
+
     // --- Persistence & History Flows ---
     val allDailySummaries: Flow<List<PomodoroDailySummary>> by lazy {
         TimerStopwatchStateManager.repository.allDailySummaries

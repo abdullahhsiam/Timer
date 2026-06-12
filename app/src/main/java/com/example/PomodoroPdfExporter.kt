@@ -273,6 +273,13 @@ object PomodoroPdfExporter {
                     }
                     currentY += thHeight
 
+                    val dateGroupPaint = Paint().apply {
+                        color = Color.parseColor("#4A154B")
+                        textSize = 9f
+                        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                    }
+
+                    var lastDate: String? = null
                     for ((idx, log) in sessionLogs.withIndex()) {
                         checkSpace(tdHeight)
                         if (idx % 2 == 1) {
@@ -282,8 +289,14 @@ object PomodoroPdfExporter {
 
                         var cellX = margin
                         
-                        // Date
-                        canvas.drawText(log.date, cellX + 6f, currentY + 10f, basePaint)
+                        // Date (displayed only once for consecutive logs)
+                        if (log.date != lastDate) {
+                            lastDate = log.date
+                            canvas.drawText(log.date, cellX + 6f, currentY + 10f, dateGroupPaint)
+                        } else {
+                            // Draw a subtle bullet or indent indicator to organize activities under the date
+                            canvas.drawText("  ↳", cellX + 12f, currentY + 10f, basePaint)
+                        }
                         cellX += logCols[0]
 
                         // Session Type

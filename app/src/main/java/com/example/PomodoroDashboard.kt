@@ -1,5 +1,7 @@
 package com.example
 
+import com.example.persistence.PomodoroDailySummary
+import com.example.persistence.PomodoroSessionLog
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -15,7 +17,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.Canvas
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Pause
@@ -82,8 +89,11 @@ fun PomodoroTabContent(
     val sessionLogs by viewModel.allSessionLogs.collectAsState(initial = emptyList())
 
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var showConfigDialog by remember { mutableStateOf(false) }
+    val showFullHistory by viewModel.showPomoHistory.collectAsState()
+    var expandedDates by remember { mutableStateOf(setOf<String>()) }
 
     val actualRemainingMs = if (remainingMs == 0L && focusState == FocusModeState.OFF) {
         focusMin * 60_000L
@@ -123,7 +133,7 @@ fun PomodoroTabContent(
 
     // Precise physical bounding for dynamic circular timer
     val ringSize = when {
-        isCompactPhone -> 128.dp
+        isCompactPhone -> 130.dp
         isMediumDevice -> 160.dp
         else -> 195.dp
     }
@@ -134,18 +144,19 @@ fun PomodoroTabContent(
     val ctrlIconSize = if (isCompactPhone) 15.dp else 18.dp
     val ctrlFontSize = if (isCompactPhone) 11.sp else 13.sp
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .fadingEdgeMask(
-                topFadeHeight = topBarPadding + 15.dp,
-                bottomFadeHeight = 100.dp
-            )
-            .padding(horizontal = if (isLargeTablet) 24.dp else 16.dp, vertical = 2.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(themeSpacing)
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .fadingEdgeMask(
+                    topFadeHeight = topBarPadding + 15.dp,
+                    bottomFadeHeight = 100.dp
+                )
+                .padding(horizontal = if (isLargeTablet) 24.dp else 16.dp, vertical = 2.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(themeSpacing)
+        ) {
         // Space above matching the fixed header height to prevent overlapping layers
         Spacer(modifier = Modifier.height(topBarPadding))
 
@@ -246,7 +257,7 @@ fun PomodoroTabContent(
                         }
                     }
                 } else {
-                    // CIRCLE MODE TIMER: Centered, reduced by 15-20% (145.dp)
+                    // CIRCLE MODE TIMER: Centered
                     Box(
                         modifier = Modifier
                             .size(ringSize)
@@ -255,76 +266,35 @@ fun PomodoroTabContent(
                             .border(1.dp, Color.White.copy(alpha = 0.04f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        val progress = if (actualDurationMs > 0) actualRemainingMs.toFloat() / actualDurationMs.toFloat() else 0f
-                        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize().padding(10.dp)) {
-                            val strokeWidthPx = 4.5.dp.toPx()
-                            // Track
-                            drawArc(
-                                color = Color.White.copy(alpha = 0.03f),
-                                startAngle = -90f,
-                                sweepAngle = 360f,
-                                useCenter = false,
-                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidthPx, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                            )
-                            // Animated Running Arc
-                            drawArc(
-                                color = activeColor,
-                                startAngle = -90f,
-                                sweepAngle = progress * 360f,
-                                useCenter = false,
-                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidthPx, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                            )
-                        }
-
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(12.dp)
+                            verticalArrangement = Arrangement.Center
                         ) {
                             val totalSecs = actualRemainingMs / 1000
                             val m = totalSecs / 60
                             val s = totalSecs % 60
                             val formattedTime = String.format(java.util.Locale.getDefault(), "%02d:%02d", m, s)
                             
-                            // 1. COUNTDOWN TIME
-                            Text(
-                                text = formattedTime,
-                                color = Color.White,
-                                fontSize = 30.sp,
-                                fontWeight = FontWeight.Light,
-                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                            val isRunningMode = pomoStatus == PomodoroStatus.RUNNING
+
+                            CircleProgressTimer(
+                                remainingMs = actualRemainingMs,
+                                totalMs = if (actualDurationMs > 0) actualDurationMs else 1L,
+                                displayString = formattedTime,
+                                statusText = primarySessionText,
+                                onProgressColor = activeColor,
+                                glowEnabled = isRunningMode,
+                                sizeFraction = if (isCompactPhone) 0.55f else 0.70f
                             )
                             
-                            Spacer(modifier = Modifier.height(4.dp))
-                            
-                            // 2. SESSION STATE TYPE (PULSING)
-                            val pulse = rememberInfiniteTransition(label = "badge_pulse")
-                            val opacity by pulse.animateFloat(
-                                initialValue = 0.6f,
-                                targetValue = 1f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(1200, easing = LinearEasing),
-                                    repeatMode = RepeatMode.Reverse
-                                ),
-                                label = "pulse_opacity"
-                            )
+                            Spacer(modifier = Modifier.height(6.dp))
 
                             Text(
-                                text = primarySessionText.uppercase(),
-                                color = activeColor.copy(alpha = if (pomoStatus == PomodoroStatus.RUNNING) opacity else 0.8f),
-                                fontSize = 9.sp,
+                                text = cycleProgressText.uppercase(),
+                                color = Color.White.copy(alpha = 0.5f),
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.2.sp
-                            )
-                            
-                            Spacer(modifier = Modifier.height(1.dp))
-
-                            // 3. CYCLE PROGRESS SPECIFICS
-                            Text(
-                                text = cycleProgressText,
-                                color = Color.White.copy(alpha = 0.45f),
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Medium
+                                letterSpacing = 2.sp
                             )
                         }
                     }
@@ -589,7 +559,6 @@ fun PomodoroTabContent(
         Spacer(modifier = Modifier.height(6.dp))
 
         // POMODORO HISTORY AND STREAKS PANEL
-        var expandedDates by remember { mutableStateOf(setOf<String>()) }
         val context = LocalContext.current
 
         Box(
@@ -598,6 +567,9 @@ fun PomodoroTabContent(
                 .clip(RoundedCornerShape(16.dp))
                 .background(Color.White.copy(alpha = 0.03f))
                 .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(16.dp))
+                .clickable {
+                    viewModel.setPomoHistoryVisibility(true)
+                }
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             Column(
@@ -894,6 +866,30 @@ fun PomodoroTabContent(
                 }
             }
         }
+
+        // Adequate bottom spacing so that no entries are hidden behind the bottom settings area
+        Spacer(modifier = Modifier.height(130.dp))
+    }
+
+        // Floating Full History Overlay Screen with smooth transitions
+        AnimatedVisibility(
+            visible = showFullHistory,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            FullHistoryScreen(
+                dailySummaries = dailySummaries,
+                sessionLogs = sessionLogs,
+                streaks = streaks,
+                onBack = { viewModel.setPomoHistoryVisibility(false) },
+                onExportPdf = {
+                    coroutineScope.launch {
+                        PomodoroPdfExporter.exportToPdfAndShare(context, dailySummaries, sessionLogs)
+                    }
+                }
+            )
+        }
     }
 
     if (showConfigDialog) {
@@ -1117,6 +1113,369 @@ fun Modifier.fadingEdgeMask(
             ),
             blendMode = BlendMode.DstIn
         )
+    }
+}
+
+@Composable
+fun FullHistoryScreen(
+    dailySummaries: List<PomodoroDailySummary>,
+    sessionLogs: List<PomodoroSessionLog>,
+    streaks: PomodoroStreaks,
+    onBack: () -> Unit,
+    onExportPdf: () -> Unit
+) {
+    val context = LocalContext.current
+    var expandedDates by remember { mutableStateOf(setOf<String>()) }
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF090B11)) // deep dark charcoal base
+    ) {
+        // Decorative ambient background glow (upper-right and center-left) matching cyan-blue theme
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0x1900F0FF), Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(size.width * 0.9f, size.height * 0.1f),
+                    radius = size.width * 0.6f
+                )
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0x127C4DFF), Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(size.width * 0.1f, size.height * 0.8f),
+                    radius = size.width * 0.6f
+                )
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 12.dp)
+        ) {
+            // Header Top Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, bottom = 12.dp, start = 12.dp, end = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back to main dashboard",
+                            tint = Color.White
+                        )
+                    }
+                    Text(
+                        text = "Full Focus History",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+
+                IconButton(
+                    onClick = onExportPdf,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(PurpleGlow.copy(alpha = 0.15f))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Export PDF Report",
+                        tint = PurpleGlow,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            // Streak overview board (premium glass card)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White.copy(alpha = 0.03f))
+                    .border(
+                        1.dp,
+                        Brush.linearGradient(
+                            listOf(
+                                Color(0xFF00F0FF).copy(alpha = 0.15f),
+                                Color.Transparent
+                            )
+                        ),
+                        RoundedCornerShape(16.dp)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Whatshot,
+                                contentDescription = null,
+                                tint = Color(0xFFFF5722),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Current Streak",
+                                color = Color.White.copy(alpha = 0.5f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Text(
+                            text = "${streaks.currentStreak} Days",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .height(30.dp)
+                            .width(1.dp)
+                            .background(Color.White.copy(alpha = 0.1f))
+                    )
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = null,
+                                tint = Color(0xFFFFC107),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "All-Time Best",
+                                color = Color.White.copy(alpha = 0.5f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Text(
+                            text = "${streaks.bestStreak} Days",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Scrollable logs grouped by date (Unlimited Scrolling - LazyColumn)
+            if (dailySummaries.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 80.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No focus records logged yet",
+                        color = Color.White.copy(alpha = 0.3f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(dailySummaries) { day ->
+                        val isExpanded = expandedDates.contains(day.date)
+                        
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White.copy(alpha = if (isExpanded) 0.04f else 0.02f))
+                                .border(
+                                    width = 1.dp,
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            if (isExpanded) Color(0xFF00F0FF).copy(alpha = 0.12f) else Color.White.copy(alpha = 0.04f),
+                                            Color.Transparent
+                                        )
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .clickable {
+                                    expandedDates = if (isExpanded) expandedDates - day.date else expandedDates + day.date
+                                }
+                                .padding(horizontal = 12.dp, vertical = 10.dp)
+                        ) {
+                            // Header Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                        contentDescription = "Expand details",
+                                        tint = Color.White.copy(alpha = 0.4f),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = formatHistoryDate(day.date),
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                                
+                                Text(
+                                    text = "Focus: ${formatMinutes(day.focusTimeMs)}",
+                                    color = GlowGreen,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            
+                            // Collapsed preview info details row
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp, start = 22.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Cycles: ${day.focusSessionsCompleted}",
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    fontSize = 10.sp
+                                )
+                                Text(
+                                    text = "•",
+                                    color = Color.White.copy(alpha = 0.2f),
+                                    fontSize = 10.sp
+                                )
+                                Text(
+                                    text = "Breaks: ${formatMinutes(day.breakTimeMs)}",
+                                    color = CyanGlow.copy(alpha = 0.7f),
+                                    fontSize = 10.sp
+                                )
+                            }
+
+                            // Expanded details section
+                            AnimatedVisibility(
+                                visible = isExpanded,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                val dayLogs = sessionLogs.filter { it.date == day.date }.sortedBy { it.startTime }
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 12.dp, start = 22.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "SESSION CHRONICLE TIMESTAMPS",
+                                        color = Color.White.copy(alpha = 0.3f),
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 1.sp,
+                                        modifier = Modifier.padding(bottom = 2.dp)
+                                    )
+
+                                    if (dayLogs.isEmpty()) {
+                                        Text(
+                                            text = "No detailed session logs captured",
+                                            color = Color.White.copy(alpha = 0.4f),
+                                            fontSize = 10.sp
+                                        )
+                                    } else {
+                                        val sdfTime = SimpleDateFormat("hh:mm a", Locale.getDefault())
+                                        dayLogs.forEach { log ->
+                                            val startStr = sdfTime.format(Date(log.startTime))
+                                            val endStr = sdfTime.format(Date(log.endTime))
+                                            val durationStr = formatMinutes(log.durationMs)
+                                            val labelText = when (log.sessionType) {
+                                                "FOCUS" -> "Focus"
+                                                "BREAK" -> "Break"
+                                                "MANUAL_BREAK" -> "Manual Break"
+                                                else -> log.sessionType
+                                            }
+                                            val badgeColor = when (log.sessionType) {
+                                                "FOCUS" -> GlowGreen
+                                                "BREAK" -> CyanGlow
+                                                else -> PurpleGlow
+                                            }
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(6.dp)
+                                                            .clip(CircleShape)
+                                                            .background(badgeColor)
+                                                    )
+                                                    Text(
+                                                        text = "$startStr – $endStr",
+                                                        color = Color.White.copy(alpha = 0.7f),
+                                                        fontSize = 11.sp,
+                                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                                    )
+                                                }
+                                                Text(
+                                                    text = "$labelText ($durationStr)",
+                                                    color = Color.White.copy(alpha = 0.45f),
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
