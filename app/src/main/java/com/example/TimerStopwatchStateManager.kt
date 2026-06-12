@@ -22,6 +22,84 @@ object TimerStopwatchStateManager {
 
     private var appContext: Context? = null
 
+    // --- Active Session Owner Management ---
+    private val _lastStartedSession = MutableStateFlow<String?>("TIMER")
+    val lastStartedSession: StateFlow<String?> = _lastStartedSession.asStateFlow()
+
+    private val _activeSessionOwner = MutableStateFlow("TIMER")
+    val activeSessionOwner: StateFlow<String> = _activeSessionOwner.asStateFlow()
+
+    private val _pomoLastAccumulatedTimestamp = MutableStateFlow(0L)
+    val pomoLastAccumulatedTimestamp: StateFlow<Long> = _pomoLastAccumulatedTimestamp.asStateFlow()
+
+    fun updateActiveSessionOwner() {
+        val timerActive = _timerStatus.value != TimerStatus.IDLE
+        val pomoActive = _focusModeState.value != FocusModeState.OFF && _pomodoroStatus.value != PomodoroStatus.IDLE
+        val swActive = _stopwatchStatus.value != StopwatchStatus.IDLE
+
+        val timerRunning = _timerStatus.value == TimerStatus.RUNNING
+        val pomoRunning = _pomodoroStatus.value == PomodoroStatus.RUNNING
+        val swRunning = _stopwatchStatus.value == StopwatchStatus.RUNNING
+
+        val currentTab = _activeTab.value
+        // 1. If tab switched, the clicked tab becomes owner if active (running or paused/idle)
+        val tabOwner = when (currentTab) {
+            1 -> if (pomoActive) "POMO" else null
+            2 -> if (timerActive) "TIMER" else null
+            3 -> if (swActive) "SW" else null
+            else -> null
+        }
+        
+        if (tabOwner != null) {
+            _activeSessionOwner.value = tabOwner
+            return
+        }
+
+        // 2. Otherwise checking running modules
+        val runningOwner = when {
+            _lastStartedSession.value == "TIMER" && timerRunning -> "TIMER"
+            _lastStartedSession.value == "POMO" && pomoRunning -> "POMO"
+            _lastStartedSession.value == "SW" && swRunning -> "SW"
+            
+            // Fallback priority: Timer > Pomodoro > Stopwatch
+            timerRunning -> "TIMER"
+            pomoRunning -> "POMO"
+            swRunning -> "SW"
+            else -> null
+        }
+        
+        if (runningOwner != null) {
+            _activeSessionOwner.value = runningOwner
+            return
+        }
+
+        // 3. Otherwise checking any active (paused/finished/etc.)
+        val activeOwner = when {
+            _lastStartedSession.value == "TIMER" && timerActive -> "TIMER"
+            _lastStartedSession.value == "POMO" && pomoActive -> "POMO"
+            _lastStartedSession.value == "SW" && swActive -> "SW"
+            
+            // Fallback priority: Timer > Pomodoro > Stopwatch
+            timerActive -> "TIMER"
+            pomoActive -> "POMO"
+            swActive -> "SW"
+            else -> null
+        }
+
+        if (activeOwner != null) {
+            _activeSessionOwner.value = activeOwner
+            return
+        }
+
+        // 4. Fallback based on selected tab
+        _activeSessionOwner.value = when (currentTab) {
+            1 -> "POMO"
+            2 -> "TIMER"
+            3 -> "SW"
+            else -> "TIMER"
+        }
+    }
+
     // --- State Initialization ---
     fun initialize(context: Context) {
         if (appContext == null) {
@@ -62,6 +140,9 @@ object TimerStopwatchStateManager {
             putInt("total_pomodoro_cycles_completed", _totalPomodoroCyclesCompleted.value)
             putString("last_stats_day", lastStatsDay)
             putBoolean("pomodoro_notifications_enabled", _pomodoroNotificationsEnabled.value)
+            putString("last_started_session", _lastStartedSession.value)
+            putString("active_session_owner", _activeSessionOwner.value)
+            putLong("pomodoro_last_tick_timestamp", _pomoLastAccumulatedTimestamp.value)
 
             // Premium custom styling params
             putFloat("glass_blur", _glassBlur.value)
@@ -138,15 +219,53 @@ object TimerStopwatchStateManager {
         lastStatsDay = prefs.getString("last_stats_day", "") ?: ""
         _pomodoroNotificationsEnabled.value = prefs.getBoolean("pomodoro_notifications_enabled", true)
 
+        _lastStartedSession.value = prefs.getString("last_started_session", "TIMER") ?: "TIMER"
+        _activeSessionOwner.value = prefs.getString("active_session_owner", "TIMER") ?: "TIMER"
+        val savedPomoLastTick = prefs.getLong("pomodoro_last_tick_timestamp", 0L)
+        val nowWall = System.currentTimeMillis()
+
         val pomoStatus = PomodoroStatus.valueOf(pomoStatusStr)
         _pomodoroDurationMs.value = savedPomoDuration
 
         if (pomoStatus == PomodoroStatus.RUNNING) {
-            _pomodoroRemainingMs.value = savedPomoRemaining
-            _pomodoroStatus.value = PomodoroStatus.RUNNING
-            launchPomodoroJob(savedPomoRemaining)
+            if (savedPomoLastTick > 0L) {
+                val elapsedWall = nowWall - savedPomoLastTick
+                if (elapsedWall > 0L) {
+                    checkAndResetDailyStats()
+                    if (fmsStr == FocusModeState.FOCUS.name) {
+                        _dailyTotalFocusTimeMs.value += elapsedWall
+                        _totalFocusTimeMs.value += elapsedWall
+                    } else if (fmsStr == FocusModeState.BREAK.name) {
+                        _dailyTotalBreakTimeMs.value += elapsedWall
+                    }
+                    
+                    val adjustedRemaining = savedPomoRemaining - elapsedWall
+                    if (adjustedRemaining <= 0) {
+                        _pomodoroRemainingMs.value = 0L
+                        _pomodoroStatus.value = PomodoroStatus.RUNNING
+                        _pomoLastAccumulatedTimestamp.value = nowWall
+                        onPomodoroSessionComplete()
+                    } else {
+                        _pomodoroRemainingMs.value = adjustedRemaining
+                        _pomodoroStatus.value = PomodoroStatus.RUNNING
+                        _pomoLastAccumulatedTimestamp.value = nowWall
+                        launchPomodoroJob(adjustedRemaining)
+                    }
+                } else {
+                    _pomodoroRemainingMs.value = savedPomoRemaining
+                    _pomodoroStatus.value = PomodoroStatus.RUNNING
+                    _pomoLastAccumulatedTimestamp.value = nowWall
+                    launchPomodoroJob(savedPomoRemaining)
+                }
+            } else {
+                _pomodoroRemainingMs.value = savedPomoRemaining
+                _pomodoroStatus.value = PomodoroStatus.RUNNING
+                _pomoLastAccumulatedTimestamp.value = nowWall
+                launchPomodoroJob(savedPomoRemaining)
+            }
         } else {
             _pomodoroRemainingMs.value = savedPomoRemaining
+            _pomoLastAccumulatedTimestamp.value = 0L
             _pomodoroStatus.value = if (pomoStatus == PomodoroStatus.RUNNING) PomodoroStatus.PAUSED else pomoStatus
         }
 
@@ -189,6 +308,8 @@ object TimerStopwatchStateManager {
             _stopwatchElapsedMs.value = savedSwElapsed
             _stopwatchStatus.value = swStatus
         }
+
+        updateActiveSessionOwner()
     }
 
     // --- Glassmorphic Styling State Flows & Unified Engine ---
@@ -393,6 +514,7 @@ object TimerStopwatchStateManager {
 
     fun selectTab(index: Int) {
         _activeTab.value = index
+        updateActiveSessionOwner()
         saveState()
         triggerWidgetUpdate()
     }
@@ -486,6 +608,8 @@ object TimerStopwatchStateManager {
         _timerRemainingMs.value = durationMs
         _timerStatus.value = TimerStatus.RUNNING
 
+        _lastStartedSession.value = "TIMER"
+        updateActiveSessionOwner()
         launchTimerJob(durationMs)
         notifyServiceOfStateChange()
     }
@@ -496,6 +620,9 @@ object TimerStopwatchStateManager {
         _timerMaxMs.value = durationMs
         _timerRemainingMs.value = durationMs
         _timerStatus.value = TimerStatus.RUNNING
+
+        _lastStartedSession.value = "TIMER"
+        updateActiveSessionOwner()
         launchTimerJob(durationMs)
         notifyServiceOfStateChange()
     }
@@ -537,6 +664,7 @@ object TimerStopwatchStateManager {
         if (_timerStatus.value != TimerStatus.RUNNING) return
         timerJob?.cancel()
         _timerStatus.value = TimerStatus.PAUSED
+        updateActiveSessionOwner()
         triggerNotificationUpdate()
         triggerWidgetUpdate()
         notifyServiceOfStateChange()
@@ -549,6 +677,8 @@ object TimerStopwatchStateManager {
         }
         if (_timerStatus.value != TimerStatus.PAUSED) return
         _timerStatus.value = TimerStatus.RUNNING
+        _lastStartedSession.value = "TIMER"
+        updateActiveSessionOwner()
         launchTimerJob(_timerRemainingMs.value)
         notifyServiceOfStateChange()
     }
@@ -560,6 +690,7 @@ object TimerStopwatchStateManager {
         _timerMaxMs.value = 0L
         _timerInput.value = ""
         _alarmTriggered.value = false
+        updateActiveSessionOwner()
         triggerNotificationUpdate()
         triggerWidgetUpdate()
         notifyServiceOfStateChange()
@@ -636,6 +767,9 @@ object TimerStopwatchStateManager {
         if (_stopwatchStatus.value == StopwatchStatus.RUNNING) return
         _stopwatchStatus.value = StopwatchStatus.RUNNING
 
+        _lastStartedSession.value = "SW"
+        updateActiveSessionOwner()
+
         stopwatchJob?.cancel()
         stopwatchJob = stateScope.launch {
             val baseTime = SystemClock.elapsedRealtime() - _stopwatchElapsedMs.value
@@ -663,6 +797,7 @@ object TimerStopwatchStateManager {
         if (_stopwatchStatus.value != StopwatchStatus.RUNNING) return
         stopwatchJob?.cancel()
         _stopwatchStatus.value = StopwatchStatus.PAUSED
+        updateActiveSessionOwner()
         triggerNotificationUpdate()
         triggerWidgetUpdate()
         notifyServiceOfStateChange()
@@ -690,6 +825,7 @@ object TimerStopwatchStateManager {
         _stopwatchStatus.value = StopwatchStatus.IDLE
         _stopwatchElapsedMs.value = 0L
         _laps.value = emptyList()
+        updateActiveSessionOwner()
         triggerNotificationUpdate()
         triggerWidgetUpdate()
         notifyServiceOfStateChange()
@@ -821,6 +957,9 @@ object TimerStopwatchStateManager {
             setFocusModeState(FocusModeState.FOCUS)
         }
         _pomodoroStatus.value = PomodoroStatus.RUNNING
+        _pomoLastAccumulatedTimestamp.value = System.currentTimeMillis()
+        _lastStartedSession.value = "POMO"
+        updateActiveSessionOwner()
         launchPomodoroJob(_pomodoroRemainingMs.value)
         notifyServiceOfStateChange()
     }
@@ -829,12 +968,30 @@ object TimerStopwatchStateManager {
         if (_pomodoroStatus.value != PomodoroStatus.RUNNING) return
         pomodoroJob?.cancel()
         _pomodoroStatus.value = PomodoroStatus.PAUSED
+        
+        val nowWall = System.currentTimeMillis()
+        val lastTick = _pomoLastAccumulatedTimestamp.value
+        val elapsedTick = nowWall - lastTick
+        if (lastTick > 0L && elapsedTick > 0L) {
+            checkAndResetDailyStats()
+            if (_focusModeState.value == FocusModeState.FOCUS) {
+                _dailyTotalFocusTimeMs.value += elapsedTick
+                _totalFocusTimeMs.value += elapsedTick
+            } else if (_focusModeState.value == FocusModeState.BREAK) {
+                _dailyTotalBreakTimeMs.value += elapsedTick
+            }
+        }
+        _pomoLastAccumulatedTimestamp.value = 0L
+        updateActiveSessionOwner()
         notifyServiceOfStateChange()
     }
 
     fun resumePomodoro() {
         if (_pomodoroStatus.value != PomodoroStatus.PAUSED) return
         _pomodoroStatus.value = PomodoroStatus.RUNNING
+        _pomoLastAccumulatedTimestamp.value = System.currentTimeMillis()
+        _lastStartedSession.value = "POMO"
+        updateActiveSessionOwner()
         launchPomodoroJob(_pomodoroRemainingMs.value)
         notifyServiceOfStateChange()
         _completedFocusSessions.let {
@@ -845,9 +1002,11 @@ object TimerStopwatchStateManager {
     fun resetPomodoro() {
         pomodoroJob?.cancel()
         _pomodoroStatus.value = PomodoroStatus.IDLE
+        _pomoLastAccumulatedTimestamp.value = 0L
         val duration = getCycleDurationMs(_focusModeState.value)
         _pomodoroRemainingMs.value = duration
         _pomodoroDurationMs.value = duration
+        updateActiveSessionOwner()
         notifyServiceOfStateChange()
     }
 
@@ -861,6 +1020,9 @@ object TimerStopwatchStateManager {
         _pomodoroDurationMs.value = duration
         _pomodoroStatus.value = PomodoroStatus.RUNNING
         
+        _pomoLastAccumulatedTimestamp.value = System.currentTimeMillis()
+        _lastStartedSession.value = "POMO"
+        updateActiveSessionOwner()
         launchPomodoroJob(duration)
         saveState()
         notifyServiceOfStateChange()
@@ -877,6 +1039,9 @@ object TimerStopwatchStateManager {
         _pomodoroDurationMs.value = duration
         _pomodoroStatus.value = PomodoroStatus.RUNNING
         
+        _pomoLastAccumulatedTimestamp.value = System.currentTimeMillis()
+        _lastStartedSession.value = "POMO"
+        updateActiveSessionOwner()
         launchPomodoroJob(duration)
         saveState()
         notifyServiceOfStateChange()
@@ -885,6 +1050,7 @@ object TimerStopwatchStateManager {
 
     private fun launchPomodoroJob(initialMs: Long) {
         pomodoroJob?.cancel()
+        _pomoLastAccumulatedTimestamp.value = System.currentTimeMillis()
         pomodoroJob = stateScope.launch {
             var remaining = initialMs
             val startTime = SystemClock.elapsedRealtime()
@@ -898,14 +1064,41 @@ object TimerStopwatchStateManager {
                 if (remaining < 0) remaining = 0L
                 _pomodoroRemainingMs.value = remaining
 
+                val nowWall = System.currentTimeMillis()
+                val lastTick = _pomoLastAccumulatedTimestamp.value
+                val elapsedTick = nowWall - lastTick
+                if (elapsedTick >= 1000L) {
+                    checkAndResetDailyStats()
+                    if (_focusModeState.value == FocusModeState.FOCUS) {
+                        _dailyTotalFocusTimeMs.value += elapsedTick
+                        _totalFocusTimeMs.value += elapsedTick
+                    } else if (_focusModeState.value == FocusModeState.BREAK) {
+                        _dailyTotalBreakTimeMs.value += elapsedTick
+                    }
+                    _pomoLastAccumulatedTimestamp.value = nowWall
+                    saveState()
+                }
+
                 if (now - lastNotifyTime >= 1000L) {
                     lastNotifyTime = now
                     triggerWidgetUpdate()
                 }
-                delay(16)
+                delay(100)
             }
 
             if (remaining <= 0) {
+                val nowWall = System.currentTimeMillis()
+                val lastTick = _pomoLastAccumulatedTimestamp.value
+                val elapsedTick = nowWall - lastTick
+                if (elapsedTick > 0L) {
+                    checkAndResetDailyStats()
+                    if (_focusModeState.value == FocusModeState.FOCUS) {
+                        _dailyTotalFocusTimeMs.value += elapsedTick
+                        _totalFocusTimeMs.value += elapsedTick
+                    } else if (_focusModeState.value == FocusModeState.BREAK) {
+                        _dailyTotalBreakTimeMs.value += elapsedTick
+                    }
+                }
                 onPomodoroSessionComplete()
             }
         }
@@ -917,14 +1110,10 @@ object TimerStopwatchStateManager {
             val focusCompletedCount = _completedFocusSessions.value + 1
             _completedFocusSessions.value = focusCompletedCount
             _totalPomodoroCyclesCompleted.value += 1
-            
-            val focusSessionMs = _focusDefaultMin.value * 60_000L
-            _totalFocusTimeMs.value += focusSessionMs
             _currentSessionNumber.value = (focusCompletedCount % 4) + 1
 
             checkAndResetDailyStats()
             _dailyCompletedFocusSessions.value += 1
-            _dailyTotalFocusTimeMs.value += focusSessionMs
 
             val isLongBreak = focusCompletedCount > 0 && focusCompletedCount % 4 == 0
             
@@ -939,6 +1128,8 @@ object TimerStopwatchStateManager {
             _pomodoroDurationMs.value = breakDuration
             _pomodoroStatus.value = PomodoroStatus.RUNNING
             
+            _pomoLastAccumulatedTimestamp.value = System.currentTimeMillis()
+
             if (isLongBreak) {
                 sendOptionalNotification("Long Break Started", "Amazing job! Enjoy a " + _longBreakDefaultMin.value + "-minute rest.")
             } else {
@@ -950,8 +1141,6 @@ object TimerStopwatchStateManager {
             _completedBreakSessions.value += 1
             
             checkAndResetDailyStats()
-            val breakDuration = getCycleDurationMs(FocusModeState.BREAK)
-            _dailyTotalBreakTimeMs.value += breakDuration
             
             _focusModeState.value = FocusModeState.FOCUS
             val focusDuration = _focusDefaultMin.value * 60_000L
@@ -959,10 +1148,13 @@ object TimerStopwatchStateManager {
             _pomodoroDurationMs.value = focusDuration
             _pomodoroStatus.value = PomodoroStatus.RUNNING
             
+            _pomoLastAccumulatedTimestamp.value = System.currentTimeMillis()
+
             sendOptionalNotification("Break Complete", "Time to focus! Let's get " + _focusDefaultMin.value + " minutes of work done.")
             
             launchPomodoroJob(focusDuration)
         }
+        updateActiveSessionOwner()
         saveState()
         notifyServiceOfStateChange()
     }

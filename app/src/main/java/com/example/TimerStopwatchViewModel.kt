@@ -207,6 +207,7 @@ class TimerStopwatchViewModel : ViewModel() {
     val glassAnimationSpeed: StateFlow<Float> = TimerStopwatchStateManager.glassAnimationSpeed
     val wallpaperUri: StateFlow<String> = TimerStopwatchStateManager.wallpaperUri
     val overlayMode: StateFlow<Int> = TimerStopwatchStateManager.overlayMode
+    val activeSessionOwner: StateFlow<String> = TimerStopwatchStateManager.activeSessionOwner
 
     val appearanceConfigState: StateFlow<AppAppearanceConfig> = TimerStopwatchStateManager.appearanceConfig
     val customPresetNames: StateFlow<List<String>> = TimerStopwatchStateManager.customPresetNames

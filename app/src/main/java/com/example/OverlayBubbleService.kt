@@ -43,6 +43,7 @@ class OverlayBubbleService : Service() {
 
     // Fine-grained state cache for performance optimization (eliminates redundant UI redraw and findViewById lookups)
     private var lastFormattedTime = ""
+    private var lastActiveOwner: String? = null
     private var lastTimerStatus: TimerStatus? = null
     private var lastSwStatus: StopwatchStatus? = null
     private var lastPomoStatus: PomodoroStatus? = null
@@ -609,48 +610,44 @@ class OverlayBubbleService : Service() {
     }
 
     private fun toggleActiveTimerState() {
-        val isPomoActive = TimerStopwatchStateManager.focusModeState.value != FocusModeState.OFF
-        if (isPomoActive) {
-            if (TimerStopwatchStateManager.pomodoroStatus.value == PomodoroStatus.RUNNING) {
-                TimerStopwatchStateManager.pausePomodoro()
-            } else {
-                TimerStopwatchStateManager.startPomodoro()
+        val owner = TimerStopwatchStateManager.activeSessionOwner.value
+        when (owner) {
+            "POMO" -> {
+                if (TimerStopwatchStateManager.pomodoroStatus.value == PomodoroStatus.RUNNING) {
+                    TimerStopwatchStateManager.pausePomodoro()
+                } else {
+                    TimerStopwatchStateManager.startPomodoro()
+                }
             }
-            return
-        }
-        val isTimerActive = TimerStopwatchStateManager.timerStatus.value != TimerStatus.IDLE
-        if (isTimerActive) {
-            if (TimerStopwatchStateManager.timerStatus.value == TimerStatus.RUNNING) {
-                TimerStopwatchStateManager.pauseTimer()
-            } else {
-                TimerStopwatchStateManager.resumeTimer()
+            "TIMER" -> {
+                if (TimerStopwatchStateManager.timerStatus.value == TimerStatus.RUNNING) {
+                    TimerStopwatchStateManager.pauseTimer()
+                } else {
+                    TimerStopwatchStateManager.resumeTimer()
+                }
             }
-        } else {
-            if (TimerStopwatchStateManager.stopwatchStatus.value == StopwatchStatus.RUNNING) {
-                TimerStopwatchStateManager.pauseStopwatch()
-            } else {
-                TimerStopwatchStateManager.startStopwatch()
+            "SW" -> {
+                if (TimerStopwatchStateManager.stopwatchStatus.value == StopwatchStatus.RUNNING) {
+                    TimerStopwatchStateManager.pauseStopwatch()
+                } else {
+                    TimerStopwatchStateManager.startStopwatch()
+                }
             }
         }
     }
 
     private fun resetActiveTimerState() {
-        val isPomoActive = TimerStopwatchStateManager.focusModeState.value != FocusModeState.OFF
-        if (isPomoActive) {
-            TimerStopwatchStateManager.resetPomodoro()
-            return
-        }
-        val isTimerActive = TimerStopwatchStateManager.timerStatus.value != TimerStatus.IDLE
-        if (isTimerActive) {
-            TimerStopwatchStateManager.resetTimer()
-        } else {
-            TimerStopwatchStateManager.resetStopwatch()
+        val owner = TimerStopwatchStateManager.activeSessionOwner.value
+        when (owner) {
+            "POMO" -> TimerStopwatchStateManager.resetPomodoro()
+            "TIMER" -> TimerStopwatchStateManager.resetTimer()
+            "SW" -> TimerStopwatchStateManager.resetStopwatch()
         }
     }
 
     private fun addOneMinuteToActiveTimer() {
-        val isTimerActive = TimerStopwatchStateManager.timerStatus.value != TimerStatus.IDLE
-        if (isTimerActive) {
+        val owner = TimerStopwatchStateManager.activeSessionOwner.value
+        if (owner == "TIMER") {
             TimerStopwatchStateManager.addOneMinute()
         }
     }
@@ -668,7 +665,8 @@ class OverlayBubbleService : Service() {
                     TimerStopwatchStateManager.pomodoroRemainingMs,
                     TimerStopwatchStateManager.pomodoroStatus,
                     TimerStopwatchStateManager.focusModeState,
-                    TimerStopwatchStateManager.completedFocusSessions
+                    TimerStopwatchStateManager.completedFocusSessions,
+                    TimerStopwatchStateManager.activeSessionOwner
                 )
             ) { array ->
                 OverlayState(
@@ -680,7 +678,8 @@ class OverlayBubbleService : Service() {
                     pomoRemainingMs = array[5] as Long,
                     pomoStatus = array[6] as PomodoroStatus,
                     focusState = array[7] as FocusModeState,
-                    completedFocus = array[8] as Int
+                    completedFocus = array[8] as Int,
+                    activeOwner = array[9] as String
                 )
             }.collectLatest { state ->
                 updateOverlayContent(state)
@@ -695,33 +694,9 @@ class OverlayBubbleService : Service() {
         val swIsRunningOrPaused = state.swStatus != StopwatchStatus.IDLE
         val isPomoActive = state.focusState != FocusModeState.OFF
 
-        // Prioritize active and running operations dynamically
-        val showType = when {
-            state.pomoStatus == PomodoroStatus.RUNNING -> "POMO"
-            state.timerStatus == TimerStatus.RUNNING -> "TIMER"
-            state.swStatus == StopwatchStatus.RUNNING -> "SW"
-            
-            state.pomoStatus == PomodoroStatus.PAUSED -> "POMO"
-            state.timerStatus == TimerStatus.PAUSED -> "TIMER"
-            state.swStatus == StopwatchStatus.PAUSED -> "SW"
-            
-            isPomoActive -> "POMO"
-            timerIsRunningOrPaused -> "TIMER"
-            swIsRunningOrPaused -> "SW"
-            
-            else -> {
-                when (state.activeTab) {
-                    0 -> "POMO"
-                    1 -> "TIMER"
-                    2 -> "SW"
-                    else -> "TIMER"
-                }
-            }
-        }
-
-        val showPomo = showType == "POMO" && isPomoActive
-        val showSw = showType == "SW"
-        val showTimer = showType == "TIMER" || (showType == "POMO" && !isPomoActive)
+        val showPomo = state.activeOwner == "POMO"
+        val showSw = state.activeOwner == "SW"
+        val showTimer = state.activeOwner == "TIMER"
 
         var isPaused = false
         var timeColor = android.graphics.Color.WHITE
@@ -768,6 +743,7 @@ class OverlayBubbleService : Service() {
             state.swStatus == lastSwStatus &&
             state.pomoStatus == lastPomoStatus &&
             state.focusState == lastFocusState &&
+            state.activeOwner == lastActiveOwner &&
             showTimer == lastIsTimerActive &&
             showSw == lastIsSwActive &&
             showPomo == lastIsPomoActive &&
@@ -777,10 +753,11 @@ class OverlayBubbleService : Service() {
         }
 
         // Mode switched: Trigger transition animations for a smoother UI experience
-        val modeSwitched = lastFormattedTime.isNotEmpty() && (showTimer != lastIsTimerActive || showSw != lastIsSwActive || showPomo != lastIsPomoActive)
+        val modeSwitched = lastActiveOwner != null && lastActiveOwner != state.activeOwner
 
         // Update cached values
         lastFormattedTime = formattedTime
+        lastActiveOwner = state.activeOwner
         lastTimerStatus = state.timerStatus
         lastSwStatus = state.swStatus
         lastPomoStatus = state.pomoStatus
@@ -806,12 +783,22 @@ class OverlayBubbleService : Service() {
         }
         
         if (modeSwitched) {
+            // Apply scale elasticity to the entire container view
+            view.scaleX = 0.94f
+            view.scaleY = 0.94f
+            view.animate()
+                .scaleX(1.0f)
+                .scaleY(1.0f)
+                .setDuration(300)
+                .setInterpolator(android.view.animation.OvershootInterpolator(1.2f))
+                .start()
+
             islandTimeText?.alpha = 0f
-            islandTimeText?.animate()?.alpha(1f)?.setDuration(300)?.start()
+            islandTimeText?.animate()?.alpha(1f)?.setDuration(280)?.start()
             
             islandTimerIcon?.scaleX = 0f
             islandTimerIcon?.scaleY = 0f
-            islandTimerIcon?.animate()?.scaleX(1f)?.scaleY(1f)?.setDuration(300)?.setInterpolator(android.view.animation.OvershootInterpolator())?.start()
+            islandTimerIcon?.animate()?.scaleX(1f)?.scaleY(1f)?.setDuration(280)?.setInterpolator(android.view.animation.OvershootInterpolator())?.start()
             
             val islandPlayPauseBtn = view.findViewById<ImageView>(R.id.island_btn_play_pause)
             val islandResetBtn = view.findViewById<ImageView>(R.id.island_btn_reset)
@@ -820,7 +807,7 @@ class OverlayBubbleService : Service() {
             val views = listOfNotNull(islandPlayPauseBtn, islandResetBtn, islandCloseBtn)
             views.forEach { v ->
                 v.alpha = 0f
-                v.animate().alpha(1f).setDuration(300).start()
+                v.animate().alpha(1f).setDuration(280).start()
             }
             
             val collapsedTimeText = view.findViewById<TextView>(R.id.collapsed_time_text)
@@ -829,7 +816,7 @@ class OverlayBubbleService : Service() {
             
             listOfNotNull(collapsedTimeText, expandedTimeText, expandedTitle).forEach { v ->
                 v.alpha = 0f
-                v.animate().alpha(1f).setDuration(300).start()
+                v.animate().alpha(1f).setDuration(280).start()
             }
         }
 
@@ -970,6 +957,7 @@ class OverlayBubbleService : Service() {
         val pomoRemainingMs: Long,
         val pomoStatus: PomodoroStatus,
         val focusState: FocusModeState,
-        val completedFocus: Int
+        val completedFocus: Int,
+        val activeOwner: String
     )
 }
