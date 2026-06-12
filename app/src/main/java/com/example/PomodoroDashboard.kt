@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.launch
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -37,10 +38,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
 import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.GlowGreen
 import com.example.ui.theme.PurpleGlow
@@ -74,6 +81,8 @@ fun PomodoroTabContent(
     val dailySummaries by viewModel.allDailySummaries.collectAsState(initial = emptyList())
     val sessionLogs by viewModel.allSessionLogs.collectAsState(initial = emptyList())
 
+    val coroutineScope = rememberCoroutineScope()
+
     var showConfigDialog by remember { mutableStateOf(false) }
 
     val actualRemainingMs = if (remainingMs == 0L && focusState == FocusModeState.OFF) {
@@ -89,26 +98,50 @@ fun PomodoroTabContent(
 
     val activeColor = if (focusState == FocusModeState.BREAK) CyanGlow else GlowGreen
 
-    // Dynamic scale and spacing rules
+    // Dynamic responsive size classes with explicit min/max bounds
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val isTablet = configuration.screenWidthDp >= 600 && configuration.screenHeightDp >= 600
     val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
-    val isCompactWidth = configuration.screenWidthDp < 480
+    val screenWidth = configuration.screenWidthDp
+    val isCompactPhone = screenWidth < 600
+    val isMediumDevice = screenWidth in 600..840
+    val isLargeTablet = screenWidth > 840
+    val isTablet = screenWidth >= 600
 
-    // Avoid overlap with top bar sliding pill switcher
-    val topBarPadding = if (isCompactWidth && isPortrait) {
+    // Prevent scrolling overlays behind sticky top-bar
+    val topBarPadding = if (isCompactPhone && isPortrait) {
         155.dp
     } else {
         105.dp
     }
 
-    val themeSpacing = if (isTablet) 16.dp else 10.dp
-    val ringSize = if (isTablet) 180.dp else 145.dp
+    // Proportional spacings
+    val themeSpacing = when {
+        isCompactPhone -> 8.dp
+        isMediumDevice -> 12.dp
+        else -> 18.dp
+    }
+
+    // Precise physical bounding for dynamic circular timer
+    val ringSize = when {
+        isCompactPhone -> 128.dp
+        isMediumDevice -> 160.dp
+        else -> 195.dp
+    }
+
+    val ctrlBtnSize = if (isCompactPhone) 36.dp else 44.dp
+    val primaryBtnHeight = if (isCompactPhone) 36.dp else 44.dp
+    val primaryBtnMinWidth = if (isCompactPhone) 100.dp else 120.dp
+    val ctrlIconSize = if (isCompactPhone) 15.dp else 18.dp
+    val ctrlFontSize = if (isCompactPhone) 11.sp else 13.sp
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = if (isTablet) 24.dp else 16.dp, vertical = 2.dp)
+            .fadingEdgeMask(
+                topFadeHeight = topBarPadding + 15.dp,
+                bottomFadeHeight = 100.dp
+            )
+            .padding(horizontal = if (isLargeTablet) 24.dp else 16.dp, vertical = 2.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(themeSpacing)
@@ -302,14 +335,14 @@ fun PomodoroTabContent(
         // Simplified Control Actions Row
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (isCompactPhone) 10.dp else 14.dp),
             modifier = Modifier.padding(vertical = 4.dp)
         ) {
             // Config Button (Always visible)
             IconButton(
                 onClick = { showConfigDialog = true },
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(ctrlBtnSize)
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.04f))
                     .border(1.dp, Color.White.copy(alpha = 0.10f), CircleShape)
@@ -318,7 +351,7 @@ fun PomodoroTabContent(
                     imageVector = Icons.Default.Settings,
                     contentDescription = "Configure Pomodoro",
                     tint = Color.White.copy(alpha = 0.8f),
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(ctrlIconSize)
                 )
             }
 
@@ -341,15 +374,15 @@ fun PomodoroTabContent(
                 ),
                 shape = RoundedCornerShape(22.dp),
                 modifier = Modifier
-                    .height(44.dp)
-                    .widthIn(min = 120.dp)
+                    .height(primaryBtnHeight)
+                    .widthIn(min = primaryBtnMinWidth)
             ) {
-                Icon(imageVector = actionIcon, contentDescription = actionText, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(6.dp))
+                Icon(imageVector = actionIcon, contentDescription = actionText, modifier = Modifier.size(ctrlIconSize))
+                Spacer(modifier = Modifier.width(if (isCompactPhone) 4.dp else 6.dp))
                 Text(
                     text = actionText,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
+                    fontSize = ctrlFontSize
                 )
             }
 
@@ -359,7 +392,7 @@ fun PomodoroTabContent(
                 IconButton(
                     onClick = { viewModel.resetPomodoro() },
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(ctrlBtnSize)
                         .clip(CircleShape)
                         .background(Color.White.copy(alpha = 0.04f))
                         .border(1.dp, Color.White.copy(alpha = 0.10f), CircleShape)
@@ -368,7 +401,7 @@ fun PomodoroTabContent(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "Reset Timer",
                         tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(ctrlIconSize)
                     )
                 }
 
@@ -377,7 +410,7 @@ fun PomodoroTabContent(
                     IconButton(
                         onClick = { viewModel.startBreakManually() },
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(ctrlBtnSize)
                             .clip(CircleShape)
                             .background(CyanGlow.copy(alpha = 0.15f))
                             .border(1.dp, CyanGlow.copy(alpha = 0.35f), CircleShape)
@@ -386,14 +419,14 @@ fun PomodoroTabContent(
                             imageVector = Icons.Default.Coffee,
                             contentDescription = "Start Break",
                             tint = CyanGlow,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(ctrlIconSize)
                         )
                     }
                 } else {
                     IconButton(
                         onClick = { viewModel.skipBreak() },
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(ctrlBtnSize)
                             .clip(CircleShape)
                             .background(GlowGreen.copy(alpha = 0.15f))
                             .border(1.dp, GlowGreen.copy(alpha = 0.35f), CircleShape)
@@ -402,7 +435,7 @@ fun PomodoroTabContent(
                             imageVector = Icons.Default.SkipNext,
                             contentDescription = "Skip Break",
                             tint = GlowGreen,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(ctrlIconSize)
                         )
                     }
                 }
@@ -642,7 +675,9 @@ fun PomodoroTabContent(
                     // Share / Export PDF icon button
                     IconButton(
                         onClick = {
-                            PomodoroPdfExporter.exportToPdfAndShare(context, dailySummaries, sessionLogs)
+                            coroutineScope.launch {
+                                PomodoroPdfExporter.exportToPdfAndShare(context, dailySummaries, sessionLogs)
+                            }
                         },
                         modifier = Modifier
                             .size(32.dp)
@@ -882,16 +917,24 @@ fun StatGridCell(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     iconColor: Color
 ) {
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isCompact = configuration.screenWidthDp < 600
+
+    val boxSize = if (isCompact) 24.dp else 28.dp
+    val iconSize = if (isCompact) 12.dp else 14.dp
+    val labelSize = if (isCompact) 9.sp else 10.sp
+    val valueSize = if (isCompact) 11.sp else 12.sp
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp, horizontal = 2.dp)
+            .padding(vertical = if (isCompact) 2.dp else 4.dp, horizontal = 2.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(28.dp)
+                .size(boxSize)
                 .clip(RoundedCornerShape(6.dp))
                 .background(iconColor.copy(alpha = 0.08f)),
             contentAlignment = Alignment.Center
@@ -900,22 +943,20 @@ fun StatGridCell(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconColor,
-                modifier = Modifier.size(14.dp)
+                modifier = Modifier.size(iconSize)
             )
         }
         Column {
             Text(
                 text = label,
                 color = Color.White.copy(alpha = 0.45f),
-                fontSize = 10.sp,
-                lineHeight = 11.sp,
+                fontSize = labelSize,
                 fontWeight = FontWeight.Normal
             )
             Text(
                 text = value,
                 color = Color.White,
-                fontSize = 12.sp,
-                lineHeight = 13.sp,
+                fontSize = valueSize,
                 fontWeight = FontWeight.SemiBold
             )
         }
@@ -1039,4 +1080,44 @@ fun formatHistoryDate(dateStr: String): String {
         dateStr
     }
 }
+
+/**
+ * Custom Modifier extending drawWithContent. This applies a vertical transparency gradient mapping using Destination-In blend mode,
+ * enabling scrolling components to merge beautifully into standard background surfaces without sharp clip lines.
+ */
+fun Modifier.fadingEdgeMask(
+    topFadeHeight: Dp,
+    bottomFadeHeight: Dp
+): Modifier = this.graphicsLayer {
+    // Force offscreen compositing strategy to allow blending modes on translucent canvas
+    compositingStrategy = CompositingStrategy.Offscreen
+}.drawWithContent {
+    drawContent()
+    val topFadePx = topFadeHeight.toPx()
+    val bottomFadePx = bottomFadeHeight.toPx()
+    val height = size.height
+
+    if (topFadePx > 0f) {
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(Color.Transparent, Color.Black),
+                startY = 0f,
+                endY = topFadePx
+            ),
+            blendMode = BlendMode.DstIn
+        )
+    }
+
+    if (bottomFadePx > 0f) {
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(Color.Black, Color.Transparent),
+                startY = height - bottomFadePx,
+                endY = height
+            ),
+            blendMode = BlendMode.DstIn
+        )
+    }
+}
+
 

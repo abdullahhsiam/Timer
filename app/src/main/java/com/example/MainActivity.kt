@@ -382,7 +382,27 @@ fun MainScreen(
                         .graphicsLayer {
                             alpha = 1f - fullScreenTransitionProgress
                             translationY = -35.dp.toPx() * fullScreenTransitionProgress
-                        },
+                        }
+                        .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0xF00D0D11), // 94% opaque dark, perfect depth
+                                    Color(0xD00D0D11)  // Translucent dark slate, 81% opaque
+                                )
+                            )
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.08f),
+                                    Color.White.copy(alpha = 0.02f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+                        )
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(
@@ -607,11 +627,30 @@ fun MainScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 8.dp)
                         .graphicsLayer {
                             alpha = 1f - fullScreenTransitionProgress
                             translationY = 35.dp.toPx() * fullScreenTransitionProgress
-                        },
+                        }
+                        .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0xD00D0D11), // Translucent dark, 81% opaque
+                                    Color(0xF00D0D11)  // 94% opaque dark base
+                                )
+                            )
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.02f),
+                                    Color.White.copy(alpha = 0.08f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                        )
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
