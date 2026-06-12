@@ -30,11 +30,7 @@ jobs:
 
       - name: Restore Debug Keystore
         run: |
-          if [ ! -f debug.keystore.base64 ]; then
-            echo "ERROR: debug.keystore.base64 not found!"
-            exit 1
-          fi
-
+          echo "${{ secrets.KEYSTORE_BASE64 }}" > debug.keystore.base64
           base64 -d debug.keystore.base64 > debug.keystore
 
       - name: Recreate Gradle Wrapper
