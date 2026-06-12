@@ -14,6 +14,10 @@ import java.util.Locale
 import android.app.NotificationManager
 import android.app.NotificationChannel
 import androidx.core.app.NotificationCompat
+import com.example.persistence.PomodoroDatabase
+import com.example.persistence.PomodoroRepository
+import com.example.persistence.PomodoroDailySummary
+import com.example.persistence.PomodoroSessionLog
 
 object TimerStopwatchStateManager {
 
@@ -21,6 +25,19 @@ object TimerStopwatchStateManager {
     private val stateScope = CoroutineScope(Dispatchers.Default + job)
 
     private var appContext: Context? = null
+
+    // --- Persistence ---
+    lateinit var database: PomodoroDatabase
+    lateinit var repository: PomodoroRepository
+
+    private val _currentSessionStartTime = MutableStateFlow(0L)
+    val currentSessionStartTime: StateFlow<Long> = _currentSessionStartTime.asStateFlow()
+
+    private val _currentSessionType = MutableStateFlow("FOCUS")
+    val currentSessionType: StateFlow<String> = _currentSessionType.asStateFlow()
+
+    private val _isManualBreakActive = MutableStateFlow(false)
+    val isManualBreakActive: StateFlow<Boolean> = _isManualBreakActive.asStateFlow()
 
     // --- Active Session Owner Management ---
     private val _lastStartedSession = MutableStateFlow<String?>("TIMER")
@@ -104,6 +121,8 @@ object TimerStopwatchStateManager {
     fun initialize(context: Context) {
         if (appContext == null) {
             appContext = context.applicationContext
+            database = PomodoroDatabase.getDatabase(context.applicationContext)
+            repository = PomodoroRepository(database.pomodoroDao())
             restoreState()
         }
     }
@@ -143,6 +162,9 @@ object TimerStopwatchStateManager {
             putString("last_started_session", _lastStartedSession.value)
             putString("active_session_owner", _activeSessionOwner.value)
             putLong("pomodoro_last_tick_timestamp", _pomoLastAccumulatedTimestamp.value)
+            putLong("current_session_start_time", _currentSessionStartTime.value)
+            putString("current_session_type", _currentSessionType.value)
+            putBoolean("is_manual_break_active", _isManualBreakActive.value)
 
             // Premium custom styling params
             putFloat("glass_blur", _glassBlur.value)
@@ -160,6 +182,53 @@ object TimerStopwatchStateManager {
             putString("appearance_config_json", _appearanceConfig.value.toSerializedString())
             apply()
         }
+        updateRoomDailySummary()
+    }
+
+    fun updateRoomDailySummary(customDate: String? = null) {
+        val today = customDate ?: SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val focusTime = _dailyTotalFocusTimeMs.value
+        val breakTime = _dailyTotalBreakTimeMs.value
+        val focusCount = _completedFocusSessions.value
+        val breakCount = _completedBreakSessions.value
+        val manualCount = _manualBreaksCount.value
+        val totalHours = focusTime / 3600000.0
+
+        stateScope.launch(Dispatchers.IO) {
+            if (!::repository.isInitialized) return@launch
+            val summary = PomodoroDailySummary(
+                date = today,
+                focusTimeMs = focusTime,
+                breakTimeMs = breakTime,
+                focusSessionsCompleted = focusCount,
+                breakSessionsCompleted = breakCount,
+                manualBreakCount = manualCount,
+                totalFocusHours = totalHours
+            )
+            repository.insertOrUpdateDailySummary(summary)
+            repository.pruneOlderThan30Days()
+        }
+    }
+
+    fun logCurrentSessionSegment(endTime: Long) {
+        val startTime = _currentSessionStartTime.value
+        val type = _currentSessionType.value
+        if (startTime > 0L && endTime > startTime) {
+            val duration = endTime - startTime
+            stateScope.launch(Dispatchers.IO) {
+                if (!::repository.isInitialized) return@launch
+                val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(endTime))
+                val log = PomodoroSessionLog(
+                    date = today,
+                    startTime = startTime,
+                    endTime = endTime,
+                    durationMs = duration,
+                    sessionType = type
+                )
+                repository.insertSessionLog(log)
+            }
+        }
+        _currentSessionStartTime.value = 0L
     }
 
     fun restoreState() {
@@ -218,6 +287,9 @@ object TimerStopwatchStateManager {
         _totalPomodoroCyclesCompleted.value = prefs.getInt("total_pomodoro_cycles_completed", 0)
         lastStatsDay = prefs.getString("last_stats_day", "") ?: ""
         _pomodoroNotificationsEnabled.value = prefs.getBoolean("pomodoro_notifications_enabled", true)
+        _currentSessionStartTime.value = prefs.getLong("current_session_start_time", 0L)
+        _currentSessionType.value = prefs.getString("current_session_type", "FOCUS") ?: "FOCUS"
+        _isManualBreakActive.value = prefs.getBoolean("is_manual_break_active", false)
 
         _lastStartedSession.value = prefs.getString("last_started_session", "TIMER") ?: "TIMER"
         _activeSessionOwner.value = prefs.getString("active_session_owner", "TIMER") ?: "TIMER"
@@ -925,10 +997,16 @@ object TimerStopwatchStateManager {
     private fun checkAndResetDailyStats() {
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         if (lastStatsDay != today) {
+            if (lastStatsDay.isNotEmpty()) {
+                updateRoomDailySummary(lastStatsDay)
+            }
             lastStatsDay = today
             _dailyTotalFocusTimeMs.value = 0L
             _dailyCompletedFocusSessions.value = 0
             _dailyTotalBreakTimeMs.value = 0L
+            _completedFocusSessions.value = 0
+            _completedBreakSessions.value = 0
+            _manualBreaksCount.value = 0
             saveState()
         }
     }
@@ -959,6 +1037,8 @@ object TimerStopwatchStateManager {
         _pomodoroStatus.value = PomodoroStatus.RUNNING
         _pomoLastAccumulatedTimestamp.value = System.currentTimeMillis()
         _lastStartedSession.value = "POMO"
+        _currentSessionStartTime.value = System.currentTimeMillis()
+        _currentSessionType.value = if (_focusModeState.value == FocusModeState.FOCUS) "FOCUS" else if (_isManualBreakActive.value) "MANUAL_BREAK" else "BREAK"
         updateActiveSessionOwner()
         launchPomodoroJob(_pomodoroRemainingMs.value)
         notifyServiceOfStateChange()
@@ -982,6 +1062,7 @@ object TimerStopwatchStateManager {
             }
         }
         _pomoLastAccumulatedTimestamp.value = 0L
+        logCurrentSessionSegment(nowWall)
         updateActiveSessionOwner()
         notifyServiceOfStateChange()
     }
@@ -991,6 +1072,8 @@ object TimerStopwatchStateManager {
         _pomodoroStatus.value = PomodoroStatus.RUNNING
         _pomoLastAccumulatedTimestamp.value = System.currentTimeMillis()
         _lastStartedSession.value = "POMO"
+        _currentSessionStartTime.value = System.currentTimeMillis()
+        _currentSessionType.value = if (_focusModeState.value == FocusModeState.FOCUS) "FOCUS" else if (_isManualBreakActive.value) "MANUAL_BREAK" else "BREAK"
         updateActiveSessionOwner()
         launchPomodoroJob(_pomodoroRemainingMs.value)
         notifyServiceOfStateChange()
@@ -1003,6 +1086,7 @@ object TimerStopwatchStateManager {
         pomodoroJob?.cancel()
         _pomodoroStatus.value = PomodoroStatus.IDLE
         _pomoLastAccumulatedTimestamp.value = 0L
+        logCurrentSessionSegment(System.currentTimeMillis())
         val duration = getCycleDurationMs(_focusModeState.value)
         _pomodoroRemainingMs.value = duration
         _pomodoroDurationMs.value = duration
@@ -1014,14 +1098,20 @@ object TimerStopwatchStateManager {
         if (_focusModeState.value != FocusModeState.BREAK) return
         pomodoroJob?.cancel()
         
+        val nowWall = System.currentTimeMillis()
+        logCurrentSessionSegment(nowWall)
+        _isManualBreakActive.value = false
+        
         _focusModeState.value = FocusModeState.FOCUS
         val duration = _focusDefaultMin.value * 60_000L
         _pomodoroRemainingMs.value = duration
         _pomodoroDurationMs.value = duration
         _pomodoroStatus.value = PomodoroStatus.RUNNING
         
-        _pomoLastAccumulatedTimestamp.value = System.currentTimeMillis()
+        _pomoLastAccumulatedTimestamp.value = nowWall
         _lastStartedSession.value = "POMO"
+        _currentSessionStartTime.value = nowWall
+        _currentSessionType.value = "FOCUS"
         updateActiveSessionOwner()
         launchPomodoroJob(duration)
         saveState()
@@ -1031,7 +1121,12 @@ object TimerStopwatchStateManager {
 
     fun startBreakManually() {
         pomodoroJob?.cancel()
+        
+        val nowWall = System.currentTimeMillis()
+        logCurrentSessionSegment(nowWall)
+        
         _manualBreaksCount.value += 1
+        _isManualBreakActive.value = true
         
         _focusModeState.value = FocusModeState.BREAK
         val duration = getCycleDurationMs(FocusModeState.BREAK)
@@ -1039,8 +1134,10 @@ object TimerStopwatchStateManager {
         _pomodoroDurationMs.value = duration
         _pomodoroStatus.value = PomodoroStatus.RUNNING
         
-        _pomoLastAccumulatedTimestamp.value = System.currentTimeMillis()
+        _pomoLastAccumulatedTimestamp.value = nowWall
         _lastStartedSession.value = "POMO"
+        _currentSessionStartTime.value = nowWall
+        _currentSessionType.value = "MANUAL_BREAK"
         updateActiveSessionOwner()
         launchPomodoroJob(duration)
         saveState()
@@ -1106,6 +1203,9 @@ object TimerStopwatchStateManager {
 
     private fun onPomodoroSessionComplete() {
         val currentType = _focusModeState.value
+        val nowWall = System.currentTimeMillis()
+        logCurrentSessionSegment(nowWall)
+        
         if (currentType == FocusModeState.FOCUS) {
             val focusCompletedCount = _completedFocusSessions.value + 1
             _completedFocusSessions.value = focusCompletedCount
@@ -1128,7 +1228,10 @@ object TimerStopwatchStateManager {
             _pomodoroDurationMs.value = breakDuration
             _pomodoroStatus.value = PomodoroStatus.RUNNING
             
-            _pomoLastAccumulatedTimestamp.value = System.currentTimeMillis()
+            _pomoLastAccumulatedTimestamp.value = nowWall
+            _currentSessionStartTime.value = nowWall
+            _currentSessionType.value = "BREAK"
+            _isManualBreakActive.value = false
 
             if (isLongBreak) {
                 sendOptionalNotification("Long Break Started", "Amazing job! Enjoy a " + _longBreakDefaultMin.value + "-minute rest.")
@@ -1148,7 +1251,10 @@ object TimerStopwatchStateManager {
             _pomodoroDurationMs.value = focusDuration
             _pomodoroStatus.value = PomodoroStatus.RUNNING
             
-            _pomoLastAccumulatedTimestamp.value = System.currentTimeMillis()
+            _pomoLastAccumulatedTimestamp.value = nowWall
+            _currentSessionStartTime.value = nowWall
+            _currentSessionType.value = "FOCUS"
+            _isManualBreakActive.value = false
 
             sendOptionalNotification("Break Complete", "Time to focus! Let's get " + _focusDefaultMin.value + " minutes of work done.")
             

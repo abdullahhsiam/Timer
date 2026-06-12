@@ -4,8 +4,105 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import java.text.SimpleDateFormat
+import java.util.*
+import com.example.persistence.PomodoroDailySummary
+import com.example.persistence.PomodoroSessionLog
+
+data class PomodoroStreaks(
+    val currentStreak: Int,
+    val bestStreak: Int
+)
 
 class TimerStopwatchViewModel : ViewModel() {
+
+    // --- Persistence & History Flows ---
+    val allDailySummaries: Flow<List<PomodoroDailySummary>> by lazy {
+        TimerStopwatchStateManager.repository.allDailySummaries
+    }
+
+    val allSessionLogs: Flow<List<PomodoroSessionLog>> by lazy {
+        TimerStopwatchStateManager.repository.allSessionLogs
+    }
+
+    val streaksState: Flow<PomodoroStreaks> by lazy {
+        TimerStopwatchStateManager.repository.allDailySummaries.map { calculateStreaks(it) }
+    }
+
+    private fun calculateStreaks(summaries: List<PomodoroDailySummary>): PomodoroStreaks {
+        if (summaries.isEmpty()) return PomodoroStreaks(0, 0)
+
+        // Filter dates containing at least one focus session or >= 25 mins focus time
+        val streakDates = summaries.filter {
+            it.focusSessionsCompleted >= 1 || it.focusTimeMs >= (25 * 60 * 1000L)
+        }.map { it.date }.toSet()
+
+        if (streakDates.isEmpty()) return PomodoroStreaks(0, 0)
+
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val dates = streakDates.mapNotNull {
+            try { sdf.parse(it) } catch (e: Exception) { null }
+        }.sorted()
+
+        if (dates.isEmpty()) return PomodoroStreaks(0, 0)
+
+        var bestStreak = 0
+        var currentStreak = 0
+
+        var lastDate: Date? = null
+        var tempStreak = 0
+
+        for (date in dates) {
+            if (lastDate == null) {
+                tempStreak = 1
+            } else {
+                val calLast = Calendar.getInstance().apply { time = lastDate }
+                calLast.add(Calendar.DAY_OF_YEAR, 1)
+                val nextDayStr = sdf.format(calLast.time)
+                val currentDayStr = sdf.format(date)
+
+                if (currentDayStr == nextDayStr) {
+                    tempStreak++
+                } else if (currentDayStr != sdf.format(lastDate)) {
+                    tempStreak = 1
+                }
+            }
+            if (tempStreak > bestStreak) {
+                bestStreak = tempStreak
+            }
+            lastDate = date
+        }
+
+        val todayStr = sdf.format(Date())
+        val calYesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+        val yesterdayStr = sdf.format(calYesterday.time)
+
+        val isActive = streakDates.contains(todayStr) || streakDates.contains(yesterdayStr)
+        currentStreak = if (isActive) {
+            var consecutiveCount = 0
+            val checkCal = Calendar.getInstance()
+            if (!streakDates.contains(todayStr) && streakDates.contains(yesterdayStr)) {
+                checkCal.add(Calendar.DAY_OF_YEAR, -1)
+            }
+
+            while (true) {
+                val formatted = sdf.format(checkCal.time)
+                if (streakDates.contains(formatted)) {
+                    consecutiveCount++
+                    checkCal.add(Calendar.DAY_OF_YEAR, -1)
+                } else {
+                    break
+                }
+            }
+            consecutiveCount
+        } else {
+            0
+        }
+
+        return PomodoroStreaks(currentStreak, maxOf(bestStreak, currentStreak))
+    }
 
     // --- Sound Selection State ---
     val selectedSound: StateFlow<AlarmSoundPreset> = TimerStopwatchStateManager.selectedSound

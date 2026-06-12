@@ -1,5 +1,9 @@
 package com.example
 
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -22,6 +26,12 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -59,6 +69,10 @@ fun PomodoroTabContent(
     val longMin by viewModel.longBreakDefaultMin.collectAsState()
 
     val activeVisualMode by viewModel.activeVisualMode.collectAsState()
+
+    val streaks by viewModel.streaksState.collectAsState(initial = PomodoroStreaks(0, 0))
+    val dailySummaries by viewModel.allDailySummaries.collectAsState(initial = emptyList())
+    val sessionLogs by viewModel.allSessionLogs.collectAsState(initial = emptyList())
 
     var showConfigDialog by remember { mutableStateOf(false) }
 
@@ -537,6 +551,314 @@ fun PomodoroTabContent(
                 }
             }
         }
+
+        // Space between Insights and History
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // POMODORO HISTORY AND STREAKS PANEL
+        var expandedDates by remember { mutableStateOf(setOf<String>()) }
+        val context = LocalContext.current
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White.copy(alpha = 0.03f))
+                .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(16.dp))
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Header with Streak Indicators & PDF Export Button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = "POMODORO HISTORY",
+                            color = Color.White.copy(alpha = 0.4f),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.5.sp
+                        )
+                        // Streak Badges row
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(top = 2.dp)
+                        ) {
+                            // Current Streak
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Whatshot,
+                                    contentDescription = "Current Streak",
+                                    tint = Color(0xFFFF5722), // Flame color
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = "${streaks.currentStreak}d streak",
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            
+                            // Divider Dot
+                            Text(
+                                text = "•",
+                                color = Color.White.copy(alpha = 0.25f),
+                                fontSize = 10.sp
+                            )
+
+                            // Best Streak
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "Best Streak",
+                                    tint = Color(0xFFFFC107), // Gold star
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = "best ${streaks.bestStreak}d",
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+
+                    // Share / Export PDF icon button
+                    IconButton(
+                        onClick = {
+                            PomodoroPdfExporter.exportToPdfAndShare(context, dailySummaries, sessionLogs)
+                        },
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(PurpleGlow.copy(alpha = 0.12f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Export PDF Report",
+                            tint = PurpleGlow,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+                }
+
+                if (dailySummaries.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No focus records logged yet",
+                            color = Color.White.copy(alpha = 0.3f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                } else {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Display up to 30 elements
+                        dailySummaries.take(30).forEach { day ->
+                            val isExpanded = expandedDates.contains(day.date)
+                            
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color.White.copy(alpha = if (isExpanded) 0.025f else 0.012f))
+                                    .border(1.dp, Color.White.copy(alpha = if (isExpanded) 0.05f else 0.03f), RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        expandedDates = if (isExpanded) expandedDates - day.date else expandedDates + day.date
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp)
+                            ) {
+                                // Day Entry Summary Header row
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                            contentDescription = "Expand details",
+                                            tint = Color.White.copy(alpha = 0.35f),
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Text(
+                                            text = formatHistoryDate(day.date),
+                                            color = Color.White.copy(alpha = 0.85f),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    
+                                    // Focus summary stats
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = "Focus: ${formatMinutes(day.focusTimeMs)}",
+                                            color = GlowGreen.copy(alpha = 0.8f),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            text = "•",
+                                            color = Color.White.copy(alpha = 0.15f),
+                                            fontSize = 9.sp
+                                        )
+                                        Text(
+                                            text = "Breaks: ${formatMinutes(day.breakTimeMs)}",
+                                            color = CyanGlow.copy(alpha = 0.8f),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+
+                                // Expanded Chronicle detail panel
+                                AnimatedVisibility(
+                                    visible = isExpanded,
+                                    enter = expandVertically(animationSpec = tween(150)) + fadeIn(animationSpec = tween(150)),
+                                    exit = shrinkVertically(animationSpec = tween(120)) + fadeOut(animationSpec = tween(120))
+                                ) {
+                                    val dayLogs = sessionLogs.filter { it.date == day.date }.sortedBy { it.startTime }
+                                    
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 8.dp, start = 20.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        // Header label
+                                        Text(
+                                            text = "SESSION TIMESTAMPS",
+                                            color = Color.White.copy(alpha = 0.25f),
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 1.sp,
+                                            modifier = Modifier.padding(bottom = 2.dp)
+                                        )
+
+                                        if (dayLogs.isEmpty()) {
+                                            Text(
+                                                text = "No detailed session periods recorded for this date",
+                                                color = Color.White.copy(alpha = 0.4f),
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                modifier = Modifier.padding(vertical = 2.dp)
+                                            )
+                                        } else {
+                                            val sdfTime = SimpleDateFormat("hh:mm a", Locale.getDefault())
+                                            
+                                            dayLogs.forEach { log ->
+                                                val startStr = sdfTime.format(Date(log.startTime))
+                                                val endStr = sdfTime.format(Date(log.endTime))
+                                                val durationStr = formatMinutes(log.durationMs)
+                                                
+                                                val labelText = when (log.sessionType) {
+                                                    "FOCUS" -> "Focus Session"
+                                                    "BREAK" -> "Standard Break"
+                                                    "MANUAL_BREAK" -> "Manual Break"
+                                                    else -> log.sessionType
+                                                }
+                                                val badgeColor = when (log.sessionType) {
+                                                    "FOCUS" -> GlowGreen
+                                                    "BREAK" -> CyanGlow
+                                                    else -> PurpleGlow
+                                                }
+
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                    ) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(5.dp)
+                                                                .clip(CircleShape)
+                                                                .background(badgeColor)
+                                                        )
+                                                        Text(
+                                                            text = "$startStr–$endStr",
+                                                            color = Color.White.copy(alpha = 0.65f),
+                                                            fontSize = 10.sp,
+                                                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                                        )
+                                                    }
+                                                    
+                                                    Text(
+                                                        text = "$labelText ($durationStr)",
+                                                        color = Color.White.copy(alpha = 0.5f),
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.height(3.dp))
+                                        Divider(color = Color.White.copy(alpha = 0.05f))
+                                        Spacer(modifier = Modifier.height(1.dp))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "Completed Focus: ${day.focusSessionsCompleted}",
+                                                color = Color.White.copy(alpha = 0.45f),
+                                                fontSize = 9.sp
+                                            )
+                                            Text(
+                                                text = "Completed Breaks: ${day.breakSessionsCompleted}",
+                                                color = Color.White.copy(alpha = 0.45f),
+                                                fontSize = 9.sp
+                                            )
+                                            Text(
+                                                text = "Manual Breaks: ${day.manualBreakCount}",
+                                                color = Color.White.copy(alpha = 0.45f),
+                                                fontSize = 9.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if (showConfigDialog) {
@@ -695,3 +1017,26 @@ fun DurationSelector(
         }
     }
 }
+
+fun formatHistoryDate(dateStr: String): String {
+    val sdfSource = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val sdfDisplay = SimpleDateFormat("EEE, MMM dd", Locale.getDefault())
+    return try {
+        val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.DAY_OF_YEAR, -1)
+        val yesterdayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.time)
+
+        when (dateStr) {
+            todayStr -> "Today"
+            yesterdayStr -> "Yesterday"
+            else -> {
+                val date = sdfSource.parse(dateStr)
+                date?.let { sdfDisplay.format(it) } ?: dateStr
+            }
+        }
+    } catch (e: Exception) {
+        dateStr
+    }
+}
+
