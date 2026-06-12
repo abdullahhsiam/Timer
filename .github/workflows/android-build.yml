@@ -29,30 +29,23 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Recreate Gradle Wrapper
-        run: |
-          echo "Regenerating gradle wrapper to prevent binary file corruption"
-          gradle wrapper --gradle-version 9.3.1
+      - name: Restore Debug Keystore
+  run: |
+    echo "Restoring debug.keystore from debug.keystore.base64"
 
-      - name: Recreate Debug Keystore
-        run: |
-          echo "Recreating debug.keystore from debug.keystore.base64 if possible"
-          if [ -f debug.keystore.base64 ]; then
-            base64 -d debug.keystore.base64 > debug.keystore
-            echo "Successfully restored debug.keystore from base64!"
-          else
-            echo "debug.keystore.base64 not found, running keytool to generate a fresh debug.keystore"
-            keytool -genkeypair -v \
-              -keystore debug.keystore \
-              -storepass android \
-              -alias androiddebugkey \
-              -keypass android \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
-            echo "Successfully generated a fresh debug.keystore!"
-          fi
+    if [ ! -f debug.keystore.base64 ]; then
+      echo "ERROR: debug.keystore.base64 not found!"
+      exit 1
+    fi
+
+    base64 -d debug.keystore.base64 > debug.keystore
+
+    if [ ! -f debug.keystore ]; then
+      echo "ERROR: Failed to restore debug.keystore!"
+      exit 1
+    fi
+
+    echo "Successfully restored debug.keystore"
 
       - name: Make Gradlew Executable
         run: chmod +x gradlew
