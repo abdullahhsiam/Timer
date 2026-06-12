@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -71,34 +73,39 @@ fun PomodoroTabContent(
         durationMs
     }
 
-    val sessionLabel = when (focusState) {
-        FocusModeState.FOCUS -> {
-            val num = (completedFocus % 4) + 1
-            "Focus #$num"
-        }
-        FocusModeState.BREAK -> {
-            val num = completedFocus % 4
-            if (num == 0) "Long Break" else "Break #$num"
-        }
-        FocusModeState.OFF -> {
-            "Focus #1"
-        }
+    val activeColor = if (focusState == FocusModeState.BREAK) CyanGlow else GlowGreen
+
+    // Dynamic scale and spacing rules
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isTablet = configuration.screenWidthDp >= 600 && configuration.screenHeightDp >= 600
+    val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
+    val isCompactWidth = configuration.screenWidthDp < 480
+
+    // Avoid overlap with top bar sliding pill switcher
+    val topBarPadding = if (isCompactWidth && isPortrait) {
+        155.dp
+    } else {
+        105.dp
     }
 
-    val activeColor = if (focusState == FocusModeState.BREAK) CyanGlow else GlowGreen
+    val themeSpacing = if (isTablet) 16.dp else 10.dp
+    val ringSize = if (isTablet) 180.dp else 145.dp
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 2.dp)
+            .padding(horizontal = if (isTablet) 24.dp else 16.dp, vertical = 2.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(themeSpacing)
     ) {
+        // Space above matching the fixed header height to prevent overlapping layers
+        Spacer(modifier = Modifier.height(topBarPadding))
+
         // Main Visual Centerpiece Selection Box (Circle / Flip view)
         Box(
             modifier = Modifier
-                .padding(vertical = 4.dp),
+                .padding(vertical = if (isTablet) 12.dp else 4.dp),
             contentAlignment = Alignment.Center
         ) {
             AnimatedContent(
@@ -111,6 +118,32 @@ fun PomodoroTabContent(
                 },
                 label = "pomo_visual_mode_transition"
             ) { mode ->
+                // Shared Status Definitions
+                val primarySessionText = when (pomoStatus) {
+                    PomodoroStatus.IDLE -> "Ready to Start"
+                    else -> when (focusState) {
+                        FocusModeState.FOCUS -> "Focused Session"
+                        FocusModeState.BREAK -> {
+                            val isLong = completedFocus > 0 && completedFocus % 4 == 0
+                            if (isLong) "Long Break" else "Short Break"
+                        }
+                        FocusModeState.OFF -> "Ready to Start"
+                    }
+                }
+
+                val cycleProgressText = when (focusState) {
+                    FocusModeState.FOCUS -> {
+                        val num = (completedFocus % 4) + 1
+                        "Focus #$num of 4"
+                    }
+                    FocusModeState.BREAK -> {
+                        val isLong = completedFocus > 0 && completedFocus % 4 == 0
+                        val num = completedFocus % 4
+                        if (isLong) "Cycle Complete" else "Break #$num of 3"
+                    }
+                    FocusModeState.OFF -> "Focus #1 of 4"
+                }
+
                 if (mode == 1) {
                     // FLIP MODE COUNTER
                     val totalSecs = actualRemainingMs / 1000
@@ -121,7 +154,7 @@ fun PomodoroTabContent(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(160.dp),
+                            .height(150.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
@@ -130,16 +163,16 @@ fun PomodoroTabContent(
                         ) {
                             FlipClockDisplay(
                                 timeString = timeString,
-                                width = 52.dp,
-                                height = 76.dp,
-                                textSize = 50f
+                                width = 48.dp,
+                                height = 68.dp,
+                                textSize = 42f
                             )
                             
                             Spacer(modifier = Modifier.height(10.dp))
                             
                             val pulse = rememberInfiniteTransition(label = "badge_pulse_flip")
                             val opacity by pulse.animateFloat(
-                                initialValue = 0.5f,
+                                initialValue = 0.6f,
                                 targetValue = 1f,
                                 animationSpec = infiniteRepeatable(
                                     animation = tween(1200, easing = LinearEasing),
@@ -149,30 +182,38 @@ fun PomodoroTabContent(
                             )
                             
                             Text(
-                                text = sessionLabel.uppercase(),
+                                text = primarySessionText.uppercase(),
                                 color = activeColor.copy(alpha = if (pomoStatus == PomodoroStatus.RUNNING) opacity else 0.8f),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                letterSpacing = 2.sp
+                                letterSpacing = 1.5.sp
+                            )
+                            
+                            Text(
+                                text = cycleProgressText,
+                                color = Color.White.copy(alpha = 0.5f),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(top = 2.dp)
                             )
                         }
                     }
                 } else {
-                    // CIRCLE MODE TIMER: Reduced diameter by ~27% from 220dp to 160dp
+                    // CIRCLE MODE TIMER: Centered, reduced by 15-20% (145.dp)
                     Box(
                         modifier = Modifier
-                            .size(160.dp)
+                            .size(ringSize)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.02f))
-                            .border(1.dp, Color.White.copy(alpha = 0.05f), CircleShape),
+                            .background(Color.White.copy(alpha = 0.015f))
+                            .border(1.dp, Color.White.copy(alpha = 0.04f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         val progress = if (actualDurationMs > 0) actualRemainingMs.toFloat() / actualDurationMs.toFloat() else 0f
                         androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize().padding(10.dp)) {
-                            val strokeWidthPx = 5.dp.toPx()
+                            val strokeWidthPx = 4.5.dp.toPx()
                             // Track
                             drawArc(
-                                color = Color.White.copy(alpha = 0.04f),
+                                color = Color.White.copy(alpha = 0.03f),
                                 startAngle = -90f,
                                 sweepAngle = 360f,
                                 useCenter = false,
@@ -190,70 +231,67 @@ fun PomodoroTabContent(
 
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(12.dp)
                         ) {
-                            if (focusState == FocusModeState.OFF && pomoStatus == PomodoroStatus.IDLE) {
-                                Icon(
-                                    imageVector = Icons.Default.Spa,
-                                    contentDescription = "Zen Status",
-                                    tint = PurpleGlow.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(40.dp)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "READY",
-                                    color = Color.White.copy(alpha = 0.6f),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.5.sp
-                                )
-                            } else {
-                                val totalSecs = actualRemainingMs / 1000
-                                val m = totalSecs / 60
-                                val s = totalSecs % 60
-                                val formattedTime = String.format(java.util.Locale.getDefault(), "%02d:%02d", m, s)
-                                
-                                Text(
-                                    text = formattedTime,
-                                    color = Color.White,
-                                    fontSize = 32.sp,
-                                    fontWeight = FontWeight.Light,
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                                )
-                                
-                                val pulse = rememberInfiniteTransition(label = "badge_pulse")
-                                val opacity by pulse.animateFloat(
-                                    initialValue = 0.5f,
-                                    targetValue = 1f,
-                                    animationSpec = infiniteRepeatable(
-                                        animation = tween(1200, easing = LinearEasing),
-                                        repeatMode = RepeatMode.Reverse
-                                    ),
-                                    label = "pulse_opacity"
-                                )
+                            val totalSecs = actualRemainingMs / 1000
+                            val m = totalSecs / 60
+                            val s = totalSecs % 60
+                            val formattedTime = String.format(java.util.Locale.getDefault(), "%02d:%02d", m, s)
+                            
+                            // 1. COUNTDOWN TIME
+                            Text(
+                                text = formattedTime,
+                                color = Color.White,
+                                fontSize = 30.sp,
+                                fontWeight = FontWeight.Light,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                            )
+                            
+                            Spacer(modifier = Modifier.height(4.dp))
+                            
+                            // 2. SESSION STATE TYPE (PULSING)
+                            val pulse = rememberInfiniteTransition(label = "badge_pulse")
+                            val opacity by pulse.animateFloat(
+                                initialValue = 0.6f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(1200, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "pulse_opacity"
+                            )
 
-                                Text(
-                                    text = sessionLabel.uppercase(),
-                                    color = activeColor.copy(alpha = if (pomoStatus == PomodoroStatus.RUNNING) opacity else 0.8f),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.5.sp,
-                                    modifier = Modifier.padding(top = 2.dp)
-                                )
-                            }
+                            Text(
+                                text = primarySessionText.uppercase(),
+                                color = activeColor.copy(alpha = if (pomoStatus == PomodoroStatus.RUNNING) opacity else 0.8f),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.2.sp
+                            )
+                            
+                            Spacer(modifier = Modifier.height(1.dp))
+
+                            // 3. CYCLE PROGRESS SPECIFICS
+                            Text(
+                                text = cycleProgressText,
+                                color = Color.White.copy(alpha = 0.45f),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
                     }
                 }
             }
         }
 
-        // Primary Compact Control Actions Row
+        // Simplified Control Actions Row
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier.padding(vertical = 4.dp)
         ) {
-            // Config Button
+            // Config Button (Always visible)
             IconButton(
                 onClick = { showConfigDialog = true },
                 modifier = Modifier
@@ -301,121 +339,200 @@ fun PomodoroTabContent(
                 )
             }
 
-            // Reset Button
-            IconButton(
-                onClick = { viewModel.resetPomodoro() },
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.04f))
-                    .border(1.dp, Color.White.copy(alpha = 0.10f), CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Reset Timer",
-                    tint = Color.White.copy(alpha = 0.8f),
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-
-            // Action: Manual Break or Skip Break based on state
-            if (focusState == FocusModeState.FOCUS || focusState == FocusModeState.OFF) {
+            // Show reset and manual coffee breaks action only if the Pomodoro session has started / is active
+            if (pomoStatus != PomodoroStatus.IDLE) {
+                // Reset Button
                 IconButton(
-                    onClick = { viewModel.startBreakManually() },
+                    onClick = { viewModel.resetPomodoro() },
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(CyanGlow.copy(alpha = 0.15f))
-                        .border(1.dp, CyanGlow.copy(alpha = 0.35f), CircleShape)
+                        .background(Color.White.copy(alpha = 0.04f))
+                        .border(1.dp, Color.White.copy(alpha = 0.10f), CircleShape)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Coffee,
-                        contentDescription = "Start Break",
-                        tint = CyanGlow,
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Reset Timer",
+                        tint = Color.White.copy(alpha = 0.8f),
                         modifier = Modifier.size(18.dp)
                     )
                 }
-            } else {
-                IconButton(
-                    onClick = { viewModel.skipBreak() },
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(GlowGreen.copy(alpha = 0.15f))
-                        .border(1.dp, GlowGreen.copy(alpha = 0.35f), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = "Skip Break",
-                        tint = GlowGreen,
-                        modifier = Modifier.size(18.dp)
-                    )
+
+                // Action: Manual Break or Skip Break based on state
+                if (focusState == FocusModeState.FOCUS || focusState == FocusModeState.OFF) {
+                    IconButton(
+                        onClick = { viewModel.startBreakManually() },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(CyanGlow.copy(alpha = 0.15f))
+                            .border(1.dp, CyanGlow.copy(alpha = 0.35f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Coffee,
+                            contentDescription = "Start Break",
+                            tint = CyanGlow,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                } else {
+                    IconButton(
+                        onClick = { viewModel.skipBreak() },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(GlowGreen.copy(alpha = 0.15f))
+                            .border(1.dp, GlowGreen.copy(alpha = 0.35f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SkipNext,
+                            contentDescription = "Skip Break",
+                            tint = GlowGreen,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
 
-        // Premium Metrics Stats Panel
+        // Smart Empty State Collapse logic
         val totalFocusHours = totalFocusMs / 3600000.0
         val focusHoursFormatted = String.format(java.util.Locale.getDefault(), "%.1fh", totalFocusHours)
+        
+        val isStatsEmpty = (dailyFocusMs == 0L && completedFocus == 0 && manualBreaks == 0 && dailyBreakMs == 0L && completedBreak == 0)
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(Color.White.copy(alpha = 0.03f))
-                .border(2.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(20.dp))
-                .padding(16.dp)
-        ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+        AnimatedContent(
+            targetState = isStatsEmpty,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(200)) togetherWith fadeOut(animationSpec = tween(150))
+            },
+            label = "pomo_stats_display_transition"
+        ) { empty ->
+            if (empty) {
+                // Compact Placeholder Empty State
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White.copy(alpha = 0.02f))
+                        .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+                        .clickable { showConfigDialog = true }
+                        .padding(vertical = 12.dp, horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "POMODORO STATE MONITOR",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.5.sp
-                    )
-                    
-                    Text(
-                        text = "Config",
-                        color = PurpleGlow,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .clickable { showConfigDialog = true }
-                            .padding(vertical = 4.dp, horizontal = 8.dp)
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.Start,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        StatLabelValue(label = "Today's Focus Time", value = formatMinutes(dailyFocusMs))
-                        StatLabelValue(label = "Focus Blocks Completed", value = "$completedFocus sessions")
-                        StatLabelValue(label = "Manual Break Count", value = "$manualBreaks sessions")
+                        Icon(
+                            imageVector = Icons.Default.Spa,
+                            contentDescription = null,
+                            tint = PurpleGlow.copy(alpha = 0.5f),
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Text(
+                            text = "No Pomodoro sessions recorded today",
+                            color = Color.White.copy(alpha = 0.45f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
-
+                }
+            } else {
+                // Premium Insights Refactored 2-Column Grid Dashboard
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White.copy(alpha = 0.03f))
+                        .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                ) {
                     Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        StatLabelValue(label = "Today's Break Time", value = formatMinutes(dailyBreakMs), alignEnd = true)
-                        StatLabelValue(label = "Break Blocks Completed", value = "$completedBreak sessions", alignEnd = true)
-                        StatLabelValue(label = "Total Focus Hours", value = focusHoursFormatted, alignEnd = true)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "POMODORO INSIGHTS",
+                                color = Color.White.copy(alpha = 0.4f),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.5.sp
+                            )
+                            
+                            Text(
+                                text = "Target Config",
+                                color = PurpleGlow,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { showConfigDialog = true }
+                                    .padding(vertical = 2.dp, horizontal = 4.dp)
+                            )
+                        }
+
+                        // Compact Responsive 2-Column Dashboard Grid
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                StatGridCell(
+                                    label = "Focus Time",
+                                    value = formatMinutes(dailyFocusMs),
+                                    icon = Icons.Default.Spa,
+                                    iconColor = GlowGreen
+                                )
+                            }
+                            Box(modifier = Modifier.weight(1f)) {
+                                StatGridCell(
+                                    label = "Break Time",
+                                    value = formatMinutes(dailyBreakMs),
+                                    icon = Icons.Default.Coffee,
+                                    iconColor = CyanGlow
+                                )
+                            }
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                StatGridCell(
+                                    label = "Focus Progress",
+                                    value = "$completedFocus sessions",
+                                    icon = Icons.Default.CheckCircle,
+                                    iconColor = GlowGreen
+                                )
+                            }
+                            Box(modifier = Modifier.weight(1f)) {
+                                StatGridCell(
+                                    label = "Break Progress",
+                                    value = "$completedBreak sessions",
+                                    icon = Icons.Default.Coffee,
+                                    iconColor = CyanGlow
+                                )
+                            }
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                StatGridCell(
+                                    label = "Manual Breaks",
+                                    value = "$manualBreaks sessions",
+                                    icon = Icons.Default.SkipNext,
+                                    iconColor = CyanGlow
+                                )
+                            }
+                            Box(modifier = Modifier.weight(1f)) {
+                                StatGridCell(
+                                    label = "Total Focus Hours",
+                                    value = focusHoursFormatted,
+                                    icon = Icons.Default.AccessTime,
+                                    iconColor = PurpleGlow
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -437,14 +554,49 @@ fun PomodoroTabContent(
 }
 
 @Composable
-fun StatLabelValue(
+fun StatGridCell(
     label: String,
     value: String,
-    alignEnd: Boolean = false
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconColor: Color
 ) {
-    Column(horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start) {
-        Text(text = label, color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
-        Text(text = value, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp, horizontal = 2.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(iconColor.copy(alpha = 0.08f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(14.dp)
+            )
+        }
+        Column {
+            Text(
+                text = label,
+                color = Color.White.copy(alpha = 0.45f),
+                fontSize = 10.sp,
+                lineHeight = 11.sp,
+                fontWeight = FontWeight.Normal
+            )
+            Text(
+                text = value,
+                color = Color.White,
+                fontSize = 12.sp,
+                lineHeight = 13.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
 
