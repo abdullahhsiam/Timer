@@ -569,6 +569,14 @@ object TimerStopwatchStateManager {
         _selectedSound.value = preset
     }
 
+    // --- Theme Temperature State ---
+    private val _themeTemperature = MutableStateFlow(0.5f)
+    val themeTemperature: StateFlow<Float> = _themeTemperature.asStateFlow()
+
+    fun setThemeTemperature(temp: Float) {
+        _themeTemperature.value = temp
+    }
+
     // --- Background Style State ---
     private val _isBackgroundAnimated = MutableStateFlow(true)
     val isBackgroundAnimated: StateFlow<Boolean> = _isBackgroundAnimated.asStateFlow()

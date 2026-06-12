@@ -119,6 +119,13 @@ class TimerStopwatchViewModel : ViewModel() {
         TimerStopwatchStateManager.selectSound(preset)
     }
 
+    // --- Theme Temperature State ---
+    val themeTemperature: StateFlow<Float> = TimerStopwatchStateManager.themeTemperature
+
+    fun setThemeTemperature(temp: Float) {
+        TimerStopwatchStateManager.setThemeTemperature(temp)
+    }
+
     // --- Background Style State ---
     val isBackgroundAnimated: StateFlow<Boolean> = TimerStopwatchStateManager.isBackgroundAnimated
 

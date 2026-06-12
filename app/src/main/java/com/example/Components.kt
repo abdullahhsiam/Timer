@@ -117,19 +117,37 @@ fun AnimatedGradientBackground(
         label = "background_active_transition"
     )
 
-    val targetColor1 = if (visualMode == 1) Color(0xFF0D1B2A) else Color(0xFF07070F)
-    val targetColor2 = if (visualMode == 1) Color(0x351B263B) else Color(0x356C3082)
-    val targetColor3 = if (visualMode == 1) Color(0x25415A77) else Color(0x2500E6FF)
+    val temp = com.example.ui.theme.LocalThemeTemperature.current
+    
+    val targetColor1Cold = if (visualMode == 1) Color(0xFF0D1B2A) else Color(0xFF07070F)
+    val targetColor2Cold = if (visualMode == 1) Color(0x351B263B) else Color(0x356C3082)
+    val targetColor3Cold = if (visualMode == 1) Color(0x25415A77) else Color(0x2500E6FF)
+    
+    val targetColor1Warm = if (visualMode == 1) Color(0xFF230C07) else Color(0xFF1A0A06)
+    val targetColor2Warm = if (visualMode == 1) Color(0x35511B10) else Color(0x35661F16)
+    val targetColor3Warm = if (visualMode == 1) Color(0x258C3621) else Color(0x25FF5126)
+
+    val targetColor1 = androidx.compose.ui.graphics.lerp(targetColor1Cold, targetColor1Warm, temp)
+    val targetColor2 = androidx.compose.ui.graphics.lerp(targetColor2Cold, targetColor2Warm, temp)
+    val targetColor3 = androidx.compose.ui.graphics.lerp(targetColor3Cold, targetColor3Warm, temp)
 
     val bgColor1 by animateColorAsState(targetValue = targetColor1, animationSpec = tween(600), label = "bg_color_1")
     val bgColor2 by animateColorAsState(targetValue = targetColor2, animationSpec = tween(600), label = "bg_color_2")
     val bgColor3 by animateColorAsState(targetValue = targetColor3, animationSpec = tween(600), label = "bg_color_3")
 
-    val activeColors = if (visualMode == 1) {
+    val activeColorsCold = if (visualMode == 1) {
         listOf(Color(0xFF0D1B2A), Color(0xFF1B263B), Color(0xFF0D1B2A), Color(0xFF415A77), Color(0xFF0D1B2A))
     } else {
         listOf(Color(0xFF090812), Color(0xFF160E2E), Color(0xFF0F1E28), Color(0xFF2E124D), Color(0xFF090812))
     }
+
+    val activeColorsWarm = if (visualMode == 1) {
+        listOf(Color(0xFF2B0A06), Color(0xFF40160F), Color(0xFF2B0A06), Color(0xFF6E281C), Color(0xFF2B0A06))
+    } else {
+        listOf(Color(0xFF1B0704), Color(0xFF330C08), Color(0xFF230906), Color(0xFF4A1009), Color(0xFF1B0704))
+    }
+    
+    val activeColors = activeColorsCold.zip(activeColorsWarm) { c, w -> androidx.compose.ui.graphics.lerp(c, w, temp) }
     
     // We can't easily animate list of colors natively without a loop, so we just crossfade the entire brush if we wanted, 
     // but the `isPulsing` and layout is already doing so much. We'll simply let Compose handle State reads for colors where possible.
@@ -361,18 +379,21 @@ fun CircleProgressTimer(
                 )
             }
             
-            Spacer(modifier = Modifier.height(subtitleTopPadding))
-            
-            // Elegant sub-title text tracking state
-            Text(
-                text = statusText.uppercase(),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 2.5.sp,
-                    color = Color.White.copy(alpha = 0.4f)
-                ),
-                textAlign = TextAlign.Center
-            )
+            if (statusText.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(subtitleTopPadding))
+                
+                // Elegant sub-title text tracking state
+                Text(
+                    text = statusText.uppercase(),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 2.5.sp,
+                        color = Color.White.copy(alpha = 0.4f),
+                        fontSize = 9.sp // Made it smaller as requested
+                    ),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }

@@ -10,8 +10,13 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme =
-  darkColorScheme(
+@Composable
+fun MyApplicationTheme(
+  darkTheme: Boolean = true, // Force dark theme
+  dynamicColor: Boolean = false, // Disable dynamic colors to preserve our tailored glow gradients
+  content: @Composable () -> Unit,
+) {
+  val colorScheme = darkColorScheme(
     primary = PurpleGlow,
     onPrimary = DarkPurple,
     secondary = PurpleGlow,
@@ -24,16 +29,6 @@ private val DarkColorScheme =
     error = AlertRed,
     onError = OffWhite
   )
-
-private val LightColorScheme = DarkColorScheme // Force dark theme for the ambient Always-on-Display utility look
-
-@Composable
-fun MyApplicationTheme(
-  darkTheme: Boolean = true, // Force dark theme
-  dynamicColor: Boolean = false, // Disable dynamic colors to preserve our tailored glow gradients
-  content: @Composable () -> Unit,
-) {
-  val colorScheme = DarkColorScheme
 
   MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }

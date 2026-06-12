@@ -149,7 +149,8 @@ fun PomodoroTabContent(
             modifier = modifier
                 .fillMaxSize()
                 .fadingEdgeMask(
-                    topFadeHeight = topBarPadding + 15.dp,
+                    topFadeMaxY = topBarPadding + 10.dp,
+                    topFadeHeight = 35.dp,
                     bottomFadeHeight = 100.dp
                 )
                 .padding(horizontal = if (isLargeTablet) 24.dp else 16.dp, vertical = 2.dp)
@@ -277,24 +278,19 @@ fun PomodoroTabContent(
                             
                             val isRunningMode = pomoStatus == PomodoroStatus.RUNNING
 
+                            val circleStatusText = when {
+                                focusState == FocusModeState.BREAK && pomoStatus != PomodoroStatus.IDLE -> "BREAK"
+                                else -> ""
+                            }
+
                             CircleProgressTimer(
                                 remainingMs = actualRemainingMs,
                                 totalMs = if (actualDurationMs > 0) actualDurationMs else 1L,
                                 displayString = formattedTime,
-                                statusText = primarySessionText,
+                                statusText = circleStatusText,
                                 onProgressColor = activeColor,
                                 glowEnabled = isRunningMode,
                                 sizeFraction = if (isCompactPhone) 0.55f else 0.70f
-                            )
-                            
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Text(
-                                text = cycleProgressText.uppercase(),
-                                color = Color.White.copy(alpha = 0.5f),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 2.sp
                             )
                         }
                     }
@@ -1009,7 +1005,7 @@ fun PomodoroConfigDialog(
                 Text("Cancel", color = Color.White.copy(alpha = 0.7f))
             }
         },
-        containerColor = Color(0xFF141419),
+        containerColor = com.example.ui.theme.CardBackground,
         textContentColor = Color.White
     )
 }
@@ -1082,23 +1078,26 @@ fun formatHistoryDate(dateStr: String): String {
  * enabling scrolling components to merge beautifully into standard background surfaces without sharp clip lines.
  */
 fun Modifier.fadingEdgeMask(
-    topFadeHeight: Dp,
+    topFadeMaxY: Dp,
+    topFadeHeight: Dp = 40.dp,
     bottomFadeHeight: Dp
 ): Modifier = this.graphicsLayer {
     // Force offscreen compositing strategy to allow blending modes on translucent canvas
     compositingStrategy = CompositingStrategy.Offscreen
 }.drawWithContent {
     drawContent()
-    val topFadePx = topFadeHeight.toPx()
+    val topMaxYPx = topFadeMaxY.toPx()
+    val topHeightPx = topFadeHeight.toPx()
     val bottomFadePx = bottomFadeHeight.toPx()
     val height = size.height
 
-    if (topFadePx > 0f) {
+    if (topMaxYPx > 0f) {
+        val startY = (topMaxYPx - topHeightPx).coerceAtLeast(0f)
         drawRect(
             brush = Brush.verticalGradient(
                 colors = listOf(Color.Transparent, Color.Black),
-                startY = 0f,
-                endY = topFadePx
+                startY = startY,
+                endY = topMaxYPx
             ),
             blendMode = BlendMode.DstIn
         )
@@ -1127,23 +1126,26 @@ fun FullHistoryScreen(
     val context = LocalContext.current
     var expandedDates by remember { mutableStateOf(setOf<String>()) }
     
+    val cyanGlow = com.example.ui.theme.CyanGlow
+    val purpleGlow = com.example.ui.theme.PurpleGlow
+    
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF090B11)) // deep dark charcoal base
+            .background(com.example.ui.theme.DarkBackground) // deep dark base
     ) {
         // Decorative ambient background glow (upper-right and center-left) matching cyan-blue theme
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0x1900F0FF), Color.Transparent),
+                    colors = listOf(cyanGlow.copy(alpha = 0.1f), Color.Transparent),
                     center = androidx.compose.ui.geometry.Offset(size.width * 0.9f, size.height * 0.1f),
                     radius = size.width * 0.6f
                 )
             )
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0x127C4DFF), Color.Transparent),
+                    colors = listOf(purpleGlow.copy(alpha = 0.08f), Color.Transparent),
                     center = androidx.compose.ui.geometry.Offset(size.width * 0.1f, size.height * 0.8f),
                     radius = size.width * 0.6f
                 )
@@ -1213,7 +1215,7 @@ fun FullHistoryScreen(
                         1.dp,
                         Brush.linearGradient(
                             listOf(
-                                Color(0xFF00F0FF).copy(alpha = 0.15f),
+                                com.example.ui.theme.CyanGlow.copy(alpha = 0.15f),
                                 Color.Transparent
                             )
                         ),
@@ -1324,7 +1326,7 @@ fun FullHistoryScreen(
                                     width = 1.dp,
                                     brush = Brush.horizontalGradient(
                                         colors = listOf(
-                                            if (isExpanded) Color(0xFF00F0FF).copy(alpha = 0.12f) else Color.White.copy(alpha = 0.04f),
+                                            if (isExpanded) com.example.ui.theme.CyanGlow.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.04f),
                                             Color.Transparent
                                         )
                                     ),

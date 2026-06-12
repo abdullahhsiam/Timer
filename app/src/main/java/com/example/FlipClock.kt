@@ -58,7 +58,7 @@ fun FlipCardDigit(
         modifier = modifier
             .width(width)
             .height(height)
-            .background(Color(0xFF0F1522), RoundedCornerShape(12.dp))
+            .background(com.example.ui.theme.CardBackground, RoundedCornerShape(12.dp))
             .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center
     ) {
@@ -172,7 +172,7 @@ fun DigitHalfStatic(
                 if (isTop) RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
                 else RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
             )
-            .background(Color(0xFF0F1522)),
+            .background(com.example.ui.theme.CardBackground),
         contentAlignment = Alignment.Center
     ) {
         Text(

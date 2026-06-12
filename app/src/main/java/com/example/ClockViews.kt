@@ -161,6 +161,7 @@ fun ClockAnalogView(viewModel: TimerStopwatchViewModel, currentTimeMillis: Long,
                     ),
                 contentAlignment = Alignment.Center
             ) {
+                val neonPink = com.example.ui.theme.NeonPink
                 Canvas(modifier = Modifier.fillMaxSize().padding(16.dp * scaleFactor)) {
                     val center = this.size.center
                     val radius = this.size.width / 2f
@@ -216,7 +217,7 @@ fun ClockAnalogView(viewModel: TimerStopwatchViewModel, currentTimeMillis: Long,
                     val secondAngle = Math.PI * smoothSecond / 30.0 - Math.PI / 2.0
                     val secLength = radius * 0.85f
                     drawLine(
-                        color = com.example.ui.theme.NeonPink,
+                        color = neonPink,
                         start = center,
                         end = Offset(
                             x = center.x + cos(secondAngle).toFloat() * secLength,
@@ -227,7 +228,7 @@ fun ClockAnalogView(viewModel: TimerStopwatchViewModel, currentTimeMillis: Long,
                     )
 
                     // Draw center dot
-                    drawCircle(color = com.example.ui.theme.NeonPink, radius = (6.dp * scaleFactor).toPx(), center = center)
+                    drawCircle(color = neonPink, radius = (6.dp * scaleFactor).toPx(), center = center)
                     drawCircle(color = Color.White, radius = (3.dp * scaleFactor).toPx(), center = center)
                 }
             }

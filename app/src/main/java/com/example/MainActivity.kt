@@ -108,8 +108,18 @@ class MainActivity : ComponentActivity() {
         viewModel.setBackgroundAnimated(prefs.getBoolean("is_background_animated", true))
 
         setContent {
-            MyApplicationTheme {
-                val alarmTriggered by viewModel.alarmTriggered.collectAsState()
+            val rawThemeTemperature by viewModel.themeTemperature.collectAsState()
+            val themeTemperature by androidx.compose.animation.core.animateFloatAsState(
+                targetValue = rawThemeTemperature,
+                animationSpec = androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = 200f),
+                label = "ThemeTransition"
+            )
+            
+            androidx.compose.runtime.CompositionLocalProvider(
+                com.example.ui.theme.LocalThemeTemperature provides themeTemperature
+            ) {
+                MyApplicationTheme {
+                    val alarmTriggered by viewModel.alarmTriggered.collectAsState()
                 val selectedSound by viewModel.selectedSound.collectAsState()
                 val isBackgroundAnimated by viewModel.isBackgroundAnimated.collectAsState()
 
@@ -154,9 +164,10 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-            }
-        }
-    }
+            } // Close MyApplicationTheme
+            } // Close CompositionLocalProvider
+        } // Close setContent
+    } // Close onCreate
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
@@ -254,7 +265,7 @@ fun MainScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF0F0F12)),
+                    .background(com.example.ui.theme.DarkBackground),
                 contentAlignment = Alignment.Center
             ) {
                 val isSwActive = stopwatchStatus != StopwatchStatus.IDLE
@@ -319,7 +330,6 @@ fun MainScreen(
                     .fillMaxSize()
                     .windowInsetsPadding(WindowInsets.statusBars)
                     .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
             ) {
                 var swipeOffset by remember { mutableFloatStateOf(0f) }
                 // 1. CENTER CONTAINER (DIALER & TIMERS): Perfect geometric anchoring
@@ -385,17 +395,7 @@ fun MainScreen(
                             alpha = 1f - fullScreenTransitionProgress
                             translationY = -35.dp.toPx() * fullScreenTransitionProgress
                         }
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    androidx.compose.material3.MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                                    androidx.compose.material3.MaterialTheme.colorScheme.background.copy(alpha = 0.85f),
-                                    androidx.compose.material3.MaterialTheme.colorScheme.background.copy(alpha = 0.3f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                        .padding(start = 14.dp, top = 6.dp, end = 14.dp, bottom = 24.dp),
+                        .padding(top = 6.dp, bottom = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(
@@ -403,13 +403,17 @@ fun MainScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 12.dp, bottom = 12.dp, start = 4.dp, end = 4.dp)
+                            .padding(top = 14.dp, bottom = 14.dp, start = 12.dp, end = 12.dp)
                     ) {
                         val configuration = androidx.compose.ui.platform.LocalConfiguration.current
                         val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
                         val isCompactWidth = configuration.screenWidthDp < 480
 
-                        Box(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 12.dp)
+                        ) {
                             if (isCompactWidth && isPortrait) {
                                 Column(
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -423,7 +427,7 @@ fun MainScreen(
                                     VisualModeSwitcher(
                                         activeMode = activeVisualMode,
                                         onModeSelected = { viewModel.selectVisualMode(it) },
-                                        modifier = Modifier.fillMaxWidth(0.9f)
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
                             } else {
@@ -478,7 +482,7 @@ fun MainScreen(
                                             modifier = Modifier
                                                 .width(280.dp)
                                                 .clip(RoundedCornerShape(16.dp))
-                                                .background(Color(0xFF141419))
+                                                .background(com.example.ui.theme.CardBackground)
                                                 .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(16.dp))
                                                 .padding(vertical = 8.dp)
                                         ) {
@@ -519,6 +523,35 @@ fun MainScreen(
                                                     )
                                                 }
                                             )
+
+                                            val rawThemeTemperature by viewModel.themeTemperature.collectAsState()
+                                            
+                                            // Theme Temperature slider
+                                            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                                Text(
+                                                    text = "Theme Palette",
+                                                    color = Color.White.copy(alpha = 0.9f),
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                                                ) {
+                                                    Text("Cold", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                                                    Slider(
+                                                        value = rawThemeTemperature,
+                                                        onValueChange = { viewModel.setThemeTemperature(it) },
+                                                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                                                        colors = SliderDefaults.colors(
+                                                            thumbColor = PurpleGlow,
+                                                            activeTrackColor = CyanGlow,
+                                                            inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                                                        )
+                                                    )
+                                                    Text("Warm", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                                                }
+                                            }
 
                                             SettingsMenuItem(
                                                 icon = if (isAlwaysOn) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
@@ -694,7 +727,7 @@ fun SlidingTabSwitcher(
                 width = 1.dp,
                 brush = Brush.horizontalGradient(
                     colors = listOf(
-                        Color(0xFF00F0FF).copy(alpha = 0.15f), // subtle cyan stroke
+                        com.example.ui.theme.CyanGlow.copy(alpha = 0.15f), // subtle amber stroke
                         Color.White.copy(alpha = 0.04f)
                     )
                 ),
@@ -707,7 +740,7 @@ fun SlidingTabSwitcher(
         val tabWidth = totalWidth / 4
         val stretchWidth = tabWidth + (12.dp * Math.max(0.0, kotlin.math.sin(tabProgress * Math.PI)).toFloat())
 
-        // Sliding glassmorphic indicator capsule in premium cyan-blue gradient
+        // Sliding glassmorphic indicator capsule in premium warm gradient
         Box(
             modifier = Modifier
                 .offset(x = tabWidth * tabProgress)
@@ -720,8 +753,8 @@ fun SlidingTabSwitcher(
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            Color(0xFF00F0FF).copy(alpha = 0.20f), // cyan glow
-                            Color(0xFF0080FF).copy(alpha = 0.12f)  // ocean blue glow
+                            com.example.ui.theme.CyanGlow.copy(alpha = 0.20f), // cyan glow
+                            com.example.ui.theme.PurpleGlow.copy(alpha = 0.12f)  // coral glow
                         )
                     )
                 )
@@ -796,7 +829,7 @@ fun VisualModeSwitcher(
                 width = 1.dp,
                 brush = Brush.horizontalGradient(
                     colors = listOf(
-                        Color(0xFF00F0FF).copy(alpha = 0.15f), // subtle cyan stroke
+                        com.example.ui.theme.CyanGlow.copy(alpha = 0.15f), // subtle amber stroke
                         Color.White.copy(alpha = 0.04f)
                     )
                 ),
@@ -819,8 +852,8 @@ fun VisualModeSwitcher(
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            Color(0xFF00F0FF).copy(alpha = 0.20f), // cyan glow focus
-                            Color(0xFF0080FF).copy(alpha = 0.12f)  // ocean blue secondary gradient
+                            com.example.ui.theme.CyanGlow.copy(alpha = 0.20f), // cyan glow focus
+                            com.example.ui.theme.PurpleGlow.copy(alpha = 0.12f)  // coral secondary gradient
                         )
                     )
                 )
@@ -977,7 +1010,7 @@ fun TimerCircleView(viewModel: TimerStopwatchViewModel, timerStatus: TimerStatus
 fun ReactiveTimerFace(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isLandscape: Boolean) {
     val timerStatus by viewModel.timerStatus.collectAsState()
     val activeVisualMode by viewModel.activeVisualMode.collectAsState()
-    val accentColor = if (activeVisualMode == 1) Color(0xFF4C8DFF) else PurpleGlow
+    val accentColor = if (activeVisualMode == 1) com.example.ui.theme.CyanGlow else com.example.ui.theme.PurpleGlow
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -1018,7 +1051,7 @@ fun TimerTabContent(viewModel: TimerStopwatchViewModel) {
 
     val isTimerActive = timerStatus == TimerStatus.RUNNING || timerStatus == TimerStatus.PAUSED
     val activeVisualMode by viewModel.activeVisualMode.collectAsState()
-    val accentColor = if (activeVisualMode == 1) Color(0xFF4C8DFF) else PurpleGlow
+    val accentColor = if (activeVisualMode == 1) com.example.ui.theme.CyanGlow else com.example.ui.theme.PurpleGlow
 
     val transition = updateTransition(targetState = isTimerActive, label = "dialer_to_timer")
     val transitionProgress by transition.animateFloat(
@@ -1491,7 +1524,7 @@ fun StopwatchCircleView(viewModel: TimerStopwatchViewModel, stopwatchStatus: Sto
 fun ReactiveStopwatchFace(viewModel: TimerStopwatchViewModel, isTablet: Boolean, isCompactHeightScreen: Boolean, isLandscape: Boolean) {
     val stopwatchStatus by viewModel.stopwatchStatus.collectAsState()
     val activeVisualMode by viewModel.activeVisualMode.collectAsState()
-    val accentColorPrimary = if (activeVisualMode == 1) Color(0xFF4C8DFF) else PurpleGlow
+    val accentColorPrimary = if (activeVisualMode == 1) com.example.ui.theme.CyanGlow else com.example.ui.theme.PurpleGlow
 
     AnimatedContent(
         targetState = activeVisualMode,
@@ -1514,8 +1547,8 @@ fun StopwatchTabContent(viewModel: TimerStopwatchViewModel) {
     val stopwatchStatus by viewModel.stopwatchStatus.collectAsState()
     val laps by viewModel.laps.collectAsState()
     val activeVisualMode by viewModel.activeVisualMode.collectAsState()
-    val accentColorPrimary = if (activeVisualMode == 1) Color(0xFF4C8DFF) else PurpleGlow
-    val accentColorSecondary = if (activeVisualMode == 1) Color(0xFF00E6FF) else NeonPink
+    val accentColorPrimary = if (activeVisualMode == 1) com.example.ui.theme.CyanGlow else com.example.ui.theme.PurpleGlow
+    val accentColorSecondary = if (activeVisualMode == 1) com.example.ui.theme.CyanGlow else com.example.ui.theme.NeonPink
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -1983,7 +2016,7 @@ fun SoundSelectionDialog(
     }) {
         Card(
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF141419)),
+            colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CardBackground),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
@@ -2094,7 +2127,7 @@ fun SoundSelectionDialog(
                                 Icon(
                                     imageVector = if (isCurrentlyPreviewing) Icons.Default.Stop else Icons.Default.PlayArrow,
                                     contentDescription = "Preview",
-                                    tint = if (isCurrentlyPreviewing) Color(0xFF381E72) else Color.White,
+                                    tint = if (isCurrentlyPreviewing) com.example.ui.theme.DarkBackground else Color.White,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -2232,10 +2265,13 @@ fun IntroSplashAnimation(onFinished: () -> Unit) {
         onFinished()
     }
 
+    val darkPurple = com.example.ui.theme.DarkPurple
+    val cyanGlow = com.example.ui.theme.CyanGlow
+    
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0C0C0E).copy(alpha = alpha.value)),
+            .background(com.example.ui.theme.DarkBackground.copy(alpha = alpha.value)),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -2252,8 +2288,8 @@ fun IntroSplashAnimation(onFinished: () -> Unit) {
                     brush = Brush.radialGradient(
                         colors = listOf(
                             Color.White.copy(alpha = bloomAlpha * 0.85f),
-                            Color(0xFF5B21B6).copy(alpha = bloomAlpha * 0.55f), // Premium Royal Purple Inner Glow
-                            Color(0xFF00E6FF).copy(alpha = bloomAlpha * 0.25f), // Shifting Cyan Outer Glow
+                            darkPurple.copy(alpha = bloomAlpha * 0.55f), // Premium Theme Inner Glow
+                            cyanGlow.copy(alpha = bloomAlpha * 0.25f), // Shifting Theme Outer Glow
                             Color.Transparent
                         ),
                         center = center,
@@ -2524,7 +2560,7 @@ fun MockSmartphoneEcosystem(config: AppAppearanceConfig) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(Color(0xFF0C091A))
+            .background(com.example.ui.theme.CardBackground)
             .border(3.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(24.dp))
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -3382,7 +3418,7 @@ fun DesignTabContent(viewModel: TimerStopwatchViewModel) {
                     Button(
                         onClick = { showImportDialog = true },
                         modifier = Modifier.weight(1.3f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E1E24))
+                        colors = ButtonDefaults.buttonColors(containerColor = com.example.ui.theme.CardBackground)
                     ) {
                         Text("Import/Paste JSON Preset", color = Color.White, fontSize = 11.sp)
                     }
@@ -3453,7 +3489,7 @@ fun DesignTabContent(viewModel: TimerStopwatchViewModel) {
     if (showSavePresetDialog) {
         Dialog(onDismissRequest = { showSavePresetDialog = false }) {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF141416)),
+                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CardBackground),
                 border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.padding(16.dp)
@@ -3494,7 +3530,7 @@ fun DesignTabContent(viewModel: TimerStopwatchViewModel) {
     if (showImportDialog) {
         Dialog(onDismissRequest = { showImportDialog = false }) {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF141416)),
+                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CardBackground),
                 border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.padding(16.dp)
@@ -3597,7 +3633,7 @@ fun AppearanceSettingsDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F12)),
+            colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.DarkBackground),
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.9f)
